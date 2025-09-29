@@ -1,9 +1,9 @@
-
-
 /* 颜色变量 */
 :root {
     --quote-left-color: #dadde1;
-  }
+
+    /* alerts color */
+}
 
 [data-theme="dark"] {
     --quote-left-color: #606770;
@@ -254,6 +254,36 @@
   color: #4b1113;
 }
 
+[data-theme="dark"] .note {
+  border-color: #757575; /* Indigo */
+  background: #2d2d2d;
+  color: #c7c7c7;
+}
+
+[data-theme="dark"] .tip {
+  border-color: #009400; /* Emerald */
+  background: #1a2e1a;
+  color: #a8e6a8;
+}
+
+[data-theme="dark"] .important {
+  border-color: #4cb3d4; /* Red */
+  background: #1a2d33;
+  color: #a3d9e9;
+}
+
+[data-theme="dark"] .warning {
+  border-color: #e6a700; /* Amber */
+  background: #332a00;
+  color: #f2d680;
+}
+
+[data-theme="dark"] .caution {
+  border-color: #e13238; /* Yellow */
+  background: #3b1d1e;
+  color: #f2a0a3;
+}
+
 .admonition-title {
   font-weight: bold;
   font-size: large;
@@ -267,9 +297,6 @@
 .important .admonition-title { color: #b91c1c; }
 .note .admonition-title      { color: #3730a3; }
 .caution .admonition-title   { color: #854d0e; } */
-
-/* ... existing code ... */
-
 
 .admonition-title::before {
   display: inline-block;

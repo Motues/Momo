@@ -20,7 +20,7 @@ const indexPage = "/"
     </div>
     <!-- nav_bar -->
     <div id="nav-bar" class="hidden md:flex absolute left-1/2 transform -translate-x-1/2 justify-center items-center text-lg font-bold">
-        <div id="nav-bar-list" class="transition relative z-10 flex max-w-max flex-1 items-center justify-center rounded-outer p-2 backdrop-blur-lg rounded-xl bg-[color:var(--bg-color)]/20">
+        <div id="nav-bar-list" class="transition relative z-10 flex max-w-max flex-1 items-center justify-center rounded-outer p-2 backdrop-blur rounded-xl bg-[color:var(--bg-color)]/20">
             <a href={ indexPage } class="transition-colors hover:bg-[var(--button-hover-color)] rounded-lg px-3 py-1 mx-1 hover:text-current">主页</a>
             <a href="/archives" class="transition-colors hover:bg-[var(--button-hover-color)] rounded-lg px-3 py-1 mx-1 hover:text-current">归档</a>
             <!-- <a href="/message"  class="transition-colors hover:bg-[var(--button-hover-color)] rounded-lg px-3 py-1 mx-1 hover:text-current">备忘录</a> -->
@@ -49,7 +49,7 @@ const indexPage = "/"
 </div>
 
 <!-- Mobile Menu -->
-<div id="mobile-menu" class="md:hidden hidden fixed top-16 left-0 w-full bg-white shadow-lg z-50">
+<div id="mobile-menu" class="md:hidden hidden fixed top-16 left-0 w-full bg-[var(--bg-color)] text-[var(--text-color)] shadow-lg z-50">
     <div class="flex flex-col py-2">
         <a href={ indexPage } class="px-6 py-3 hover:bg-[var(--button-hover-color)]">主页</a>
         <a href="/archives"  class="px-6 py-3 hover:bg-[var(--button-hover-color)]">归档</a>
