@@ -1,0 +1,21 @@
+---
+import MainPageLayout from '@layouts/MainPageLayout.astro';
+import ImageModule from '@components/misc/ImageModule.astro';
+import Cover from '@components/Cover.astro';
+
+import { siteConfig } from '@/config'
+import { Image } from 'astro:assets';
+
+const pageTitle = "404 - " + siteConfig.title;
+---
+<MainPageLayout title={pageTitle}>
+    <div class="mx-auto w-full max-w-[var(--page-width)]">
+        <Cover title="秘密" subTitle="恭喜你发现一片未知的世界，这片世界还处于建设之中，请过段时间再来看看呢！" />
+        <ImageModule src={"assets/404.png"} alt="404" class="mx-auto" />
+        <br />
+        <div class="text-center">
+            <!-- <p>恭喜你发现一片未知的世界，这片世界还处于建设之中，请过段时间再来看看呢！</p> -->
+            <a href="/" class="text-blue-500 hover:underline">Go back to home</a>
+        </div>
+    </div>
+</MainPageLayout>

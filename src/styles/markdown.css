@@ -1,0 +1,300 @@
+
+
+/* 颜色变量 */
+:root {
+    --quote-left-color: #dadde1;
+  }
+
+[data-theme="dark"] {
+    --quote-left-color: #606770;
+}
+
+.markdown-content {
+  line-height: 1.75;
+}
+
+.markdown-content h1 {
+  padding: 0.5rem 0;
+  font-size: 2rem;
+  font-weight: 700;
+  margin: 2rem 0 1rem;
+  border-bottom: 1px solid var(--text-color);
+}
+
+.markdown-content h2 {
+  padding: 0.4rem 0;
+  font-size: 1.75rem;
+  font-weight: 700;
+  margin: 1.8rem 0 1rem;
+  border-bottom: 1px solid var(--text-color);
+}
+
+.markdown-content h3 {
+  font-size: 1.5rem;
+  font-weight: 600;
+  margin: 1.5rem 0 0.8rem;
+}
+
+.markdown-content h4 {
+  font-size: 1.25rem;
+  font-weight: 600;
+  margin: 1.2rem 0 0.6rem;
+}
+
+.markdown-content h5 {
+  font-size: 1.1rem;
+  font-weight: 600;
+  margin: 1rem 0 0.5rem;
+}
+
+.markdown-content h6 {
+  font-size: 1rem;
+  font-weight: 600;
+  margin: 1rem 0 0.5rem;
+}
+
+.markdown-content p {
+  margin: 0.8rem 0;
+  text-align: justify;
+}
+
+.markdown-content {
+  color: var(--text-color);
+}
+
+.markdown-content a {
+  color: inherit;
+  /* transition: color 0.3s ease; */
+  text-decoration: none;
+  position: relative;
+  display: inline-block;
+}
+    
+.markdown-content a::before {
+  content: "";
+  position: absolute;
+  bottom: 4px;
+  left: 0;
+  width: 100%;
+  border-bottom-style: dotted;
+  border-bottom-width: 2px;
+  /* background: currentColor; */
+  transition: transform 0.3s ease;
+  transform-origin: right;
+  transform: scaleX(1);
+}
+    
+.markdown-content a:hover {
+  color: var(--link-color);
+}
+    
+.markdown-content a:hover::before {
+  transform-origin: right;
+  transform: scaleX(0);
+}
+
+.markdown-content strong {
+  font-weight: 700;
+}
+
+.markdown-content em {
+  font-style: italic;
+}
+
+.markdown-content ul {
+  margin: 1rem 0;
+  padding-left: 1.5rem;
+  list-style-type: disc;
+}
+
+.markdown-content ol {
+  margin: 1rem 0;
+  padding-left: 1.5rem;
+  list-style-type: decimal;
+}
+
+.markdown-content li {
+  margin: 0.3rem 0;
+}
+
+.markdown-content li > ul,
+.markdown-content li > ol {
+  margin: 0;
+}
+
+.markdown-content blockquote {
+  margin: 1.5rem 0;
+  padding: 0.1rem 1.2rem;
+  border-left: 4px solid var(--quote-left-color);
+  background-color: rgba(0, 0, 0, 0.03);
+  color: #666;
+}
+
+[data-theme="dark"] .markdown-content blockquote {
+  background-color: rgba(255, 255, 255, 0.05);
+  color: #aaa;
+}
+
+.markdown-content p code,
+.markdown-content li code,
+.markdown-content h2 code,
+.markdown-content h3 code,
+.markdown-content table code {
+  padding: 0.2rem 0.4rem;
+  background-color: rgba(0, 0, 0, 0.05);
+  border-radius: 4px;
+  font-family: 'JetBrains Mono Variable', ui-monospace;
+  font-size: 0.9em;
+}
+
+
+[data-theme="dark"] .markdown-content p code {
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+.markdown-content pre {
+  margin: 1.5rem 0;
+  padding: 1rem;
+  overflow: auto;
+  background-color: rgba(0, 0, 0, 0.05);
+  border-radius: 6px;
+  font-family: 'JetBrains Mono Variable', ui-monospace;
+  line-height: 1.5;
+}
+
+[data-theme="dark"] .markdown-content pre {
+  background-color: rgba(0, 0, 0, 0.2);
+}
+
+.markdown-content pre code {
+  padding: 0;
+  background: none;
+  font-size: 0.9rem;
+}
+
+.markdown-content hr {
+  margin: 2rem 0;
+  border: none;
+  border-top: 1px solid var(--border-color);
+}
+
+.markdown-content table {
+  width: 100%;
+  margin: 1.5rem 0;
+  border-collapse: collapse;
+  border-spacing: 0;
+}
+
+.markdown-content th,
+.markdown-content td {
+  padding: 0.5rem 1rem;
+  border: 1px solid var(--border-color);
+}
+
+.markdown-content th {
+  font-weight: 600;
+  background-color: rgba(0, 0, 0, 0.03);
+}
+
+[data-theme="dark"] .markdown-content th {
+  background-color: rgba(255, 255, 255, 0.05);
+}
+
+.markdown-content img {
+  max-width: 100%;
+  height: auto;
+  margin: 1rem auto;
+  display: block;
+  /* border-radius: 6px;
+  box-shadow: 0 2px 8px var(--image-shadow-color); */
+}
+
+.markdown-content hr {
+  margin: 2rem 0;
+  border: none;
+  height: 1px;
+  background: var(--text-color);
+}
+
+/* src/styles/alerts.css 或直接写在组件里 */
+.note, .tip, .warning, .important, .caution {
+  padding: 0.5rem 1rem;
+  border-radius: 0.25rem;
+  margin: 1rem 0;
+  /* border-left: 6px solid; */
+}
+
+.note {
+  border-color: #757575; /* Indigo */
+  background: #eeeeee;
+  color: #474747;
+}
+
+.tip {
+  border-color: #009400; /* Emerald */
+  background: #e6f6e6;
+  color: #003100;
+}
+
+.important {
+  border-color: #4cb3d4; /* Red */
+  background: #eef9fd;
+  color: #193c47;
+}
+
+.warning {
+  border-color: #e6a700; /* Amber */
+  background: #fff7ed;
+  color: #4d3800;
+}
+
+.caution {
+  border-color: #e13238; /* Yellow */
+  background: #ffebec;
+  color: #4b1113;
+}
+
+.admonition-title {
+  font-weight: bold;
+  font-size: large;
+  margin-bottom: 0.5rem;
+  display: flex;
+  align-items: center;
+}
+
+/* .tip .admonition-title       { color: #047857; }
+.warning .admonition-title   { color: #92400e; }
+.important .admonition-title { color: #b91c1c; }
+.note .admonition-title      { color: #3730a3; }
+.caution .admonition-title   { color: #854d0e; } */
+
+/* ... existing code ... */
+
+
+.admonition-title::before {
+  display: inline-block;
+  width: 18px;
+  height: 18px;
+  margin-right: 8px;
+  vertical-align: middle;
+  background-size: contain;
+  background-repeat: no-repeat;
+  content: "";
+}
+
+.note .admonition-title::before {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='%757575'%3E%3Cpath d='M0 8a8 8 0 1 1 16 0A8 8 0 0 1 0 8Zm8-6.5a6.5 6.5 0 1 0 0 13 6.5 6.5 0 0 0 0-13ZM6.5 7.75A.75.75 0 0 1 7.25 7h1a.75.75 0 0 1 .75.75v2.75h.25a.75.75 0 0 1 0 1.5h-2a.75.75 0 0 1 0-1.5h.25v-2h-.25a.75.75 0 0 1-.75-.75ZM8 6a1 1 0 1 1 0-2 1 1 0 0 1 0 2Z'%3E%3C/path%3E%3C/svg%3E");
+}
+.tip .admonition-title::before {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='%23009400'%3E%3Cpath d='M8 1.5c-2.363 0-4 1.69-4 3.75 0 .984.424 1.625.984 2.304l.214.253c.223.264.47.556.673.848.284.411.537.896.621 1.49a.75.75 0 0 1-1.484.211c-.04-.282-.163-.547-.37-.847a8.456 8.456 0 0 0-.542-.68c-.084-.1-.173-.205-.268-.32C3.201 7.75 2.5 6.766 2.5 5.25 2.5 2.31 4.863 0 8 0s5.5 2.31 5.5 5.25c0 1.516-.701 2.5-1.328 3.259-.095.115-.184.22-.268.319-.207.245-.383.453-.541.681-.208.3-.33.565-.37.847a.751.751 0 0 1-1.485-.212c.084-.593.337-1.078.621-1.489.203-.292.45-.584.673-.848.075-.088.147-.173.213-.253.561-.679.985-1.32.985-2.304 0-2.06-1.637-3.75-4-3.75ZM5.75 12h4.5a.75.75 0 0 1 0 1.5h-4.5a.75.75 0 0 1 0-1.5ZM6 15.25a.75.75 0 0 1 .75-.75h2.5a.75.75 0 0 1 0 1.5h-2.5a.75.75 0 0 1-.75-.75Z'%3E%3C/path%3E%3C/svg%3E");
+}
+.important .admonition-title::before {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='%234cb3d4'%3E%3Cpath d='M0 1.75C0 .784.784 0 1.75 0h12.5C15.216 0 16 .784 16 1.75v9.5A1.75 1.75 0 0 1 14.25 13H8.06l-2.573 2.573A1.458 1.458 0 0 1 3 14.543V13H1.75A1.75 1.75 0 0 1 0 11.25Zm1.75-.25a.25.25 0 0 0-.25.25v9.5c0 .138.112.25.25.25h2a.75.75 0 0 1 .75.75v2.19l2.72-2.72a.749.749 0 0 1 .53-.22h6.5a.25.25 0 0 0 .25-.25v-9.5a.25.25 0 0 0-.25-.25Zm7 2.25v2.5a.75.75 0 0 1-1.5 0v-2.5a.75.75 0 0 1 1.5 0ZM9 9a1 1 0 1 1-2 0 1 1 0 0 1 2 0Z'%3E%3C/path%3E%3C/svg%3E");
+}
+.warning .admonition-title::before {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='%23e6a700'%3E%3Cpath d='M6.457 1.047c.659-1.234 2.427-1.234 3.086 0l6.082 11.378A1.75 1.75 0 0 1 14.082 15H1.918a1.75 1.75 0 0 1-1.543-2.575Zm1.763.707a.25.25 0 0 0-.44 0L1.698 13.132a.25.25 0 0 0 .22.368h12.164a.25.25 0 0 0 .22-.368Zm.53 3.996v2.5a.75.75 0 0 1-1.5 0v-2.5a.75.75 0 0 1 1.5 0ZM9 11a1 1 0 1 1-2 0 1 1 0 0 1 2 0Z'%3E%3C/path%3E%3C/svg%3E");
+}
+.caution .admonition-title::before {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='%23e13238'%3E%3Cpath d='M4.47.22A.749.749 0 0 1 5 0h6c.199 0 .389.079.53.22l4.25 4.25c.141.14.22.331.22.53v6a.749.749 0 0 1-.22.53l-4.25 4.25A.749.749 0 0 1 11 16H5a.749.749 0 0 1-.53-.22L.22 11.53A.749.749 0 0 1 0 11V5c0-.199.079-.389.22-.53Zm.84 1.28L1.5 5.31v5.38l3.81 3.81h5.38l3.81-3.81V5.31L10.69 1.5ZM8 4a.75.75 0 0 1 .75.75v3.5a.75.75 0 0 1-1.5 0v-3.5A.75.75 0 0 1 8 4Zm0 8a1 1 0 1 1 0-2 1 1 0 0 1 0 2Z'%3E%3C/path%3E%3C/svg%3E");
+}
+

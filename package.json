@@ -1,0 +1,35 @@
+{
+  "name": "momo",
+  "type": "module",
+  "version": "0.0.1",
+  "scripts": {
+    "dev": "astro dev",
+    "build": "astro build && pagefind --site dist",
+    "preview": "astro preview",
+    "astro": "astro"
+  },
+  "dependencies": {
+    "@astrojs/rss": "^4.0.12",
+    "@fontsource-variable/jetbrains-mono": "^5.2.8",
+    "@tailwindcss/vite": "^4.1.13",
+    "astro": "^5.13.7",
+    "astro-icon": "^1.1.5",
+    "hastscript": "^9.0.1",
+    "katex": "^0.16.22",
+    "pagefind": "^1.4.0",
+    "rehype-components": "^0.3.0",
+    "rehype-katex": "^7.0.1",
+    "remark-directive": "^4.0.0",
+    "remark-math": "^6.0.0",
+    "sharp": "^0.34.3",
+    "tailwindcss": "^4.1.13",
+    "unist-util-visit": "^5.0.0"
+  },
+  "devDependencies": {
+    "@iconify-json/fa6-brands": "^1.2.6",
+    "@iconify-json/fa6-solid": "^1.2.4",
+    "@iconify-json/material-symbols": "^1.2.35",
+    "@iconify-json/simple-icons": "^1.2.48",
+    "@iconify-json/vscode-icons": "^1.2.29"
+  }
+}

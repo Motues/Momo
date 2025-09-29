@@ -1,0 +1,69 @@
+---
+import { Icon } from "astro-icon/components";
+---
+
+<button id="backTop" title="回到顶部" class="fixed bottom-[4vh] right-[4vw] w-12 h-12 rounded-full bg-[--bg-color] cursor-pointer flex items-center justify-center z-[1000] transition-all duration-300 opacity-90 border-0 hover:scale-110 hover:shadow-[0_4px_15px_rgba(59,130,246,0.4)] hidden">
+  <!-- 圆形进度条 -->
+  <svg class="absolute top-0 left-0 w-full h-full -rotate-90" viewBox="0 0 48 48">
+    <circle id="circle" cx="24" cy="24" r="20" fill="none" stroke="currentColor" stroke-width="2"></circle>
+    <circle id="progress-circle" cx="24" cy="24" r="20" fill="none" stroke="currentColor" stroke-width="2" stroke-dasharray="0 125.6" stroke-linecap="round"></circle>
+  </svg>
+  <!-- 向上的图标 -->
+  <Icon name="fa6-solid:arrow-up" class="relative z-10 text-lg text-[var(--text-color)]" />
+</button>
+
+<script is:inline>
+const backTopButton = document.getElementById('backTop');
+const progressCircle = document.getElementById('progress-circle');
+
+// 显示/隐藏回到顶部按钮并更新进度条
+const handleScroll = () => {
+  const scrollTop = window.scrollY || document.documentElement.scrollTop;
+  const documentHeight = document.documentElement.scrollHeight - document.documentElement.clientHeight;
+  const scrollPercent = documentHeight > 0 ? Math.min(100, Math.round((scrollTop / documentHeight) * 100)) : 0;
+  
+  // 更新进度条
+  const circumference = 2 * Math.PI * 20; // 2 * π * r
+  const offset = circumference - (scrollPercent / 100) * circumference;
+  progressCircle.style.strokeDasharray = `${circumference - offset} ${offset}`;
+  
+  // 显示/隐藏按钮 (仅在大屏幕显示)
+  if (window.innerWidth >= 1024 && scrollTop > 10) {
+    backTopButton.classList.remove('hidden');
+  } else {
+    backTopButton.classList.add('hidden');
+  }
+};
+
+// 回到顶部功能
+const scrollToTop = () => {
+  window.scrollTo({
+    top: 0,
+    behavior: 'smooth'
+  });
+};
+
+// 添加事件监听器
+window.addEventListener('scroll', handleScroll);
+backTopButton?.addEventListener('click', scrollToTop);
+
+// 监听窗口大小变化
+window.addEventListener('resize', handleScroll);
+
+// 初始化时检查是否需要显示按钮
+handleScroll();
+</script>
+
+<style is:global>
+  #backTop {
+    box-shadow: 0 2px 10px var(--shadow-color);
+  }
+
+  #progress-circle {
+    stroke: var(--text-color);
+  }
+
+  #circle {
+    stroke: var(--button-border-color);
+  }
+</style>

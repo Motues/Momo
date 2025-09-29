@@ -1,0 +1,84 @@
+---
+import MainPageLayout from '@layouts/MainPageLayout.astro'
+import Cover from '@components/Cover.astro'
+
+import { siteConfig } from '@/config'
+import { formatDateToChinese } from '@utils/url-utils'
+import { getBlogEntrySort } from '@utils/content-utils'
+
+import { getCollection } from 'astro:content'
+
+// 获取所有博客文章并按发布日期降序排序
+const allBlogPosts = await getBlogEntrySort();
+
+
+// 按年份分组文章
+const postsByYear = allBlogPosts.reduce((acc, post) => {
+  const year = post.data.pubDate.getFullYear();
+  if (!acc[year]) {
+    acc[year] = [];
+  }
+  acc[year].push(post);
+  return acc;
+}, {} as Record<number, typeof allBlogPosts>);
+
+const pageTitle = "归档 - " + siteConfig.title;
+---
+
+<MainPageLayout title={pageTitle}>
+    <div class="archives mx-auto w-full max-w-[min(494px,90%)]">
+        <Cover title='文章归档' subTitle=`共 ${allBlogPosts.length} 篇文章`/>
+        
+        <div class="space-y-8">
+            {Object.keys(postsByYear).sort().reverse().map(year => (
+                <div>
+                    <h2 class="text-3xl text-[var(--text-color)] font-bold text-center mb-4">{year}</h2>
+                    <ul class="space-y-2">
+                        {postsByYear[Number(year)].map(post => (
+                            <li class="flex items-center">
+                                <span class="text-lg text-[var(--text-color)]/60 mr-3 min-w-[150px]">
+                                    {formatDateToChinese(post.data.pubDate)}
+                                </span>
+                                <a href={`/blog/${post.id}`} class="text-lg font-bold text-[var(--text-color)] hover:text-[var(--link-color)] transition-colors">
+                                    {post.data.title}
+                                </a>
+                            </li>
+                        ))}
+                    </ul>
+                </div>
+            ))}
+        </div>
+    </div>
+</MainPageLayout>
+
+<style>
+   .archives a {
+        /* transition: color 0.3s ease; */
+        text-decoration: none;
+        position: relative;
+        display: inline-block;
+    }
+    
+    .archives a::before {
+        content: "";
+        position: absolute;
+        bottom: 1px;
+        left: 0;
+        width: 100%;
+        border-bottom-style: dotted;
+        border-bottom-width: 2px;
+        /* background: currentColor; */
+        transition: transform 0.3s ease;
+        transform-origin: right;
+        transform: scaleX(1);
+    }
+    
+    .archives a:hover {
+        color: var(--link-color);
+    }
+    
+    .archives a:hover::before {
+        transform-origin: right;
+        transform: scaleX(0);
+    }
+</style>

@@ -1,0 +1,115 @@
+---
+import { formatDateToChinese } from "@utils/url-utils";
+
+const { messages } = Astro.props;
+---
+
+<div class="space-y-4">
+  {
+    messages && messages.length > 0 ? (
+      messages.map((message) => {
+        return (
+          <div class="bg-[var(--postcard-bg-color)]/50  rounded-xl  overflow-hidden  transition-all duration-300 message-item border border-[var(--button-border-color)] ">
+            <div class="px-6 py-3 bg-[var(--postcard-bg-color)]  border-b border-[var(--button-border-color)] ">
+                <span class="text-sm font-medium text-[var(--text-color)]/60  flex items-center">
+                  <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                  </svg>
+                  {formatDateToChinese(message.time)}
+                </span>
+            </div>
+            <div class="px-6 py-4">
+                <p class="text-[var(--text-color)]/90  whitespace-pre-wrap relative overflow-hidden message-content leading-relaxed transition-all duration-300 ease-in-out" 
+                   style="max-height: 6rem;">{message.content}
+                </p>
+                    <button class="toggle-button mt-3 inline-flex items-center text-sm font-medium text-blue-600 hover:text-blue-800 transition-colors duration-200">
+                        <span class="flex items-center">
+                            展开
+                            <svg class="w-4 h-4 ml-1 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                            </svg>
+                        </span>
+                    </button>
+            </div>
+          </div>
+        );
+      })
+    ) : (
+      <div class="bg-white rounded-xl shadow-md overflow-hidden py-16 text-center border border-gray-100 ">
+        <div class="flex justify-center mb-4">
+          <svg class="w-12 h-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+          </svg>
+        </div>
+        <p class="text-gray-500  text-lg">暂无备忘录</p>
+      </div>
+    )
+  }
+</div>
+
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    // 为每条消息内容添加展开/收起功能
+    const messageItems = document.querySelectorAll('.message-item');
+                          
+    messageItems.forEach(item => {
+      const content = item.querySelector('.message-content');
+      const toggleButton = item.querySelector('.toggle-button');
+                            
+      // 检查元素是否存在
+      if (content && toggleButton) {
+      // 类型断言，确保元素是 HTMLElement 类型
+      const contentElement = content as HTMLElement;
+      const toggleButtonElement = toggleButton as HTMLElement;
+      
+      // 使用 setTimeout 确保 DOM 渲染完成后再检查
+      setTimeout(() => {
+        // 保存原始高度
+        const originalHeight = contentElement.clientHeight;
+        
+        // 设置初始状态为折叠
+        contentElement.style.maxHeight = '6rem';
+        contentElement.classList.add('overflow-hidden');
+        
+        // 检查内容是否超出4行（大约6rem）
+        const isOverflowing = contentElement.scrollHeight > originalHeight;
+        
+        if (isOverflowing) {
+          let isExpanded = false;
+          
+          toggleButtonElement.addEventListener('click', () => {
+            isExpanded = !isExpanded;
+            
+            if (isExpanded) {
+              // 展开内容
+              contentElement.style.maxHeight = contentElement.scrollHeight + 'px';
+              toggleButtonElement.innerHTML = `
+                <span class="flex items-center">
+                  收起
+                  <svg class="w-4 h-4 ml-1 rotate-180 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                  </svg>
+                </span>
+              `;
+            } else {
+              // 收起内容
+              contentElement.style.maxHeight = '6rem';
+              toggleButtonElement.innerHTML = `
+                <span class="flex items-center">
+                  展开
+                  <svg class="w-4 h-4 ml-1 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                  </svg>
+                </span>
+              `;
+            }
+          });
+        } else {
+          // 如果内容没有溢出，隐藏按钮
+          toggleButtonElement.style.display = 'none';
+        }
+      }, 0);
+      }
+    });
+  });
+  </script>

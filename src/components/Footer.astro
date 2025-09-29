@@ -1,0 +1,53 @@
+---
+import { profileConfig } from "../config";
+
+let introPage : string;
+
+if (profileConfig.indexPage) {
+    introPage = profileConfig.indexPage;
+} else {
+    introPage = import.meta.env.BASE_URL;
+}
+---
+
+<!-- footer -->
+<footer class="py-4 text-center footer font-bold text-xs">
+    <div class="text-[var(--text-color)]/30">
+        <p class="mb-1">Made with ❤️ by <a target="_self" href={introPage}>Motues</a></p>
+        <p>Powered by <a target="_blank" href="https://astro.build">Astro</a> and <a target="_blank" href="https://pages.github.com/">GitHub</a></p>
+        <p class="pt-[5px]">© 2024 - {new Date().getFullYear()}</p>
+    </div>
+</footer>
+
+<style>
+   .footer a {
+        color: inherit;
+        /* transition: color 0.3s ease; */
+        text-decoration: none;
+        position: relative;
+        display: inline-block;
+    }
+    
+    .footer a::before {
+        content: "";
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        width: 100%;
+        border-bottom-style: dotted;
+        border-bottom-width: 2px;
+        /* background: currentColor; */
+        transition: transform 0.3s ease;
+        transform-origin: right;
+        transform: scaleX(1);
+    }
+    
+    .footer a:hover {
+        color: var(--link-color);
+    }
+    
+    .footer a:hover::before {
+        transform-origin: right;
+        transform: scaleX(0);
+    }
+</style>

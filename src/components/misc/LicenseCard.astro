@@ -1,0 +1,29 @@
+---
+import type { LicenseConfig } from '@/types/config';
+
+interface Props {
+    author: string;
+    url: string;
+    class?: string;
+    license: LicenseConfig;
+}
+
+const { author, url, license } = Astro.props;
+const className = Astro.props.class;
+---
+
+<div class={`p-3 text-sm rounded border border-[var(--button-border-color)]  bg-[var(--bg-color)] ${className || ''}`}>
+    <div class="space-y-1 text-[var(--text-color)]/80">
+        <p>
+            <b>本文作者：</b>{author}
+        </p>
+        <p >
+            <b>本文链接：</b><a href={url} class="hover:text-[var(--link-color)]">{url}</a>
+        </p>
+        <p>
+            <b>
+                文章默认使用 <a href={license.url} target="_blank" rel="noopener noreferrer" class="link-line">{license.name}</a> 协议进行许可，使用时请注意遵守协议。
+            </b>
+        </p>
+    </div>
+</div>

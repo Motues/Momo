@@ -1,0 +1,116 @@
+---
+const className = Astro.props.class;
+import { Icon } from "astro-icon/components";
+---
+
+<button id="themeToggle" title="切换明暗模式" class={className}>
+    <Icon name="material-symbols:dark-mode-outline-rounded" class="moon w-5 h-5"/>
+    <Icon name="material-symbols:wb-sunny-outline-rounded" class="sun w-5 h-5"/>
+    <Icon name="material-symbols:radio-button-partial-outline" class="system w-5 h-5"/>
+</button>
+
+<script is:inline>
+const htmlRoot = document.querySelector('html');
+const themeToggle = document.getElementById('themeToggle');
+
+const theme = (() => {
+    const localStorageTheme = localStorage?.getItem("theme") ?? '';
+    if (['dark', 'light', 'system'].includes(localStorageTheme)) {
+        return localStorageTheme;
+    }
+    return 'system';
+})();
+
+const setTheme = (themeSet) => { 
+    if (themeSet === 'dark') {
+        htmlRoot.setAttribute('data-theme', 'dark');
+        htmlRoot.classList.remove('system-theme');
+    } else if (themeSet === 'light') {
+        htmlRoot.removeAttribute('data-theme');
+        htmlRoot.classList.remove('system-theme');
+    } else {
+        // system mode
+        htmlRoot.classList.add('system-theme');
+        if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
+            htmlRoot.setAttribute('data-theme', 'dark');
+        } else {
+            htmlRoot.removeAttribute('data-theme');
+        }
+    }
+    window.localStorage.setItem('theme', themeSet);
+};
+
+// 监听系统主题变化
+const handleSystemThemeChange = (e) => {
+    if (htmlRoot.classList.contains('system-theme')) {
+        if (e.matches) {
+            htmlRoot.setAttribute('data-theme', 'dark');
+        } else {
+            htmlRoot.removeAttribute('data-theme');
+        }
+    }
+};
+
+// 添加系统主题变化监听器
+const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+mediaQuery.addEventListener('change', handleSystemThemeChange);
+
+setTheme(theme);
+
+const handleToggleClick = () => {
+    const currentTheme = localStorage.getItem('theme') || 'system';
+    let nextTheme;
+    
+    if (currentTheme === 'light') {
+        nextTheme = 'dark';
+    } else if (currentTheme === 'dark') {
+        nextTheme = 'system';
+    } else {
+        // system mode
+        nextTheme = 'light';
+    }
+    
+    setTheme(nextTheme);
+}
+
+themeToggle?.addEventListener("click", handleToggleClick);
+</script>
+
+<style>
+    #themeToggle .moon {
+        display: none;
+    }
+    
+    #themeToggle .sun {
+        display: none;
+    }
+    
+    #themeToggle .system {
+        display: none;
+    }
+    
+    /* 默认显示太阳图标 */
+    #themeToggle .sun {
+        display: inline-block;
+    }
+    
+    /* 黑暗模式显示月亮图标 */
+    html[data-theme="dark"] #themeToggle .moon {
+        display: inline-block;
+    }
+    
+    html[data-theme="dark"] #themeToggle .sun {
+        display: none;
+    }
+    
+    /* 系统模式下的图标切换 */
+    html.system-theme #themeToggle .system {
+        display: inline-block;
+    }
+    
+    html.system-theme #themeToggle .sun,
+    html.system-theme #themeToggle .moon {
+        display: none;
+    }
+    
+</style>

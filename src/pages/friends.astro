@@ -1,0 +1,38 @@
+---
+import MainPageLayout from '@layouts/MainPageLayout.astro'
+import { siteConfig, friendLinkConfig } from '@/config'
+import Cover from '@components/Cover.astro';
+
+const pageTitle = "友链 - " + siteConfig.title;
+---
+
+<MainPageLayout title={pageTitle}>
+    <div class="mx-auto w-full max-w-[var(--page-width)]">
+        <Cover title='友链' subTitle='有趣的灵魂'/>
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 text-[var(--text-color)]">
+            {
+                friendLinkConfig.map((friend) => (
+                    <a 
+                        href={friend.url} 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        class="flex items-center p-4 border border-[var(--button-border-color)] rounded-lg shadow-sm hover:bg-[var(--button-hover-color)] transition-all duration-300 hover:scale-105"
+                    >
+                        <img 
+                            src={friend.avatar} 
+                            alt={friend.name} 
+                            class="w-16 h-16 rounded-full object-cover mr-4"
+                            onerror="this.src='https://www.gravatar.com/avatar/?d=mp'"
+                        />
+                        <div class="flex-1 min-w-0">
+                            <h2 class="font-bold text-lg truncate">{friend.name}</h2>
+                            <p class="text-[var(--text-color)]/60 text-sm">{friend.description}</p>
+                        </div>
+                    </a>
+                ))
+            }
+        </div>
+        
+    </div>
+</MainPageLayout>

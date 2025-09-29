@@ -1,0 +1,17 @@
+---
+import '@fontsource-variable/jetbrains-mono'
+import '@fontsource-variable/jetbrains-mono/wght-italic.css'
+import '@styles/markdown.css'
+
+interface Props {
+  class?: string
+}
+const className = Astro.props.class
+---
+<div data-pagefind-body class=`markdown-content ${className}`>
+    <slot/>
+</div>
+
+<style is:global>
+
+</style>

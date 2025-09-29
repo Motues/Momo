@@ -1,0 +1,51 @@
+:root {
+  /* 布局变量 */
+  --page-width: min(776px, 90vw);
+  --toc-offset-left: calc(50vw + var(--page-width) / 2 + 3rem);
+  --toc-width: calc((100vw - var(--page-width)) / 2 - 3rem);
+}
+
+
+/* 颜色变量 */
+:root {
+    --bg-color: #ffffff;
+    --text-color: #000000;
+    --shadow-color: rgba(0, 0, 0, 0.15);
+    --cover-subtitle-color: #999;
+    --footer-text-color: #999;
+    --link-color: #003b6e;
+    --button-hover-color: #f5f5f5;
+    --button-border-color: #e5e5e5;
+    --postcard-bg-color: #fafafa;
+    
+    --image-shadow-color: rgba(0, 0, 0, 0.15);
+    --selection-color: #e5e5e5;
+    
+    /* 滚动条颜色 */
+    --scrollbar-thumb: #c1c1c1;
+    --scrollbar-thumb-hover: #a8a8a8;
+    --scrollbar-track: #e1e1e1;
+
+    --page-width: min(776px,90%);
+  }
+
+  [data-theme="dark"] {
+    --bg-color: #0a0a0a;
+    --text-color: #ffffff;
+    --shadow-color: rgba(255, 255, 255, 0.15);
+    --cover-subtitle-color: #999;
+    --footer-text-color: #999;
+    --link-color: #57ace7;
+    --button-hover-color: #262626;
+    --button-border-color: #262626;
+    --postcard-bg-color: #242526;
+    
+    
+    --image-shadow-color: rgba(59, 130, 246, 0.4);
+    --selection-color: #3b3b3b;
+    
+    /* 滚动条颜色 */
+    --scrollbar-thumb: #4a5568;
+    --scrollbar-thumb-hover: #2d3748;
+    --scrollbar-track: #1a202c;
+  }

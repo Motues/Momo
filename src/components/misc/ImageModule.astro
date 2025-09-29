@@ -1,0 +1,45 @@
+---
+// ImageModule 对应的 CSS 需要设置为 is::global 才能被正确应用
+
+import { Image } from "astro:assets";
+import path from "path"
+
+interface Props {
+    src: string;
+    alt?: string;
+    id?: string;
+    class?: string;
+    width?: number;
+    height?: number;
+}
+
+const { src, alt, id, width, height } = Astro.props;
+const className = Astro.props.class;
+
+const isLocal = !(
+    src.startsWith("/") ||
+    src.startsWith("http")
+);
+const isPublic = src.startsWith("/");
+
+let imageLoad;
+if (isLocal) {
+    const images = import.meta.glob<ImageMetadata>("../../**/*", {import: "default" });
+    let imagePath = path.normalize(path.join("../../", "/", src)).replace(/\\/g, "/");
+    const image = images[imagePath];
+    if(!image) {
+        console.error(`\n[ERROR] Image file not found: ${imagePath.replace('../../', 'src/')}`);
+    }
+    imageLoad = await image()
+}
+---
+<!-- <div class={className}> -->
+    { 
+    isLocal && imageLoad && 
+    <Image src={imageLoad} alt={alt || ""}  id={id || ""} class={className || ""}/>
+    }
+    {
+    !isLocal &&
+    <img src={src} alt={alt || ""}  id={id || ""} class={className || ""}/>
+    }
+<!-- </div> -->

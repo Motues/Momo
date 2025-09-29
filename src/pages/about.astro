@@ -1,0 +1,26 @@
+---
+import MainPageLayout from '@layouts/MainPageLayout.astro'
+import Markdown from '@components/misc/Markdown.astro'
+import Cover from '@components/Cover.astro'
+
+import { siteConfig } from '@/config'
+
+import { getEntry, render } from 'astro:content'
+
+const aboutPost = await getEntry('spec', 'about');
+
+if (!aboutPost) {
+    throw new Error('No about post found');
+}
+const { Content } = await render(aboutPost);
+
+const pageTitle = "关于 - " + siteConfig.title;
+---
+<MainPageLayout title={pageTitle}>
+    <div class="mx-auto w-full max-w-[var(--page-width)]">
+        <Cover title='关于' subTitle='一个极简的Blog模板'/>
+        <Markdown class="mb-6 markdown-content onload-animation">
+            <Content />
+        </Markdown>
+    </div>
+</MainPageLayout>

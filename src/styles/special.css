@@ -1,0 +1,30 @@
+.link-line{
+        color: inherit;
+        /* transition: color 0.3s ease; */
+        text-decoration: none;
+        position: relative;
+        display: inline-block;
+    }
+    
+    .link-line::before {
+        content: "";
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        width: 100%;
+        border-bottom-style: dotted;
+        border-bottom-width: 2px;
+        /* background: currentColor; */
+        transition: transform 0.3s ease;
+        transform-origin: right;
+        transform: scaleX(1);
+    }
+    
+    .link-line:hover {
+        color: var(--link-color);
+    }
+    
+    .link-line:hover::before {
+        transform-origin: right;
+        transform: scaleX(0);
+    }

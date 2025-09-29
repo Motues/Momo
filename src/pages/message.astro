@@ -1,0 +1,25 @@
+---
+import MainPageLayout from '@layouts/MainPageLayout.astro'
+import MessageCard from '@components/MessageCard.astro'
+import Cover from '@components/Cover.astro'
+import { siteConfig } from '@/config'
+import { getEntry } from 'astro:content'
+import { parseMessages } from '@utils/content-utils'
+
+// 获取备忘录内容
+const messageEntry = await getEntry('spec', 'message');
+
+// 解析备忘录
+const messages = messageEntry && messageEntry.body ? parseMessages(messageEntry.body) : [];
+
+const pageTitle = "备忘录 - " + siteConfig.title;
+---
+
+<MainPageLayout title={pageTitle}>
+    
+    <div class="mx-auto w-full max-w-[var(--page-width)]">
+        <Cover title="备忘录" subTitle='一些琐碎的事情'/>
+        <MessageCard messages={messages} />
+    </div>
+    
+</MainPageLayout>

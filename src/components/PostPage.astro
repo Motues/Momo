@@ -1,0 +1,17 @@
+---
+import { blogCoverUrl, formatDateToChinese } from '@utils/url-utils'
+import PostCard from '@components/PostCard.astro';
+import type { CollectionEntry } from 'astro:content';
+
+const { page } = Astro.props;
+
+const blogEntries = page.data as CollectionEntry<'blog'>[];
+---
+
+{
+    blogEntries.map(entry => (
+        <PostCard title={entry.data.title} description={entry.data.description} 
+            image={blogCoverUrl(entry.data.image, entry.id)} pubDate={formatDateToChinese(entry.data.pubDate)}
+                   url={entry.id}/>
+    ))
+}

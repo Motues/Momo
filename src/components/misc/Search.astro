@@ -1,0 +1,309 @@
+---
+import type { SearchResult } from "@/global"
+import { baseUrl } from "@utils/url-utils";
+
+
+const fakeResult: SearchResult[] = [
+	{
+		url: baseUrl("/"),
+		meta: {
+			title: "This Is a Fake Search Result",
+		},
+		excerpt:
+			"Because the search cannot work in the <mark>dev</mark> environment.",
+	},
+	{
+		url: baseUrl("/"),
+		meta: {
+			title: "If You Want to Test the Search",
+		},
+		excerpt: "Try running <mark>pnpm build && pnpm preview</mark> instead.",
+  }
+]
+---
+<div id="search-modal" class="fixed inset-0 z-[100] opacity-0 pointer-events-none">
+  <div class="absolute inset-0 modal-backdrop opacity-0" aria-hidden="true"></div>
+
+  <div class="fixed inset-0 flex items-start justify-center p-4 pt-[25vh]">
+    <div class="search-modal-content bg-[var(--bg-color)] rounded-xl shadow-xl w-full max-w-2xl border border-[var(--button-border-color)] overflow-hidden scale-80 transition-all duration-300 opacity-0 flex flex-col max-h-[40vh]">
+      <div class="flex items-center p-4 border-b border-[var(--button-border-color)]">
+        <svg class="w-5 h-5 text-[var(--cover-subtitle-color)] mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+        </svg>
+        <input 
+          type="text" 
+          id="search-input"
+          placeholder="输入关键词进行搜索..."
+          class="w-full bg-transparent border-0 focus:ring-0 focus:outline-none  text-[var(--text-color)]"
+          autofocus
+        />
+        <button id="close-search" class="ml-2 p-2 text-[var(--cover-subtitle-color)] rounded-lg hover:bg-[var(--button-hover-color)]">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+          </svg>
+        </button>
+      </div>
+      <div id="search-results" class="overflow-y-auto flex-grow">
+        <div class="p-8 text-center text-[var(--cover-subtitle-color)]">
+          <p>输入关键词开始搜索</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    const searchButton = document.getElementById('search-button');
+    const searchModal = document.getElementById('search-modal');
+    const closeSearch = document.getElementById('close-search');
+    const searchInput = document.getElementById('search-input');
+    const modalBackdrop = searchModal?.firstElementChild;
+    const modalContent = searchModal?.querySelector('.search-modal-content');
+    
+    // 打开搜索模态框
+    if (searchButton) {
+      searchButton.addEventListener('click', () => {
+        // 显示模态框
+        searchModal?.classList.remove('opacity-0', 'pointer-events-none');
+        
+        // 强制重绘以确保动画流畅
+        searchModal?.offsetHeight;
+        
+        // 渐变显示背景和内容
+        requestAnimationFrame(() => {
+          if (modalBackdrop) {
+            modalBackdrop.classList.remove('opacity-0');
+            modalBackdrop.classList.add('show');
+          }
+          
+          // 缩放内容
+          if (modalContent) {
+            modalContent.classList.remove('scale-80');
+            modalContent.classList.add('scale-100');
+            modalContent.classList.remove('opacity-0');
+          }
+        });
+        
+        // 聚焦到搜索输入框
+        setTimeout(() => {
+          searchInput?.focus();
+        }, 300);
+      });
+    }
+    
+    // 关闭搜索模态框
+    const closeSearchModal = () => {
+      // 渐变隐藏背景和内容
+      requestAnimationFrame(() => {
+        if (modalBackdrop) {
+          modalBackdrop.classList.add('opacity-0');
+          modalBackdrop.classList.remove('show');
+        }
+        
+        // 缩放内容
+        if (modalContent) {
+          modalContent.classList.add('scale-80');
+          modalContent.classList.remove('scale-100');
+          modalContent.classList.add('opacity-0');
+        }
+      });
+
+      // 延迟隐藏模态框，让动画有时间完成
+      setTimeout(() => {
+        searchModal?.classList.add('opacity-0', 'pointer-events-none');
+      }, 300);
+    };
+    
+    // 点击关闭按钮
+    closeSearch?.addEventListener('click', closeSearchModal);
+    
+    // 点击背景关闭
+    searchModal?.addEventListener('click', (e) => {
+      if (!modalContent?.contains(e.target as Node)) {
+        closeSearchModal();
+      }
+    });
+    
+    // ESC键关闭
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && !searchModal?.classList.contains('opacity-0')) {
+        closeSearchModal();
+      }
+    });
+  });
+</script>
+
+<style>
+  @keyframes backdropFadeIn {
+    0% {
+      opacity: 0;
+      backdrop-filter: blur(0px);
+    }
+    100% {
+      opacity: 1;
+      backdrop-filter: blur(2px);
+    }
+  }
+  
+  @keyframes backdropFadeOut {
+    0% {
+      opacity: 1;
+      backdrop-filter: blur(2px);
+    }
+    100% {
+      opacity: 0;
+      backdrop-filter: blur(0px);
+    }
+  }
+  
+  .modal-backdrop {
+    background-color: rgba(0, 0, 0, 0.3);
+    backdrop-filter: blur(0px);
+    transition: opacity 0.3s ease-out;
+  }
+  
+  .modal-backdrop.show {
+    animation: backdropFadeIn 0.3s ease-out forwards;
+  }
+  
+  .modal-backdrop:not(.show) {
+    animation: backdropFadeOut 0.3s ease-out forwards;
+  }
+  
+  #search-input::-webkit-input-placeholder {
+    color: var(--cover-subtitle-color);
+  }
+  
+  #search-input::-moz-placeholder {
+    color: var(--cover-subtitle-color);
+  }
+</style>
+
+<script define:vars={{fakeResult}}>
+// 监听 pagefind 准备就绪事件
+document.addEventListener('pagefindready', () => {
+  // 现在可以安全地使用 window.pagefind 了
+  console.log('Pagefind is ready');
+});
+
+// 监听 pagefind 加载错误事件
+document.addEventListener('pagefindloaderror', () => {
+  console.log('Pagefind failed to load, search functionality will not work');
+  // 可以在这里处理加载失败的情况，比如隐藏搜索功能或显示错误信息
+});
+
+// 实时搜索功能
+document.addEventListener('DOMContentLoaded', () => {
+  const searchInput = document.getElementById('search-input');
+  const searchResults = document.getElementById('search-results');
+  
+  if (searchInput) {
+    let searchTimeout;
+    
+    searchInput.addEventListener('input', (e) => {
+      const query = e.target.value.trim();
+      
+      // 清除之前的延迟搜索
+      clearTimeout(searchTimeout);
+      
+      // 设置新的延迟搜索
+      searchTimeout = setTimeout(() => {
+        if (query.length > 0) {
+          performSearch(query);
+        } else {
+          // 如果查询为空，显示初始状态
+          searchResults.innerHTML = `
+            <div class="p-8 text-center text-[var(--cover-subtitle-color)]">
+              <p>输入关键词开始搜索</p>
+            </div>
+          `;
+        }
+      }, 300); // 300ms延迟，避免过于频繁的搜索请求
+    });
+  }
+});
+
+async function performSearch(query) {
+  const searchResults = document.getElementById('search-results');
+  
+  // 检查是否处于开发环境
+  const isDev = !window.pagefind;
+  
+  if (isDev) {
+    // 开发环境使用假数据
+    displayResults(fakeResult);
+  } else if (window.pagefind) {
+    // 生产环境使用真实搜索结果
+    try {
+      // console.log('Performing search for:', query);
+      const searchResultsData = await window.pagefind.search(query);
+      
+      // 提取结果数据
+      const results = [];
+      for (const result of searchResultsData.results) {
+        const data = await result.data();
+        results.push({
+          url: data.url,
+          meta: {
+            title: data.meta.title
+          },
+          excerpt: data.excerpt
+        });
+      }
+      
+      displayResults(results);
+    } catch (error) {
+      console.error('Search failed:', error);
+      searchResults.innerHTML = `
+        <div class="p-8 text-center text-red-500">
+          <p>搜索出现错误，请稍后重试</p>
+        </div>
+      `;
+    }
+  } else {
+    console.log('Pagefind is not available');
+    searchResults.innerHTML = `
+      <div class="p-8 text-center text-[var(--cover-subtitle-color)]">
+        <p>搜索功能暂时不可用</p>
+      </div>
+    `;
+  }
+}
+
+function displayResults(results) {
+  const searchResults = document.getElementById('search-results');
+  
+  if (results.length === 0) {
+    searchResults.innerHTML = `
+      <div class="p-8 text-center text-[var(--cover-subtitle-color)]">
+        <p>未找到相关结果</p>
+      </div>
+    `;
+    return;
+  }
+  
+  let resultsHTML = '';
+  results.forEach(result => {
+    resultsHTML += `
+      <div class="p-4 border-b border-[var(--button-border-color)] hover:bg-[var(--button-hover-color)]">
+        <a href="${result.url}" class="block no-underline">
+          <h3 class="text-lg font-semibold text-[var(--text-color)] mb-2">${result.meta.title}</h3>
+          <p class="text-[var(--cover-subtitle-color)] text-sm">${result.excerpt}</p>
+        </a>
+      </div>
+    `;
+  });
+  
+  searchResults.innerHTML = resultsHTML;
+}
+</script>
+
+<style is:global>
+mark {
+  background-color: #ffeb3b00;
+  color: var(--link-color);
+  padding: 0 2px;
+  font-weight: 600;
+}
+</style>

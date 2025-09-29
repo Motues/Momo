@@ -1,0 +1,52 @@
+---
+import '@styles/global.css'
+import { siteConfig, licenseConfig, profileConfig } from '@/config'
+import MainPageLayout from '@layouts/MainPageLayout.astro'
+import Markdown from '@components/misc/Markdown.astro'
+import ImageModule from '@components/misc/ImageModule.astro'
+import BackTop from '@components/control/BackTop.astro'
+import TOC from '@components/TOC.astro'
+import LicenseCard from '@components/misc/LicenseCard.astro'
+
+import { getCollection, render } from 'astro:content'
+
+import { blogCoverUrl, formatDateToChinese } from '@/utils/url-utils'
+import { getBlogEntrySort } from '@utils/content-utils'
+
+export async function getStaticPaths() {
+    const blogEntries = await getBlogEntrySort();
+    return blogEntries.map(entry => ({
+        params: { slug: entry.id }, // 在Astro5.0中，params.slug被弃用，改为params.id
+        props: { entry },
+    }));
+}
+
+const { slug } = Astro.params;
+const { entry } = Astro.props;
+const { Content, headings } = await render(entry); // 获取渲染后的正文内容
+
+const pageTitle = entry.data.title + ' - ' + siteConfig.title;
+const image = blogCoverUrl(entry.data.image, entry.id);
+
+---
+<MainPageLayout title={pageTitle}>
+    <div class="mx-auto w-full max-w-[var(--page-width)] py-8">
+        <div class="mb-8 text-center">
+            <h1 class="font-bold text-3xl mb-2 pt-10 text-[var(--text-color)]">{ entry.data.title }</h1>
+            <p class="font-bold text-gray-600 pt-4 pb-10">{ formatDateToChinese(entry.data.pubDate) }</p>
+        </div>
+        {image && (
+            <div class="cover overflow-hidden">
+                <ImageModule src={image} class="w-full h-full object-cover"/>
+            </div>
+        )}
+        <Markdown class="mb-6 markdown-content onload-animation">
+            <Content />
+        </Markdown>
+        {licenseConfig.enable &&
+        <LicenseCard author={profileConfig.name} url={Astro.url} license={licenseConfig} />
+        }
+    </div>
+    <TOC headings={headings}/>
+    <BackTop />
+</MainPageLayout>

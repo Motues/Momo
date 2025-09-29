@@ -1,0 +1,54 @@
+@import "tailwindcss";
+@import "./variables.css";
+@import "./special.css";
+
+@layer base {
+
+  body {
+    @apply bg-[--bg-color] text-[--text-color];
+    font-family: "Noto Serif SC", "Times New Roman", "STZhongsong", serif;
+    overflow-y: scroll;
+  }
+  
+  /* 滚动条样式 */
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: var(--scrollbar-track);
+    border-radius: 4px;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: var(--scrollbar-thumb);
+    border-radius: 4px;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: var(--scrollbar-thumb-hover);
+  }
+  
+  /* 选中文本样式 */
+  ::selection {
+    background-color: #e5e5e5;
+    color: black;
+  }
+  
+  ::-moz-selection {
+    background-color: #e5e5e5;
+    color: black;
+  }
+
+  ::selection {
+    background-color: var(--selection-color);
+    color: var(--text-color);
+  }
+  
+  ::-moz-selection {
+    background-color: var(--selection-color);
+    color: var(--text-color);
+  }
+
+}

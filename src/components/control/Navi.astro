@@ -1,0 +1,49 @@
+---
+
+const { page } = Astro.props;
+
+const currentPage = page.currentPage;
+const totalPages = page.lastPage;
+
+const showPrevious = currentPage > 1;
+const showNext = currentPage < totalPages;
+
+const previousPageUrl = currentPage === 2 ? '/' : `/${currentPage - 1}/`;
+const nextPageUrl = `/${currentPage + 1}/`;
+---
+
+<nav class="flex justify-between items-center my-8 max-w-[min(776px,90vw)] mx-auto text-sm">
+  <div class="prev-page w-28">
+    {
+      showPrevious ? (
+        <a href={previousPageUrl} class="px-4 py-2 text-[var(--text-color)] hover:bg-[var(--button-hover-color)] border border-[var(--button-border-color)] rounded-lg transition-colors duration-200 flex items-center justify-center">
+          <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+          </svg>
+          上一页
+        </a>
+      ) : (
+        <div class="px-4 py-2"></div> <!-- 占位元素，保持对称 -->
+      )
+    }
+  </div>
+
+  <div class="page-info text-[var(--text-color)]/60">
+    第 {currentPage} 页，共 {totalPages} 页
+  </div>
+
+  <div class="next-page w-28">
+    {
+      showNext ? (
+        <a href={nextPageUrl} class="px-4 py-2 text-[var(--text-color)] hover:bg-[var(--button-hover-color)] border border-[var(--button-border-color)] rounded-lg transition-colors duration-200 flex items-center justify-center">
+          下一页
+          <svg class="w-5 h-5 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+          </svg>
+        </a>
+      ) : (
+        <div class="px-4 py-2 "></div> <!-- 占位元素，保持对称 -->
+      )
+    }
+  </div>
+</nav>
