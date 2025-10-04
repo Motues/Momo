@@ -148,7 +148,12 @@
 }
 
 
-[data-theme="dark"] .markdown-content p code {
+[data-theme="dark"] 
+.markdown-content p code,
+.markdown-content li code,
+.markdown-content h2 code,
+.markdown-content h3 code,
+.markdown-content table code {
   background-color: rgba(255, 255, 255, 0.1);
 }
 
