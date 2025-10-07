@@ -29,7 +29,7 @@ const pageTitle = "归档 - " + siteConfig.title;
     <div class="archives mx-auto w-full max-w-[min(494px,90%)]">
         <Cover title='文章归档' subTitle={`共 ${allBlogPosts.length} 篇文章`}/>
         
-        <div class="p-6 max-w-2xl mx-auto">
+        <div class="p-6 max-w-2xl mx-auto text-[var(--text-color)]">
             {Object.keys(postsByYear).sort().reverse().map(year => (
                 <div>
                     <h2 class="text-2xl font-bold my-4">{year}</h2>
