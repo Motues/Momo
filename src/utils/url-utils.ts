@@ -49,3 +49,14 @@ export function formatDateToChinese(date: Date | string | number): string {
     
     return `${year}年${month}月${day}日`;
 }
+
+/**
+ * 将日期转换为 MM-DD 格式
+ * @param date 
+ */
+export function formatDateToArchive(date: Date | string | number): string {
+    const d = new Date(date);
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${month}-${day}`;
+}

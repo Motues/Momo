@@ -3,7 +3,7 @@ import MainPageLayout from '@layouts/MainPageLayout.astro'
 import Cover from '@components/Cover.astro'
 
 import { siteConfig } from '@/config'
-import { formatDateToChinese } from '@utils/url-utils'
+import { formatDateToArchive } from '@utils/url-utils'
 import { getBlogEntrySort } from '@utils/content-utils'
 
 import { getCollection } from 'astro:content'
@@ -27,24 +27,29 @@ const pageTitle = "归档 - " + siteConfig.title;
 
 <MainPageLayout title={pageTitle}>
     <div class="archives mx-auto w-full max-w-[min(494px,90%)]">
-        <Cover title='文章归档' subTitle=`共 ${allBlogPosts.length} 篇文章`/>
+        <Cover title='文章归档' subTitle={`共 ${allBlogPosts.length} 篇文章`}/>
         
-        <div class="space-y-8">
+        <div class="p-6 max-w-2xl mx-auto">
             {Object.keys(postsByYear).sort().reverse().map(year => (
                 <div>
-                    <h2 class="text-3xl text-[var(--text-color)] font-bold text-center mb-4">{year}</h2>
-                    <ul class="space-y-2">
-                        {postsByYear[Number(year)].map(post => (
-                            <li class="flex items-center">
-                                <span class="text-lg text-[var(--text-color)]/60 mr-3 min-w-[150px]">
-                                    {formatDateToChinese(post.data.pubDate)}
-                                </span>
-                                <a href={`/blog/${post.id}`} class="text-lg font-bold text-[var(--text-color)] hover:text-[var(--link-color)] transition-colors">
-                                    {post.data.title}
-                                </a>
-                            </li>
-                        ))}
-                    </ul>
+                    <h2 class="text-2xl font-bold my-4">{year}</h2>
+                    <div class="">
+                            {postsByYear[Number(year)].map((post, index, array) => (
+                                <div class="flex items-start gap-4 group">
+                                    <div class="flex flex-col items-center flex-shrink-0 relative" style="width: 8px;">
+                                        {index !== 0 && <div class="absolute top-0 w-px h-1/2 bg-gray-300" style="left: 50%; transform: translateX(-50%);"></div>}
+                                        <div class="w-2 h-2 rounded-full bg-gray-400 mt-5 mb-5 z-10"></div>
+                                        {index !== array.length - 1 && <div class="absolute bottom-0 w-px h-1/2 bg-gray-300" style="left: 50%; transform: translateX(-50%);"></div>}
+                                    </div>
+                                    <div class="flex-1 py-3">
+                                        <span class="text-sm text-gray-400 mr-3">{formatDateToArchive(post.data.pubDate)}</span>
+                                        <a href={`/blog/${post.id}`} class="">
+                                        {post.data.title}
+                                    </a>
+                                    </div>
+                                </div>
+                            ))}
+                    </div>
                 </div>
             ))}
         </div>
