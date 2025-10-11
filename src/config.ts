@@ -10,12 +10,6 @@ export const siteConfig: SiteConfig = {
     title: "Momo",
     subTitle: "Blog",
 
-    cover: {
-        enabled: true,
-        title: "欢迎来到Momo的博客",
-        subTitle: "生活多彩！"
-    },
-
     favicon: "/favicon/favicon.ico", // Path of the favicon, relative to the /public directory
 
     pageSize: 6, // Number of posts per page

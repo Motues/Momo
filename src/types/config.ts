@@ -2,12 +2,6 @@ export type SiteConfig = {
     title: string;
     subTitle: string;
 
-    cover: {
-        enabled: boolean;
-        title: string;
-        subTitle: string;
-    };
-
     favicon: string;
 
     pageSize: number;

@@ -14,7 +14,14 @@ import { parseDirectiveNode } from "./src/plugins/remark-directive-rehype.js";
 // https://astro.build/config
 export default defineConfig({
   site: 'https://momo.motues.top', // Root URL of site
-
+  i18n: {
+    locales: ['zh-cn', 'en'],
+    defaultLocale: 'zh-cn',
+    routing: {
+      prefixDefaultLocale: false,
+      redirectToDefaultLocale: false
+    }
+  },
   integrations: [
     icon({
       include: {

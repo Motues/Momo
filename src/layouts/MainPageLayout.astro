@@ -7,12 +7,13 @@ import Search from '@components/misc/Search.astro';
 
 interface Props {
   title: string;
+  lang: string;
 }
-const { title } = Astro.props;
+const { title, lang } = Astro.props;
 
 ---
 
-<Layout title={title}>
+<Layout title={title} lang={lang}>
   <div class="flex flex-col min-h-screen">
     <div>
       <Header />

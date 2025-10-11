@@ -3,12 +3,25 @@ import MainPageLayout from '@layouts/MainPageLayout.astro'
 import { siteConfig, friendLinkConfig } from '@/config'
 import Cover from '@components/Cover.astro';
 
+import i18nit from '@i18n/translation';
+
+import { i18n } from "astro:config/client";
+
+export async function getStaticPaths() {
+	return i18n?.locales.map(locale => ({ params: { locale: locale == i18n?.defaultLocale ? undefined : (locale as string) } }));
+}
+
+const { locale = i18n!.defaultLocale } = Astro.params;
+
+const currentLang = locale;
+const t = i18nit(currentLang);
+
 const pageTitle = "友链 - " + siteConfig.title;
 ---
 
-<MainPageLayout title={pageTitle}>
+<MainPageLayout title={pageTitle} lang={currentLang}>
     <div class="mx-auto w-full max-w-[var(--page-width)]">
-        <Cover title='友链' subTitle='有趣的灵魂'/>
+        <Cover title={t("cover.title.friends")} subTitle={t("cover.subTitle.friends")} />
         
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6 text-[var(--text-color)]">
             {

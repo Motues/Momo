@@ -5,12 +5,17 @@ import Cover from '@components/Cover.astro'
 import { siteConfig } from '@/config'
 import { formatDateToArchive } from '@utils/url-utils'
 import { getBlogEntrySort } from '@utils/content-utils'
+import i18nit from '@i18n/translation'
 
 import { getCollection } from 'astro:content'
+import { i18n } from "astro:config/client";
+
+export async function getStaticPaths() {
+	return i18n?.locales.map(locale => ({ params: { locale: locale == i18n?.defaultLocale ? undefined : (locale as string) } }));
+}
 
 // 获取所有博客文章并按发布日期降序排序
 const allBlogPosts = await getBlogEntrySort();
-
 
 // 按年份分组文章
 const postsByYear = allBlogPosts.reduce((acc, post) => {
@@ -22,12 +27,19 @@ const postsByYear = allBlogPosts.reduce((acc, post) => {
   return acc;
 }, {} as Record<number, typeof allBlogPosts>);
 
+const { locale = i18n!.defaultLocale } = Astro.params;
+
+const currentLang = locale;
+const t = i18nit(currentLang);
+
 const pageTitle = "归档 - " + siteConfig.title;
+const postNumber = allBlogPosts.length;
+const indexPage = !locale || locale === i18n?.defaultLocale ? "" : `/${locale}`;
 ---
 
-<MainPageLayout title={pageTitle}>
+<MainPageLayout title={pageTitle} lang={currentLang}>
     <div class="archives mx-auto w-full max-w-[min(494px,90%)]">
-        <Cover title='文章归档' subTitle={`共 ${allBlogPosts.length} 篇文章`}/>
+        <Cover title={t("cover.title.archive")} subTitle={t("cover.subTitle.archive", {count: postNumber})}/>
         
         <div class="p-6 max-w-2xl mx-auto text-[var(--text-color)]">
             {Object.keys(postsByYear).sort().reverse().map(year => (
@@ -43,7 +55,7 @@ const pageTitle = "归档 - " + siteConfig.title;
                                     </div>
                                     <div class="flex-1 py-3">
                                         <span class="text-sm text-gray-400 mr-3">{formatDateToArchive(post.data.pubDate)}</span>
-                                        <a href={`/blog/${post.id}`} class="">
+                                        <a href={`${indexPage}/blog/${post.id}`} class="link-line">
                                         {post.data.title}
                                     </a>
                                     </div>
@@ -55,35 +67,3 @@ const pageTitle = "归档 - " + siteConfig.title;
         </div>
     </div>
 </MainPageLayout>
-
-<style>
-   .archives a {
-        /* transition: color 0.3s ease; */
-        text-decoration: none;
-        position: relative;
-        display: inline-block;
-    }
-    
-    .archives a::before {
-        content: "";
-        position: absolute;
-        bottom: 1px;
-        left: 0;
-        width: 100%;
-        border-bottom-style: dotted;
-        border-bottom-width: 2px;
-        /* background: currentColor; */
-        transition: transform 0.3s ease;
-        transform-origin: right;
-        transform: scaleX(1);
-    }
-    
-    .archives a:hover {
-        color: var(--link-color);
-    }
-    
-    .archives a:hover::before {
-        transform-origin: right;
-        transform: scaleX(0);
-    }
-</style>

@@ -3,29 +3,59 @@ import "@styles/global.css"
 import { Icon } from "astro-icon/components"
 import { profileConfig, siteConfig } from "@/config"
 import ThemeIcon from "./control/ThemeIcon.astro"
-
 import { baseUrl } from "@utils/url-utils"
 
+import { i18n } from "astro:config/client";
+import i18nit from '@i18n/translation'
+
 // const indexPage = profileConfig.indexPage
-const indexPage = "/"
+
+// 获取当前页面在不同语言下的路径
+const getLocalePath = (path: string, targetLocale: string) => {
+  const currentPath = Astro.url.pathname;
+  const defaultLocale = i18n?.defaultLocale || "zh-cn";
+  
+  // 移除当前语言前缀
+  let basePath = currentPath;
+  if (locale && locale !== defaultLocale) {
+    basePath = currentPath.replace(`/${locale}`, "") || "/";
+  }
+  
+  // 添加目标语言前缀（默认语言不需要前缀）
+  if (targetLocale && targetLocale !== defaultLocale) {
+    return `/${targetLocale}${basePath}`;
+  }
+  
+  return basePath;
+};
+
+
+const { locale = i18n!.defaultLocale } = Astro.params;
+
+const currentLang = locale;
+const t = i18nit(currentLang);
+
+const indexPage = !locale || locale === i18n?.defaultLocale ? "/" : `/${locale}`;
+const archivesPage = !locale || locale === i18n?.defaultLocale ? "/archives" : `/${locale}/archives`;
+const friendsPage = !locale || locale === i18n?.defaultLocale ? "/friends" : `/${locale}/friends`;
+const aboutPage = !locale || locale === i18n?.defaultLocale ? "/about" : `/${locale}/about`;
 ---
 
 <!-- header -->
 <div class="flex items-center p-4 text-[var(--text-color)] max-w-[min(1024px,90vw)] mx-auto">
     <!-- logo -->
     <div class="px-4 py-2 font-bold z-30">
-        <a href="/" >
+        <a href={indexPage} >
             <span class="text-lg font-bold hover:opacity-60 transition-opacity">{ siteConfig.title }</span>
         </a>
     </div>
     <!-- nav_bar -->
     <div id="nav-bar" class="hidden md:flex absolute left-1/2 transform -translate-x-1/2 justify-center items-center text-lg font-bold">
         <div id="nav-bar-list" class="transition relative z-10 flex max-w-max flex-1 items-center justify-center rounded-outer p-2 backdrop-blur rounded-xl bg-[color:var(--bg-color)]/20">
-            <a href={ indexPage } class="transition-colors hover:bg-[var(--button-hover-color)] rounded-lg px-3 py-1 mx-1 hover:text-current">主页</a>
-            <a href="/archives" class="transition-colors hover:bg-[var(--button-hover-color)] rounded-lg px-3 py-1 mx-1 hover:text-current">归档</a>
-            <!-- <a href="/message"  class="transition-colors hover:bg-[var(--button-hover-color)] rounded-lg px-3 py-1 mx-1 hover:text-current">备忘录</a> -->
-            <a href="/about" class="transition-colors hover:bg-[var(--button-hover-color)] rounded-lg px-3 py-1 mx-1 hover:text-current">关于</a>
-            <a href="/friends"  class="transition-colors hover:bg-[var(--button-hover-color)] rounded-lg px-3 py-1 mx-1 hover:text-current">友链</a>
+            <a href={ indexPage } class="transition-colors hover:bg-[var(--button-hover-color)] rounded-lg px-3 py-1 mx-1 hover:text-current">{t("header.home")}</a>
+            <a href={ archivesPage } class="transition-colors hover:bg-[var(--button-hover-color)] rounded-lg px-3 py-1 mx-1 hover:text-current">{t("header.archive")}</a>
+            <a href={ aboutPage } class="transition-colors hover:bg-[var(--button-hover-color)] rounded-lg px-3 py-1 mx-1 hover:text-current">{t("header.about")}</a>
+            <a href={ friendsPage } class="transition-colors hover:bg-[var(--button-hover-color)] rounded-lg px-3 py-1 mx-1 hover:text-current">{t("header.friends")}</a>
         </div>
     </div>
     
@@ -38,9 +68,25 @@ const indexPage = "/"
         <!-- Dark Mode -->
         <ThemeIcon class="flex items-center justify-center w-10 h-10 hover:bg-[var(--button-hover-color)] rounded-lg hover:text-current border border-[var(--button-border-color)] transition-all duration-300"/>
         <!-- RSS -->
-        <a href="/rss.xml" target="_blank" class="flex items-center justify-center w-10 h-10 hover:bg-[var(--button-hover-color)] rounded-lg hover:text-current border border-[var(--button-border-color)] transition-all duration-300">
+        <!-- <a href="/rss.xml" target="_blank" class="flex items-center justify-center w-10 h-10 hover:bg-[var(--button-hover-color)] rounded-lg hover:text-current border border-[var(--button-border-color)] transition-all duration-300">
             <Icon name="simple-icons:rss" class="w-4 h-4" />
-        </a>
+        </a> -->
+        <!-- Language Switcher -->
+        <div class="relative">
+            <button id="language-button" class="flex items-center justify-center w-10 h-10 hover:bg-[var(--button-hover-color)] rounded-lg hover:text-current border border-[var(--button-border-color)] transition-all duration-300">
+                <Icon name="fa6-solid:globe" class="w-4 h-4" />
+            </button>
+            
+            <!-- Language Dropdown Menu -->
+            <div id="language-menu" class="hidden absolute right-0 mt-2 w-30 bg-[var(--bg-color)] border border-[var(--button-border-color)] rounded-lg shadow-lg z-50">
+                <div class="py-1">
+                    <!-- 中文链接 -->
+                    <a href={getLocalePath("/", "zh-cn")} class="block px-4 py-2 text-sm hover:bg-[var(--button-hover-color)]">简体中文</a>
+                    <!-- 英文链接 -->
+                    <a href={getLocalePath("/", "en")} class="block px-4 py-2 text-sm hover:bg-[var(--button-hover-color)]">English</a>
+                </div>
+            </div>
+        </div>
         <!-- Mobile Menu -->
         <button id="mobile-menu-button" class="focus:outline-none md:hidden flex items-center justify-center w-10 h-10 hover:bg-[var(--button-hover-color)] rounded-lg cursor-pointer  border border-[var(--button-border-color)] transition-all duration-300">
             <Icon name="fa6-solid:align-justify" class="w-5 h-5" />
@@ -53,7 +99,6 @@ const indexPage = "/"
     <div class="flex flex-col py-2">
         <a href={ indexPage } class="px-6 py-3 hover:bg-[var(--button-hover-color)]">主页</a>
         <a href="/archives"  class="px-6 py-3 hover:bg-[var(--button-hover-color)]">归档</a>
-        <!-- <a href="/message"  class="px-6 py-3 hover:bg-[var(--button-hover-color)]">备忘录</a> -->
         <a href="/about"  class="px-6 py-3 hover:bg-[var(--button-hover-color)]">关于</a>
         <a href="/friends"  class="px-6 py-3 hover:bg-[var(--button-hover-color)]">友链</a>
     </div>
@@ -97,6 +142,24 @@ const indexPage = "/"
             }
         });
     });
+</script>
+<script>
+// 添加到现有 script 标签中
+const languageButton = document.getElementById('language-button');
+const languageMenu = document.getElementById('language-menu');
+
+if (languageButton && languageMenu) {
+    languageButton.addEventListener('click', () => {
+        languageMenu.classList.toggle('hidden');
+    });
+    
+    // 点击菜单外部区域关闭菜单
+    document.addEventListener('click', (event) => {
+        if (!languageButton.contains(event.target as Node) && !languageMenu.contains(event.target as Node)) {
+            languageMenu.classList.add('hidden');
+        }
+    });
+}
 </script>
 
 {

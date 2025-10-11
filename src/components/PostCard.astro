@@ -2,6 +2,9 @@
 import "@styles/global.css"
 import ImageModule from "./misc/ImageModule.astro";
 
+import { i18n } from "astro:config/client";
+import i18nit from '@i18n/translation'
+
 interface Props {
     title: string;
     description: string;
@@ -12,7 +15,14 @@ interface Props {
 
 const { title, description, image, pubDate, url } = Astro.props;
 
-const pageUrl = "/blog/" + url;
+const { locale = i18n!.defaultLocale } = Astro.params;
+
+const currentLang = locale;
+const t = i18nit(currentLang);
+
+const indexPage = !locale || locale === i18n?.defaultLocale ? "" : `/${locale}`;
+
+const pageUrl = indexPage + "/blog/" + url;
 ---
 
 <a href={pageUrl} class="block min-w-0 w-full max-w-[min(776px,90vw)] mx-auto my-6 bg-[var(--postcard-bg-color)] rounded-xl shadow-[0_4px_6px_var(--shadow-color)] border border-[var(--button-border-color)] overflow-hidden transition-all duration-300 hover:shadow-[0_6px_14px_var(--shadow-color)] hover:-translate-y-1">

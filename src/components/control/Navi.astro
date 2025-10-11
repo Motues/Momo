@@ -1,4 +1,6 @@
 ---
+import { i18n } from "astro:config/client";
+import i18nit from '@i18n/translation'
 
 const { page } = Astro.props;
 
@@ -10,39 +12,46 @@ const showNext = currentPage < totalPages;
 
 const previousPageUrl = currentPage === 2 ? '/' : `/${currentPage - 1}/`;
 const nextPageUrl = `/${currentPage + 1}/`;
+
+const { locale = i18n!.defaultLocale } = Astro.params;
+
+const currentLang = locale;
+const t = i18nit(currentLang);
+
+const indexPage = !locale || locale === i18n?.defaultLocale ? "" : `/${locale}`;
 ---
 
 <nav class="flex justify-between items-center my-8 max-w-[min(776px,90vw)] mx-auto text-sm">
   <div class="prev-page w-28">
     {
       showPrevious ? (
-        <a href={previousPageUrl} class="px-4 py-2 text-[var(--text-color)] hover:bg-[var(--button-hover-color)] border border-[var(--button-border-color)] rounded-lg transition-colors duration-200 flex items-center justify-center">
+        <a href={indexPage + previousPageUrl} class="px-4 py-2 text-[var(--text-color)] hover:bg-[var(--button-hover-color)] border border-[var(--button-border-color)] rounded-lg transition-colors duration-200 flex items-center justify-center">
           <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
           </svg>
-          上一页
+          {t("pageNavigation.previous")}
         </a>
       ) : (
-        <div class="px-4 py-2"></div> <!-- 占位元素，保持对称 -->
+        <div class="px-4 py-2"></div>
       )
     }
   </div>
 
   <div class="page-info text-[var(--text-color)]/60">
-    第 {currentPage} 页，共 {totalPages} 页
+    {t("pageNavigation.currentPage", { currentPage: currentPage, totalPages: totalPages })}
   </div>
 
   <div class="next-page w-28">
     {
       showNext ? (
-        <a href={nextPageUrl} class="px-4 py-2 text-[var(--text-color)] hover:bg-[var(--button-hover-color)] border border-[var(--button-border-color)] rounded-lg transition-colors duration-200 flex items-center justify-center">
-          下一页
+        <a href={indexPage + nextPageUrl} class="px-4 py-2 text-[var(--text-color)] hover:bg-[var(--button-hover-color)] border border-[var(--button-border-color)] rounded-lg transition-colors duration-200 flex items-center justify-center">
+          {t("pageNavigation.next")}
           <svg class="w-5 h-5 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
           </svg>
         </a>
       ) : (
-        <div class="px-4 py-2 "></div> <!-- 占位元素，保持对称 -->
+        <div class="px-4 py-2 "></div>
       )
     }
   </div>

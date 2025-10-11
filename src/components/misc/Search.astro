@@ -1,7 +1,20 @@
 ---
 import type { SearchResult } from "@/global"
 import { baseUrl } from "@utils/url-utils";
+import { getEntry, render } from 'astro:content'
+import { i18n } from "astro:config/client";
+import i18nit from "@i18n/translation";
 
+const { locale = i18n!.defaultLocale } = Astro.params;
+
+const currentLang = locale;
+const t = i18nit(currentLang);
+
+const translations = {
+  placeholder: t("search.placeholder"),
+  error: t("search.error"),
+  noresult: t("search.noresult")
+};
 
 const fakeResult: SearchResult[] = [
 	{
@@ -33,7 +46,7 @@ const fakeResult: SearchResult[] = [
         <input 
           type="text" 
           id="search-input"
-          placeholder="输入关键词进行搜索..."
+          placeholder={t("search.placeholder")+"..."}
           class="w-full bg-transparent border-0 focus:ring-0 focus:outline-none  text-[var(--text-color)]"
           autofocus
         />
@@ -45,7 +58,7 @@ const fakeResult: SearchResult[] = [
       </div>
       <div id="search-results" class="overflow-y-auto flex-grow">
         <div class="p-8 text-center text-[var(--cover-subtitle-color)]">
-          <p>输入关键词开始搜索</p>
+          <p>{t("search.placeholder")}</p>
         </div>
       </div>
     </div>
@@ -180,7 +193,7 @@ const fakeResult: SearchResult[] = [
   }
 </style>
 
-<script define:vars={{fakeResult}}>
+<script define:vars={{fakeResult, translations}}>
 // 监听 pagefind 准备就绪事件
 document.addEventListener('pagefindready', () => {
   // 现在可以安全地使用 window.pagefind 了
@@ -215,7 +228,7 @@ document.addEventListener('DOMContentLoaded', () => {
           // 如果查询为空，显示初始状态
           searchResults.innerHTML = `
             <div class="p-8 text-center text-[var(--cover-subtitle-color)]">
-              <p>输入关键词开始搜索</p>
+              <p>${translations.placeholder}</p>
             </div>
           `;
         }
@@ -238,6 +251,7 @@ async function performSearch(query) {
     try {
       // console.log('Performing search for:', query);
       const searchResultsData = await window.pagefind.search(query);
+      // console.log('lang:', document.documentElement.lang);
       
       // 提取结果数据
       const results = [];
@@ -257,7 +271,7 @@ async function performSearch(query) {
       console.error('Search failed:', error);
       searchResults.innerHTML = `
         <div class="p-8 text-center text-red-500">
-          <p>搜索出现错误，请稍后重试</p>
+          <p>${translations.error}</p>
         </div>
       `;
     }
@@ -277,7 +291,7 @@ function displayResults(results) {
   if (results.length === 0) {
     searchResults.innerHTML = `
       <div class="p-8 text-center text-[var(--cover-subtitle-color)]">
-        <p>未找到相关结果</p>
+        <p>${translations.noresult}</p>
       </div>
     `;
     return;

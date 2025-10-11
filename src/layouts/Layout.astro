@@ -1,16 +1,20 @@
 ---
 import { siteConfig } from '@/config';
 import "@styles/global.css"
-
+import { i18n } from "astro:config/client";
 
 interface Props {
   title: string;
+  lang?: string;
 }
-const { title } = Astro.props;
+const { title, lang } = Astro.props;
+
+const pageTitle = title;
+const pageLang = lang || i18n?.defaultLocale || "zh-cn";
 ---
 
 <!DOCTYPE html>
-<html lang="zh-CN" class="h-full">
+<html lang={pageLang} class="h-full">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -18,7 +22,7 @@ const { title } = Astro.props;
     <link rel="icon" href={siteConfig.favicon} type="image/x-icon">
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;700&display=swap">
     <link rel="stylesheet" href="https://cdn.staticfile.net/KaTeX/0.16.9/katex.min.css" integrity="sha384-n8MVd4RsNIU0tAv4ct0nTaAbDJwPJzDEaqSD1odI+WdtXRGWt2kTvGFasHpSy3SV" crossorigin="anonymous">
-    <title>{title}</title>
+    <title>{pageTitle}</title>
 </head>
 <body class="h-full bg-[var(--bg-color)]">
     <slot />

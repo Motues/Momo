@@ -4,21 +4,31 @@ import Markdown from '@components/misc/Markdown.astro'
 import Cover from '@components/Cover.astro'
 
 import { siteConfig } from '@/config'
+import i18nit from '@i18n/translation'
 
 import { getEntry, render } from 'astro:content'
+import { i18n } from "astro:config/client";
+
+export async function getStaticPaths() {
+	return i18n?.locales.map(locale => ({ params: { locale: locale == i18n?.defaultLocale ? undefined : (locale as string) } }));
+}
 
 const aboutPost = await getEntry('spec', 'about');
-
 if (!aboutPost) {
     throw new Error('No about post found');
 }
 const { Content } = await render(aboutPost);
 
+const { locale = i18n!.defaultLocale } = Astro.params;
+
+const currentLang = locale;
+const t = i18nit(currentLang);
+
 const pageTitle = "关于 - " + siteConfig.title;
 ---
-<MainPageLayout title={pageTitle}>
+<MainPageLayout title={pageTitle} lang={currentLang}>
     <div class="mx-auto w-full max-w-[var(--page-width)]">
-        <Cover title='关于' subTitle='一个极简的Blog模板'/>
+        <Cover title={t("cover.title.about")} subTitle={t("cover.subTitle.about")}/>
         <Markdown class="mb-6 markdown-content onload-animation">
             <Content />
         </Markdown>

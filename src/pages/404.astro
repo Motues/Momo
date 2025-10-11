@@ -8,7 +8,7 @@ import { Image } from 'astro:assets';
 
 const pageTitle = "404 - " + siteConfig.title;
 ---
-<MainPageLayout title={pageTitle}>
+<MainPageLayout title={pageTitle} lang="zh-CN">
     <div class="mx-auto w-full max-w-[var(--page-width)]">
         <Cover title="秘密" subTitle="恭喜你发现一片未知的世界，这片世界还处于建设之中，请过段时间再来看看呢！" />
         <ImageModule src={"assets/404.png"} alt="404" class="mx-auto" />

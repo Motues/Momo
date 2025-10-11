@@ -1,0 +1,58 @@
+---
+import MainPageLayout from '@layouts/MainPageLayout.astro';
+import Cover from '@components/Cover.astro';
+import PostPage from '@components/PostPage.astro';
+import Navi from '@components/control/Navi.astro';
+import BackTop from '@components/control/BackTop.astro';
+
+import { getBlogEntrySort } from '@utils/content-utils'
+import { siteConfig } from '@/config';
+import { i18n } from "astro:config/client";
+import type { GetStaticPaths } from 'astro';
+
+import i18nit from '@i18n/translation'
+
+export const getStaticPaths = (async ({ paginate }) => {
+  const blogEntries = await getBlogEntrySort();
+  
+  // 如果没有启用国际化，直接返回分页结果
+  if (!i18n?.locales) {
+    return paginate(blogEntries, { pageSize: siteConfig.pageSize });
+  }
+
+  // 如果启用了国际化，为每个语言环境生成分页路径
+  const paths = [];
+  for (const locale of i18n.locales) {
+    const localeCode = typeof locale === 'string' ? locale : locale.path;
+    const localeParam = localeCode === i18n.defaultLocale ? undefined : localeCode;
+    const paginatedPaths = paginate(blogEntries, { 
+      pageSize: siteConfig.pageSize,
+      params: { locale: localeParam }
+    });
+    
+    // 将生成的路径添加到总路径列表中
+    paths.push(...paginatedPaths);
+  }
+  
+  return paths;
+}) satisfies GetStaticPaths
+
+
+// 所有分页数据都在 "page" 参数中传递
+const { page } = Astro.props;
+const { locale = i18n!.defaultLocale } = Astro.params;
+
+const currentLang = locale;
+const t = i18nit(currentLang);
+
+const indexPage = !locale || locale === i18n?.defaultLocale ? "" : `/${locale}`;
+const pageTitle = `${siteConfig.title} - ${siteConfig.subTitle}`;
+
+---
+
+<MainPageLayout title={pageTitle} lang={currentLang}>
+    <Cover title={t("cover.title.home")} subTitle={t("cover.subTitle.home")} />
+    <PostPage page={page} />
+    <Navi page={page} />
+    <BackTop />
+</MainPageLayout>
