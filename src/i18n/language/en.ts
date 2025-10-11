@@ -32,6 +32,12 @@ const translation: Translation = {
         placeholder: "Enter keywords to start searching",
         noresult: "No results found.",
         error: "Search error occurred. Please try again later."
+    },
+    license: {
+        author: "Author",
+        url: "URL",
+        description1: "This article is licensed under the",
+        description2: "license, please comply with the license when using."
     }
 }
 

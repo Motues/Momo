@@ -33,6 +33,12 @@ const translation: Translation = {
         noresult: "未找到相关结果",
         error: "搜索出现错误，请稍后重试"
     },
+    license: {
+        author: "本文作者",
+        url: "文章链接",
+        description1: "文章默认使用",
+        description2: "协议进行许可，使用时请注意遵守协议。"
+    }
 }
 
 export default translation;

@@ -54,7 +54,7 @@ const indexPage = !locale || locale === i18n?.defaultLocale ? "" : `/${locale}`;
                                         {index !== array.length - 1 && <div class="absolute bottom-0 w-px h-1/2 bg-gray-300" style="left: 50%; transform: translateX(-50%);"></div>}
                                     </div>
                                     <div class="flex-1 py-3">
-                                        <span class="text-sm text-gray-400 mr-3">{formatDateToArchive(post.data.pubDate)}</span>
+                                        <span class="text-gray-400 mr-3">{formatDateToArchive(post.data.pubDate)}</span>
                                         <a href={`${indexPage}/blog/${post.id}`} class="link-line">
                                         {post.data.title}
                                     </a>

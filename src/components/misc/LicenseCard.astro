@@ -1,5 +1,7 @@
 ---
 import type { LicenseConfig } from '@/types/config';
+import { i18n } from "astro:config/client";
+import i18nit from "@i18n/translation";
 
 interface Props {
     author: string;
@@ -8,21 +10,26 @@ interface Props {
     license: LicenseConfig;
 }
 
+const { locale = i18n!.defaultLocale } = Astro.params;
 const { author, url, license } = Astro.props;
+
+const currentLang = locale;
+const t = i18nit(currentLang);
+
 const className = Astro.props.class;
 ---
 
 <div class={`p-3 text-sm rounded border border-[var(--button-border-color)]  bg-[var(--bg-color)] ${className || ''}`}>
     <div class="space-y-1 text-[var(--text-color)]/80">
         <p>
-            <b>本文作者：</b>{author}
+            <b>{t("license.author")}: </b>{author}
         </p>
         <p >
-            <b>本文链接：</b><a href={url} class="hover:text-[var(--link-color)]">{url}</a>
+            <b>{t("license.url")}: </b><a href={url} class="hover:text-[var(--link-color)]">{url}</a>
         </p>
         <p>
             <b>
-                文章默认使用 <a href={license.url} target="_blank" rel="noopener noreferrer" class="link-line">{license.name}</a> 协议进行许可，使用时请注意遵守协议。
+                {t("license.description1")} <a href={license.url} target="_blank" rel="noopener noreferrer" class="link-line">{license.name}</a> {t("license.description1")}
             </b>
         </p>
     </div>

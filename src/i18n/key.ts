@@ -30,5 +30,11 @@ export interface Translation {
         placeholder: string;
         noresult: string;
         error: string;
-    }
+    };
+    license: {
+        author: string;
+        url: string;
+        description1: string;
+        description2: string;
+    };
 }
