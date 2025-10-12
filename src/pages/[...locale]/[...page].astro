@@ -12,19 +12,21 @@ import type { GetStaticPaths } from 'astro';
 
 import i18nit from '@i18n/translation'
 
+// 所有分页数据都在 "page" 参数中传递
+const { page } = Astro.props;
+const { locale = i18n!.defaultLocale } = Astro.params;
+
+const currentLang = locale;
+const t = i18nit(currentLang);
+
 export const getStaticPaths = (async ({ paginate }) => {
-  const blogEntries = await getBlogEntrySort();
-  
-  // 如果没有启用国际化，直接返回分页结果
-  if (!i18n?.locales) {
-    return paginate(blogEntries, { pageSize: siteConfig.pageSize });
-  }
 
   // 如果启用了国际化，为每个语言环境生成分页路径
   const paths = [];
   for (const locale of i18n.locales) {
     const localeCode = typeof locale === 'string' ? locale : locale.path;
     const localeParam = localeCode === i18n.defaultLocale ? undefined : localeCode;
+    const blogEntries = await getBlogEntrySort(localeParam);
     const paginatedPaths = paginate(blogEntries, { 
       pageSize: siteConfig.pageSize,
       params: { locale: localeParam }
@@ -38,12 +40,6 @@ export const getStaticPaths = (async ({ paginate }) => {
 }) satisfies GetStaticPaths
 
 
-// 所有分页数据都在 "page" 参数中传递
-const { page } = Astro.props;
-const { locale = i18n!.defaultLocale } = Astro.params;
-
-const currentLang = locale;
-const t = i18nit(currentLang);
 
 const indexPage = !locale || locale === i18n?.defaultLocale ? "" : `/${locale}`;
 const pageTitle = `${siteConfig.title} - ${siteConfig.subTitle}`;

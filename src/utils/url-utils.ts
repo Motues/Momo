@@ -50,6 +50,10 @@ export function formatDateToChinese(date: Date | string | number): string {
     return `${year}年${month}月${day}日`;
 }
 
+export function formatDateToISO(dateString: string): string {
+    return new Date(dateString).toISOString().split('T')[0];
+}
+
 /**
  * 将日期转换为 MM-DD 格式
  * @param date 

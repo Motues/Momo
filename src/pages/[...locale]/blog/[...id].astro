@@ -11,12 +11,14 @@ import LicenseCard from '@components/misc/LicenseCard.astro'
 import { getCollection, render } from 'astro:content'
 import { i18n } from "astro:config/client";
 
-
-import { blogCoverUrl, formatDateToChinese } from '@/utils/url-utils'
+import { blogCoverUrl, formatDateToISO } from '@/utils/url-utils'
 import { getBlogEntrySort } from '@utils/content-utils'
 
+const { locale = i18n!.defaultLocale } = Astro.params;
+
+const currentLang = locale;
+
 export async function getStaticPaths() {
-    const blogEntries = await getBlogEntrySort();
     
     // 获取所有支持的语言
     const locales = i18n?.locales || [i18n?.defaultLocale];
@@ -25,6 +27,7 @@ export async function getStaticPaths() {
     const paths = [];
     
     for (const locale of locales) {
+        const blogEntries = await getBlogEntrySort(locale);
         for (const entry of blogEntries) {
             
             paths.push({
@@ -39,21 +42,20 @@ export async function getStaticPaths() {
     
     return paths;
 }
-const { locale = i18n!.defaultLocale } = Astro.params;
 const { entry } = Astro.props;
 const { Content, headings } = await render(entry); // 获取渲染后的正文内容
 
-const currentLocale = locale;
+
 
 const pageTitle = entry.data.title + ' - ' + siteConfig.title;
 const image = blogCoverUrl(entry.data.image, entry.id);
 
 ---
-<MainPageLayout title={pageTitle} lang={currentLocale}>
+<MainPageLayout title={pageTitle} lang={currentLang}>
     <div class="mx-auto w-full max-w-[var(--page-width)] py-8">
         <div class="mb-8 text-center">
             <h1 class="font-bold text-3xl mb-2 pt-10 text-[var(--text-color)]">{ entry.data.title }</h1>
-            <p class="font-bold text-gray-600 pt-4 pb-10">{ formatDateToChinese(entry.data.pubDate) }</p>
+            <p class="font-bold text-gray-600 pt-4 pb-10">{ formatDateToISO(entry.data.pubDate) }</p>
         </div>
         {image && (
             <div class="cover overflow-hidden">

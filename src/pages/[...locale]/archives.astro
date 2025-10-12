@@ -10,12 +10,17 @@ import i18nit from '@i18n/translation'
 import { getCollection } from 'astro:content'
 import { i18n } from "astro:config/client";
 
+const { locale = i18n!.defaultLocale } = Astro.params;
+
+const currentLang = locale;
+const t = i18nit(currentLang);
+
 export async function getStaticPaths() {
 	return i18n?.locales.map(locale => ({ params: { locale: locale == i18n?.defaultLocale ? undefined : (locale as string) } }));
 }
 
 // 获取所有博客文章并按发布日期降序排序
-const allBlogPosts = await getBlogEntrySort();
+const allBlogPosts = await getBlogEntrySort(currentLang);
 
 // 按年份分组文章
 const postsByYear = allBlogPosts.reduce((acc, post) => {
@@ -26,11 +31,6 @@ const postsByYear = allBlogPosts.reduce((acc, post) => {
   acc[year].push(post);
   return acc;
 }, {} as Record<number, typeof allBlogPosts>);
-
-const { locale = i18n!.defaultLocale } = Astro.params;
-
-const currentLang = locale;
-const t = i18nit(currentLang);
 
 const pageTitle = "归档 - " + siteConfig.title;
 const postNumber = allBlogPosts.length;
