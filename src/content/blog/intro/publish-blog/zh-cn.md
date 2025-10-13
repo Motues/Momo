@@ -9,9 +9,16 @@ draft: false
 
 ## 创建文章文件
 
-首先，在 `src/content/blog/` 目录下创建一个新的 Markdown 文件。您可以直接在该目录下创建文件，也可以在子目录中组织您的文章。
+首先，在 `src/content/blog/` 目录下创建一个新的文件夹。您可以直接在该目录下创建，也可以在子目录中创建新的文件夹。
 
-例如，创建一篇名为 `src/content/blog/my-first-post.md` 的文章，或在子目录中创建`src/content/blog/posts/my-first-post.md`；编写的文章最后会根据文件的相对路径（相对于 `src/content/`）发布到对应的路由上，比如`/blog/my-first-post`。
+例如，创建一篇名为 `src/content/blog/my-first-post/` 的文件夹，或在子目录中创建`src/content/blog/posts/my-first-post/`；编写的文章最后会根据文件的相对路径（相对于 `src/content/`）发布到对应的路由上，比如`/blog/my-first-post`。
+
+为了使用国际化，对于不同语言的文章，请使用 `<language>.md` 问价进行区分，比如`src/content/blog/my-first-post/zh-cn.md`和`src/content/blog/my-first-post/en.md`，分别表示一篇文章的中文和英文版本。
+
+:::important
+* 一定要存在默认的语言版本，在生成页面时，如果当前文章缺少对于语言版本，则使用默认语言版本作为文章内容。
+* 所使用的语言需要在`astro.config.mjs`中配置。
+:::
 
 ## 编写文章元数据
 
@@ -42,4 +49,4 @@ draft: false
 
 ## 特殊页面
 
-比如介绍页面，保存在 `src/content/spec/about.md` ，并使用Markdown进行编写，最后会按照Markdown的格式进行渲染，发布到`/about`路由上。
+比如介绍页面，保存在 `src/content/spec/about/`文件夹中，和文章的内容类似，支持多种语言，并使用Markdown进行编写，最后会按照Markdown的格式进行渲染，发布到`/about`路由上。

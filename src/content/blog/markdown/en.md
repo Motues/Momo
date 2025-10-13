@@ -23,7 +23,7 @@ Typically, use 1-6 hash symbols `#` to denote headings, for example:
 ```
 
 Displayed as:
-![heading](./heading.png)
+![heading](./heading_en.png)
 
 ## Paragraphs
 

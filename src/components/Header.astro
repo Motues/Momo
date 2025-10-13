@@ -7,8 +7,8 @@ import { baseUrl } from "@utils/url-utils"
 
 import { i18n } from "astro:config/client";
 import i18nit from '@i18n/translation'
+import { getRelativeLocaleUrl } from 'astro:i18n';
 
-// const indexPage = profileConfig.indexPage
 
 // 获取当前页面在不同语言下的路径
 const getLocalePath = (path: string, targetLocale: string) => {
@@ -35,17 +35,17 @@ const { locale = i18n!.defaultLocale } = Astro.params;
 const currentLang = locale;
 const t = i18nit(currentLang);
 
-const indexPage = !locale || locale === i18n?.defaultLocale ? "/" : `/${locale}`;
-const archivesPage = !locale || locale === i18n?.defaultLocale ? "/archives" : `/${locale}/archives`;
-const friendsPage = !locale || locale === i18n?.defaultLocale ? "/friends" : `/${locale}/friends`;
-const aboutPage = !locale || locale === i18n?.defaultLocale ? "/about" : `/${locale}/about`;
+const indexPage = getRelativeLocaleUrl(currentLang, "/");
+const archivesPage = getRelativeLocaleUrl(currentLang, "/archives");
+const friendsPage = getRelativeLocaleUrl(currentLang, "/friends");
+const aboutPage = getRelativeLocaleUrl(currentLang, "/about");
 ---
 
 <!-- header -->
 <div class="flex items-center p-4 text-[var(--text-color)] max-w-[min(1024px,90vw)] mx-auto">
     <!-- logo -->
     <div class="px-4 py-2 font-bold z-30">
-        <a href={indexPage} >
+        <a href={ indexPage } >
             <span class="text-lg font-bold hover:opacity-60 transition-opacity">{ siteConfig.title }</span>
         </a>
     </div>
@@ -62,18 +62,18 @@ const aboutPage = !locale || locale === i18n?.defaultLocale ? "/about" : `/${loc
     <!-- tools -->
     <div class="ml-auto flex gap-2 px-4 py-2 justify-end z-30">
         <!-- Search -->
-        <button id="search-button" class="flex items-center justify-center w-10 h-10 hover:bg-[var(--button-hover-color)] rounded-lg hover:text-current border border-[var(--button-border-color)] transition-all duration-300">
+        <button id="search-button" class="flex items-center justify-center w-10 h-10 hover:bg-[var(--button-hover-color)] active:scale-90 rounded-lg hover:text-current border border-[var(--button-border-color)] transition-all duration-300">
             <Icon name="fa6-solid:magnifying-glass" class="w-4 h-4" />
         </button>
         <!-- Dark Mode -->
-        <ThemeIcon class="flex items-center justify-center w-10 h-10 hover:bg-[var(--button-hover-color)] rounded-lg hover:text-current border border-[var(--button-border-color)] transition-all duration-300"/>
+        <ThemeIcon class="flex items-center justify-center w-10 h-10 hover:bg-[var(--button-hover-color)] rounded-lg hover:text-current active:scale-90 border border-[var(--button-border-color)] transition-all duration-300"/>
         <!-- RSS -->
-        <!-- <a href="/rss.xml" target="_blank" class="flex items-center justify-center w-10 h-10 hover:bg-[var(--button-hover-color)] rounded-lg hover:text-current border border-[var(--button-border-color)] transition-all duration-300">
+        <!-- <a href="/rss.xml" target="_blank" class="flex items-center justify-center w-10 h-10 hover:bg-[var(--button-hover-color)] active:scale-90 rounded-lg hover:text-current border border-[var(--button-border-color)] transition-all duration-300">
             <Icon name="simple-icons:rss" class="w-4 h-4" />
         </a> -->
         <!-- Language Switcher -->
         <div class="relative">
-            <button id="language-button" class="flex items-center justify-center w-10 h-10 hover:bg-[var(--button-hover-color)] rounded-lg hover:text-current border border-[var(--button-border-color)] transition-all duration-300">
+            <button id="language-button" class="flex items-center justify-center w-10 h-10 hover:bg-[var(--button-hover-color)] active:scale-90 rounded-lg hover:text-current border border-[var(--button-border-color)] transition-all duration-300">
                 <Icon name="fa6-solid:globe" class="w-4 h-4" />
             </button>
             
@@ -97,10 +97,10 @@ const aboutPage = !locale || locale === i18n?.defaultLocale ? "/about" : `/${loc
 <!-- Mobile Menu -->
 <div id="mobile-menu" class="md:hidden hidden fixed top-16 left-0 w-full bg-[var(--bg-color)] text-[var(--text-color)] shadow-lg z-50">
     <div class="flex flex-col py-2">
-        <a href={ indexPage } class="px-6 py-3 hover:bg-[var(--button-hover-color)]">主页</a>
-        <a href="/archives"  class="px-6 py-3 hover:bg-[var(--button-hover-color)]">归档</a>
-        <a href="/about"  class="px-6 py-3 hover:bg-[var(--button-hover-color)]">关于</a>
-        <a href="/friends"  class="px-6 py-3 hover:bg-[var(--button-hover-color)]">友链</a>
+        <a href={ indexPage } class="px-6 py-3 hover:bg-[var(--button-hover-color)]">{t("header.home")}</a>
+        <a href={ archivesPage }  class="px-6 py-3 hover:bg-[var(--button-hover-color)]">{t("header.archive")}</a>
+        <a href={ aboutPage }  class="px-6 py-3 hover:bg-[var(--button-hover-color)]">{t("header.about")}</a>
+        <a href={ friendsPage } class="px-6 py-3 hover:bg-[var(--button-hover-color)]">{t("header.friends")}</a>
     </div>
 </div>
 

@@ -16,7 +16,7 @@ const { locale = i18n!.defaultLocale } = Astro.params;
 const currentLang = locale;
 const t = i18nit(currentLang);
 
-const pageTitle = "友链 - " + siteConfig.title;
+const pageTitle = t("header.friends") + " - " + siteConfig.title;
 ---
 
 <MainPageLayout title={pageTitle} lang={currentLang}>

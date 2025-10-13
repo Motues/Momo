@@ -2,7 +2,7 @@
 import { Icon } from "astro-icon/components";
 ---
 
-<button id="backTop" title="回到顶部" class="fixed bottom-[4vh] right-[4vw] w-12 h-12 rounded-full bg-[--bg-color] cursor-pointer flex items-center justify-center z-[1000] transition-all duration-300 opacity-90 border-0 hover:scale-110 hover:shadow-[0_4px_15px_rgba(59,130,246,0.4)] hidden">
+<button id="backTop" title="回到顶部" class="fixed bottom-[4vh] left-[var(--toc-offset-left)] w-12 h-12 rounded-full bg-[--bg-color] cursor-pointer flex items-center justify-center z-[1000] transition-all duration-300 opacity-90 border-0 hover:scale-110 active:scale-90 hover:shadow-[0_4px_15px_rgba(59,130,246,0.4)] hidden">
   <!-- 圆形进度条 -->
   <svg class="absolute top-0 left-0 w-full h-full -rotate-90" viewBox="0 0 48 48">
     <circle id="circle" cx="24" cy="24" r="20" fill="none" stroke="currentColor" stroke-width="2"></circle>

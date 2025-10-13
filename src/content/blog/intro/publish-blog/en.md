@@ -8,13 +8,20 @@ draft: false
 
 ## Creating Article Files
 
-First, create a new Markdown file within the `src/content/blog/` directory. You can create files directly in this directory or organize your articles in subdirectories.
+First, create a new folder under the `src/content/blog/` directory. You can create it directly within this directory or nest it within subdirectories.
 
-For example, create an article named `src/content/blog/my-first-post.md`, or create `src/content/blog/posts/my-first-post.md` in a subdirectory. Articles will be published to the corresponding route based on the file's relative path (relative to `src/content/`), such as `/blog/my-first-post`.
+For example, create a folder named `src/content/blog/my-first-post/`, or create `src/content/blog/posts/my-first-post/` within a subdirectory. Your article will be published to the corresponding route based on the file's relative path (relative to `src/content/`), such as `/blog/my-first-post`.
+
+For internationalization, use `<language>.md` naming conventions to distinguish articles in different languages. For example, `src/content/blog/my-first-post/zh-cn.md` and `src/content/blog/my-first-post/en.md` represent the Chinese and English versions of an article, respectively.
+
+:::important
+* A default language version must exist. When generating pages, if a language version is missing for the current article, the default language version will be used as the article content.
+* The languages used must be configured in `astro.config.mjs`.
+:::
 
 ## Writing Article Metadata
 
-Each article requires a metadata section (frontmatter) formatted in YAML and enclosed by `---`, as shown below:
+Each article requires a metadata section (frontmatter) using YAML format, enclosed by `---` as shown below:
 
 ```yaml
 ---
@@ -38,9 +45,6 @@ draft: false
 
 Article content can be written using Markdown format, supporting specific syntax. Refer to other sample articles for details.
 
-
 ## Special Pages
 
-For example, the About page is stored in `src/content/spec/about.md` and written using Markdown. It will be rendered according to Markdown formatting and published to the `/about` route.
-
-Translated with DeepL.com (free version)
+For example, the About page is stored in the `src/content/spec/about/` folder. Similar to articles, it supports multiple languages and is written in Markdown. It will be rendered according to Markdown formatting and published to the `/about` route.

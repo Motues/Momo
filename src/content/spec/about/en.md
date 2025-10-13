@@ -4,6 +4,7 @@
 * Minimalist design
 * Supports dark mode switching and automatically follows system settings
 * Supports article search functionality (pagefind)
+* Internationalization (i18n)
 
 ## 💻 Environment Requirements
 
@@ -22,7 +23,7 @@
 
 # 🔧 Configuration
 
-Refer to the [Configuration Guide](/blog/intro/config)
+Refer to the [Configuration Guide](/en/blog/intro/config)
 
 ## ⚡ Commands
 
@@ -46,8 +47,7 @@ All commands below can be executed in the root directory
 - [x] Add table of contents
 - [x] Add RSS feed
 - [ ] Other minor features, e.g., ~~back to top~~, estimated reading time
-- [ ] Refine memo pages
-- [ ] Internationalization (i18n)
+- [x] Internationalization (i18n)
 
 ## 📚 References
 

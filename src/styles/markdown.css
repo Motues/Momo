@@ -176,6 +176,12 @@
   font-size: 0.9rem;
 }
 
+[data-theme="dark"] .markdown-content pre code {
+  padding: 0;
+  background: none;
+  font-size: 0.9rem;
+}
+
 .markdown-content hr {
   margin: 2rem 0;
   border: none;

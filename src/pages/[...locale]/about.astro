@@ -24,7 +24,7 @@ if (!aboutPost) {
 }
 const { Content } = await render(aboutPost);
 
-const pageTitle = "关于 - " + siteConfig.title;
+const pageTitle = t("header.about") + " - " + siteConfig.title;
 ---
 <MainPageLayout title={pageTitle} lang={currentLang}>
     <div class="mx-auto w-full max-w-[var(--page-width)]">

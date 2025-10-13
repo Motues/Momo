@@ -9,6 +9,7 @@ import { getBlogEntrySort } from '@utils/content-utils'
 import { siteConfig } from '@/config';
 import { i18n } from "astro:config/client";
 import type { GetStaticPaths } from 'astro';
+import { getRelativeLocaleUrl } from 'astro:i18n';
 
 import i18nit from '@i18n/translation'
 
@@ -41,7 +42,7 @@ export const getStaticPaths = (async ({ paginate }) => {
 
 
 
-const indexPage = !locale || locale === i18n?.defaultLocale ? "" : `/${locale}`;
+const indexPage = getRelativeLocaleUrl(locale, '/');
 const pageTitle = `${siteConfig.title} - ${siteConfig.subTitle}`;
 
 ---

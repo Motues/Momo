@@ -24,7 +24,7 @@ draft: false
 ```
 
 显示如下：
-![heading](./heading.png)
+![heading](./heading_zh.png)
 
 ## 段落
 
