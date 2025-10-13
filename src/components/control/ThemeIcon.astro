@@ -10,71 +10,76 @@ import { Icon } from "astro-icon/components";
 </button>
 
 <script is:inline>
-const htmlRoot = document.querySelector('html');
-const themeToggle = document.getElementById('themeToggle');
+if (typeof window !== 'undefined') {
+  function initThemeToggle() {
+    const htmlRoot = document.querySelector('html');
+    const themeToggle = document.getElementById('themeToggle');
 
-const theme = (() => {
-    const localStorageTheme = localStorage?.getItem("theme") ?? '';
-    if (['dark', 'light', 'system'].includes(localStorageTheme)) {
+    const getTheme = () => {
+      const localStorageTheme = localStorage?.getItem("theme") ?? '';
+      if (['dark', 'light', 'system'].includes(localStorageTheme)) {
         return localStorageTheme;
-    }
-    return 'system';
-})();
+      }
+      return 'system';
+    };
 
-const setTheme = (themeSet) => { 
-    if (themeSet === 'dark') {
+    const setTheme = (themeSet) => { 
+      if (themeSet === 'dark') {
         htmlRoot.setAttribute('data-theme', 'dark');
         htmlRoot.classList.remove('system-theme');
-    } else if (themeSet === 'light') {
+      } else if (themeSet === 'light') {
         htmlRoot.removeAttribute('data-theme');
         htmlRoot.classList.remove('system-theme');
-    } else {
-        // system mode
+      } else {
         htmlRoot.classList.add('system-theme');
         if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
-            htmlRoot.setAttribute('data-theme', 'dark');
+          htmlRoot.setAttribute('data-theme', 'dark');
         } else {
-            htmlRoot.removeAttribute('data-theme');
+          htmlRoot.removeAttribute('data-theme');
         }
-    }
-    window.localStorage.setItem('theme', themeSet);
-};
+      }
+      window.localStorage.setItem('theme', themeSet);
+    };
 
-// 监听系统主题变化
-const handleSystemThemeChange = (e) => {
-    if (htmlRoot.classList.contains('system-theme')) {
+    // 系统主题变化监听器
+    const handleSystemThemeChange = (e) => {
+      if (htmlRoot.classList.contains('system-theme')) {
         if (e.matches) {
-            htmlRoot.setAttribute('data-theme', 'dark');
+          htmlRoot.setAttribute('data-theme', 'dark');
         } else {
-            htmlRoot.removeAttribute('data-theme');
+          htmlRoot.removeAttribute('data-theme');
         }
-    }
-};
+      }
+    };
 
-// 添加系统主题变化监听器
-const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
-mediaQuery.addEventListener('change', handleSystemThemeChange);
+    // 移除旧监听，防止重复注册
+    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+    mediaQuery.removeEventListener?.('change', handleSystemThemeChange);
+    mediaQuery.addEventListener('change', handleSystemThemeChange);
 
-setTheme(theme);
+    const handleToggleClick = () => {
+      const currentTheme = localStorage.getItem('theme') || 'system';
+      let nextTheme;
+      if (currentTheme === 'light') nextTheme = 'dark';
+      else if (currentTheme === 'dark') nextTheme = 'system';
+      else nextTheme = 'light';
+      setTheme(nextTheme);
+    };
 
-const handleToggleClick = () => {
-    const currentTheme = localStorage.getItem('theme') || 'system';
-    let nextTheme;
-    
-    if (currentTheme === 'light') {
-        nextTheme = 'dark';
-    } else if (currentTheme === 'dark') {
-        nextTheme = 'system';
-    } else {
-        // system mode
-        nextTheme = 'light';
-    }
-    
-    setTheme(nextTheme);
+    // 重新绑定点击事件
+    themeToggle?.removeEventListener('click', handleToggleClick);
+    themeToggle?.addEventListener('click', handleToggleClick);
+
+    // 初始化主题
+    setTheme(getTheme());
+  }
+
+  // 页面首次加载 + ClientRouter 导航后执行
+  document.addEventListener('astro:page-load', initThemeToggle);
+  document.addEventListener('astro:after-swap', initThemeToggle);
 }
-
-themeToggle?.addEventListener("click", handleToggleClick);
 </script>
+
 
 <style>
     #themeToggle .moon {

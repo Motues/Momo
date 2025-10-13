@@ -23,6 +23,7 @@ const translation: Translation = {
             page404: "Congratulations on finding a new world, this world is still under construction, please wait a bit longer."
         }
     },
+    toc: "Contents",
     pageNavigation: {
         previous: "Prev",
         next: "Next",

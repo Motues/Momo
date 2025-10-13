@@ -2,6 +2,9 @@
 import { siteConfig } from "@/config";
 import type { MarkdownHeading } from "astro";
 
+import { i18n } from "astro:config/client";
+import i18nit from '@i18n/translation'
+
 interface Props {
 	class?: string;
 	headings: MarkdownHeading[];
@@ -14,12 +17,16 @@ for (const heading of headings) {
     minDepth = Math.min(minDepth, heading.depth);
 }
 const maxDepth = minDepth + siteConfig.toc.depth
-
 const filteredHeadings = headings.filter(heading => heading.depth <= maxDepth);
+
+const { locale = i18n!.defaultLocale } = Astro.params;
+
+const currentLang = i18n.locales.includes(locale) ? locale : i18n!.defaultLocale;
+const t = i18nit(currentLang);
 ---
 
 <div aria-labelledby="toc-heading" class=`${className} lg:inline-block text-[var(--text-color)] hidden fixed top-20 w-[var(--toc-width)] left-[var(--toc-offset-left)] opacity-0 transition-opacity duration-300 h-1/2 overflow-hidden` id="toc-container">
-	<h2 id="toc-heading" class="text-lg font-bold mb-2">目录</h2>
+	<h2 id="toc-heading" class="text-lg font-bold mb-2">{t("toc")}</h2>
 	<ul class="space-y-1 overflow-y-auto h-full pr-2" id="toc-list" style="scrollbar-width: none;">
 		{
 			filteredHeadings.map((heading) => (
@@ -44,23 +51,19 @@ const filteredHeadings = headings.filter(heading => heading.depth <= maxDepth);
 	</ul>
 </div>
 
-<script define:vars={{filteredHeadings}}>
-  if (typeof window !== 'undefined') {
+<script define:vars={{ filteredHeadings }} is:inline>
+if (typeof window !== 'undefined') {
+  function initTOC() {
     let tocVisible = false;
-    
-    // 获取需要滚动超过的高度（Header和Cover的高度）
-    // 这里需要根据实际情况调整这个值
-    const headerCoverHeight = 200; // 单位px
-    
-    // 活跃状态数组，用于跟踪哪些标题在视窗中
+    const headerCoverHeight = 200;
     let activeHeadings = new Array(filteredHeadings.length).fill(false);
-    
+
     const tocContainer = document.getElementById('toc-container');
     const tocList = document.getElementById('toc-list');
-    
+
     const handleScroll = () => {
       const scrollY = window.scrollY || window.pageYOffset;
-      
+
       if (scrollY > headerCoverHeight && !tocVisible && tocContainer) {
         tocContainer.classList.remove('opacity-0');
         tocContainer.classList.add('opacity-100');
@@ -71,79 +74,15 @@ const filteredHeadings = headings.filter(heading => heading.depth <= maxDepth);
         tocVisible = false;
       }
     };
-    window.addEventListener('scroll', handleScroll);
-    
-    // 检测活跃标题的函数
-    const detectActiveHeadings = () => {
-      // 创建 Intersection Observer 来检测标题元素
-      const observerOptions = {
-        root: null,
-        rootMargin: '0px',
-        threshold: 0.1 // 当标题元素10%可见时触发
-      };
-      
-      const observer = new IntersectionObserver((entries) => {
-        entries.forEach(entry => {
-          const slug = entry.target.id;
-          const tocLink = document.querySelector(`a[data-heading-slug="${slug}"]`);
-          
-          // 找到对应标题在数组中的索引
-          const headingIndex = filteredHeadings.findIndex(heading => heading.slug === slug);
-          
-          if (entry.isIntersecting) {
-            // 标题在视窗中，将活跃数组对应值设为true
-            if (headingIndex !== -1) {
-              activeHeadings[headingIndex] = true;
-            }
-            
-            // 可以添加活动状态的样式
-            if (tocLink) {
-              tocLink.classList.add('active',);
-              
-              // 滚动到当前激活的目录项
-              const containerHeight = tocList.clientHeight;
-              const linkOffsetTop = tocLink.offsetTop;
-              const scrollTo = linkOffsetTop - containerHeight / 2;
-              
-              tocList.scrollTo({
-                top: scrollTo,
-                behavior: 'smooth'
-              });
-              
-              // 设置当前及附近项目的透明度和字体粗细
-            }
-          } else {
-            // 标题不在视窗中，将活跃数组对应值设为false
-            if (headingIndex !== -1) {
-              activeHeadings[headingIndex] = false;
-            }
-            
-            if (tocLink) {
-              tocLink.classList.remove('active',);
-            }
-          }
-        });
-        updateTOCItemsStyle();
-      }, observerOptions);
-      
-      // 观察所有标题元素
-      filteredHeadings.forEach(heading => {
-        const headingElement = document.getElementById(heading.slug);
-        if (headingElement) {
-          observer.observe(headingElement);
-        }
-      });
-    };
-    
-    // 更新TOC项目的透明度和字体粗细
+
     const updateTOCItemsStyle = () => {
       const tocLinks = Array.from(document.querySelectorAll('a[data-heading-slug]'));
-
       const linksCount = tocLinks.length;
+
       let minActiveIndex = linksCount;
       let maxActiveIndex = 0;
 
-      for(let i = 0; i < linksCount; i++) {
+      for (let i = 0; i < linksCount; i++) {
         if (activeHeadings[i]) {
           minActiveIndex = Math.min(minActiveIndex, i);
           maxActiveIndex = Math.max(maxActiveIndex, i);
@@ -152,88 +91,63 @@ const filteredHeadings = headings.filter(heading => heading.depth <= maxDepth);
 
       const midActiveIndex = Math.floor((minActiveIndex + maxActiveIndex) / 2);
 
-      for(let i = 0; i < linksCount; i++) {
-        let distance;
-        // if(i >= minActiveIndex && i <= maxActiveIndex) distance = 0;
-        // else distance = Math.min(Math.abs(i - minActiveIndex), Math.abs(i - maxActiveIndex));
-        distance = Math.abs(i - midActiveIndex);
-
+      for (let i = 0; i < linksCount; i++) {
+        const distance = Math.abs(i - midActiveIndex);
         let opacity, fontWeight;
-        if (distance === 0){
+        if (distance === 0) {
           opacity = 1;
           fontWeight = '700';
-        }else if(distance === 1){
+        } else if (distance === 1) {
           opacity = 0.9;
           fontWeight = '600';
-        }else if(distance <= 5){
+        } else if (distance <= 5) {
           opacity = 1 - (distance - 1) * 0.2;
-          if(distance === 2) fontWeight = '500';
-          else fontWeight = '400';
-        }else{
+          fontWeight = distance === 2 ? '500' : '400';
+        } else {
           opacity = 0.1;
           fontWeight = '300';
         }
         tocLinks[i].style.opacity = opacity;
         tocLinks[i].style.fontWeight = fontWeight;
-
       }
-      
-      // tocLinks.forEach((link, index) => {
-      //   const headingIndex = filteredHeadings.findIndex(heading => 
-      //     `toc-link-${heading.slug}` === link.id
-      //   );
-        
-      //   if (headingIndex === -1) return;
-        
-      //   // 计算与当前激活项的距离
-      //   const distance = Math.abs(headingIndex - activeIndex);
-        
-      //   // 检查前后项是否也处于激活状态
-      //   const isPrevActive = headingIndex > 0 && Math.abs(headingIndex - 1 - activeIndex) === 1;
-      //   const isNextActive = headingIndex < filteredHeadings.length - 1 && Math.abs(headingIndex + 1 - activeIndex) === 1;
-        
-      //   // 根据距离和相邻项激活状态设置透明度
-      //   let opacity;
-      //   if (distance === 0) {
-      //     // 当前激活项完全不透明
-      //     opacity = 1;
-      //   } else if (distance === 1 && (isPrevActive || isNextActive)) {
-      //     // 如果相邻项也是激活项，则相邻项保持较高透明度
-      //     opacity = 0.9;
-      //   } else if (distance <= 2) {
-      //     // 前后2个项，透明度逐渐降低
-      //     opacity = 1 - (distance * 0.2);
-      //   } else if (distance <= 4) {
-      //     // 前后3-4个项，透明度继续降低
-      //     opacity = 0.4 - ((distance - 2) * 0.1);
-      //   } else {
-      //     // 其余项，透明度更低
-      //     opacity = 0.1;
-      //   }
-        
-      //   // 根据距离和相邻项激活状态设置字体粗细
-      //   let fontWeight;
-      //   if (distance === 0) {
-      //     // 当前激活项最粗
-      //     fontWeight = '700'; // bold
-      //   } else if (distance === 1 && (isPrevActive || isNextActive)) {
-      //     // 如果相邻项也是激活项，则保持较粗的字体
-      //     fontWeight = '600';
-      //   } else if (distance === 1) {
-      //     fontWeight = '600'; // semi-bold
-      //   } else if (distance === 2) {
-      //     fontWeight = '500'; 
-      //   } else if (distance <= 4) {
-      //     fontWeight = '400'; // normal
-      //   } else {
-      //     fontWeight = '300'; // light
-      //   }
-        
-      //   link.style.opacity = opacity;
-      //   link.style.fontWeight = fontWeight;
-      // });
     };
-    
+
+    const detectActiveHeadings = () => {
+      const observerOptions = {
+        root: null,
+        rootMargin: '0px',
+        threshold: 0.1
+      };
+
+      const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+          const slug = entry.target.id;
+          const tocLink = document.querySelector(`a[data-heading-slug="${slug}"]`);
+          const headingIndex = filteredHeadings.findIndex(heading => heading.slug === slug);
+
+          if (entry.isIntersecting) {
+            if (headingIndex !== -1) activeHeadings[headingIndex] = true;
+            if (tocLink) {
+              tocLink.classList.add('active');
+              const containerHeight = tocList.clientHeight;
+              const linkOffsetTop = tocLink.offsetTop;
+              const scrollTo = linkOffsetTop - containerHeight / 2;
+              tocList.scrollTo({ top: scrollTo, behavior: 'smooth' });
+            }
+          } else {
+            if (headingIndex !== -1) activeHeadings[headingIndex] = false;
+            tocLink?.classList.remove('active');
+          }
+        });
+        updateTOCItemsStyle();
+      }, observerOptions);
+
+      filteredHeadings.forEach(heading => {
+        const headingElement = document.getElementById(heading.slug);
+        if (headingElement) observer.observe(headingElement);
+      });
+    };
+
     const setupSmoothScrolling = () => {
       const tocLinks = document.querySelectorAll('a[href^="#"]');
       tocLinks.forEach(link => {
@@ -242,25 +156,28 @@ const filteredHeadings = headings.filter(heading => heading.depth <= maxDepth);
           const targetId = link.getAttribute('href').substring(1);
           const targetElement = document.getElementById(targetId);
           if (targetElement) {
-            targetElement.scrollIntoView({
-              behavior: 'smooth',
-              block: 'start'
-            });
+            targetElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
             history.pushState(null, '', `#${targetId}`);
           }
         });
       });
     };
 
-    if (document.readyState === 'loading') {
-      document.addEventListener('DOMContentLoaded', () => {
-        setupSmoothScrolling();
-        detectActiveHeadings();
-      });
-    } else {
-      setupSmoothScrolling();
-      detectActiveHeadings();
-    }
+    // 清理旧监听器（防止多次绑定）
+    window.removeEventListener('scroll', handleScroll);
+    window.removeEventListener('resize', handleScroll);
+
+    window.addEventListener('scroll', handleScroll);
+    window.addEventListener('resize', handleScroll);
+    handleScroll();
+
+    setupSmoothScrolling();
+    detectActiveHeadings();
+  }
+
+  // 页面初次加载 & 每次 ClientRouter 导航后重新初始化
+  document.addEventListener('astro:page-load', initTOC);
+  document.addEventListener('astro:after-swap', initTOC);
 }
 </script>
 

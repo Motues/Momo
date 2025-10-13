@@ -16,7 +16,7 @@ import { getBlogEntrySort } from '@utils/content-utils'
 
 const { locale = i18n!.defaultLocale } = Astro.params;
 
-const currentLang = locale;
+const currentLang = i18n.locales.includes(locale) ? locale : i18n!.defaultLocale;
 
 export async function getStaticPaths() {
     

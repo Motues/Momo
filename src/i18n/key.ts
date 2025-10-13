@@ -21,6 +21,7 @@ export interface Translation {
             page404: string;
         };
     };
+    toc:string;
     pageNavigation: {
         previous: string;
         next: string;

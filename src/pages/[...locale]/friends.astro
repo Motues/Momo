@@ -13,7 +13,7 @@ export async function getStaticPaths() {
 
 const { locale = i18n!.defaultLocale } = Astro.params;
 
-const currentLang = locale;
+const currentLang = i18n.locales.includes(locale) ? locale : i18n!.defaultLocale;
 const t = i18nit(currentLang);
 
 const pageTitle = t("header.friends") + " - " + siteConfig.title;

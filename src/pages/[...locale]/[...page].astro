@@ -17,7 +17,7 @@ import i18nit from '@i18n/translation'
 const { page } = Astro.props;
 const { locale = i18n!.defaultLocale } = Astro.params;
 
-const currentLang = locale;
+const currentLang = i18n.locales.includes(locale) ? locale : i18n!.defaultLocale;
 const t = i18nit(currentLang);
 
 export const getStaticPaths = (async ({ paginate }) => {

@@ -13,45 +13,41 @@ import { Icon } from "astro-icon/components";
 </button>
 
 <script is:inline>
-const backTopButton = document.getElementById('backTop');
-const progressCircle = document.getElementById('progress-circle');
+function initBackTop() {
+  const backTopButton = document.getElementById('backTop');
+  const progressCircle = document.getElementById('progress-circle');
+  if (!backTopButton || !progressCircle) return;
 
-// 显示/隐藏回到顶部按钮并更新进度条
-const handleScroll = () => {
-  const scrollTop = window.scrollY || document.documentElement.scrollTop;
-  const documentHeight = document.documentElement.scrollHeight - document.documentElement.clientHeight;
-  const scrollPercent = documentHeight > 0 ? Math.min(100, Math.round((scrollTop / documentHeight) * 100)) : 0;
-  
-  // 更新进度条
-  const circumference = 2 * Math.PI * 20; // 2 * π * r
-  const offset = circumference - (scrollPercent / 100) * circumference;
-  progressCircle.style.strokeDasharray = `${circumference - offset} ${offset}`;
-  
-  // 显示/隐藏按钮 (仅在大屏幕显示)
-  if (window.innerWidth >= 1024 && scrollTop > 10) {
-    backTopButton.classList.remove('hidden');
-  } else {
-    backTopButton.classList.add('hidden');
-  }
-};
+  const handleScroll = () => {
+    const scrollTop = window.scrollY || document.documentElement.scrollTop;
+    const documentHeight = document.documentElement.scrollHeight - document.documentElement.clientHeight;
+    const scrollPercent = documentHeight > 0 ? Math.min(100, Math.round((scrollTop / documentHeight) * 100)) : 0;
 
-// 回到顶部功能
-const scrollToTop = () => {
-  window.scrollTo({
-    top: 0,
-    behavior: 'smooth'
-  });
-};
+    const circumference = 2 * Math.PI * 20; // 2 * π * r
+    const offset = circumference - (scrollPercent / 100) * circumference;
+    progressCircle.style.strokeDasharray = `${circumference - offset} ${offset}`;
 
-// 添加事件监听器
-window.addEventListener('scroll', handleScroll);
-backTopButton?.addEventListener('click', scrollToTop);
+    if (window.innerWidth >= 1024 && scrollTop > 10) {
+      backTopButton.classList.remove('hidden');
+    } else {
+      backTopButton.classList.add('hidden');
+    }
+  };
 
-// 监听窗口大小变化
-window.addEventListener('resize', handleScroll);
+  const scrollToTop = () => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
 
-// 初始化时检查是否需要显示按钮
-handleScroll();
+  window.addEventListener('scroll', handleScroll);
+  window.addEventListener('resize', handleScroll);
+  backTopButton.addEventListener('click', scrollToTop);
+  handleScroll();
+}
+
+// 初次加载
+document.addEventListener('astro:page-load', initBackTop);
+// 每次页面切换完成后重新挂载
+document.addEventListener('astro:after-swap', initBackTop);
 </script>
 
 <style is:global>

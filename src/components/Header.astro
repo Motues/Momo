@@ -9,6 +9,11 @@ import { i18n } from "astro:config/client";
 import i18nit from '@i18n/translation'
 import { getRelativeLocaleUrl } from '@utils/url-utils';
 
+const { locale = i18n!.defaultLocale } = Astro.params;
+
+const currentLang = i18n.locales.includes(locale) ? locale : i18n!.defaultLocale;
+const t = i18nit(currentLang);
+
 
 // 获取当前页面在不同语言下的路径
 const getLocalePath = (path: string, targetLocale: string) => {
@@ -17,8 +22,8 @@ const getLocalePath = (path: string, targetLocale: string) => {
   
   // 移除当前语言前缀
   let basePath = currentPath;
-  if (locale && locale !== defaultLocale) {
-    basePath = currentPath.replace(`/${locale}`, "") || "/";
+  if (currentLang && currentLang !== defaultLocale) {
+    basePath = currentPath.replace(`/${currentLang}`, "") || "/";
   }
   
   // 添加目标语言前缀（默认语言不需要前缀）
@@ -28,12 +33,6 @@ const getLocalePath = (path: string, targetLocale: string) => {
   
   return basePath;
 };
-
-
-const { locale = i18n!.defaultLocale } = Astro.params;
-
-const currentLang = locale;
-const t = i18nit(currentLang);
 
 const indexPage = getRelativeLocaleUrl(currentLang, "/");
 const archivesPage = getRelativeLocaleUrl(currentLang, "/archives");
@@ -105,98 +104,138 @@ const aboutPage = getRelativeLocaleUrl(currentLang, "/about");
 </div>
 
 <script>
-    document.addEventListener('DOMContentLoaded', () => {
-        const menuButton = document.getElementById('mobile-menu-button');
-        const mobileMenu = document.getElementById('mobile-menu');
-        const navBar = document.getElementById('nav-bar');
-        const navBarList = document.getElementById('nav-bar-list');
-        const searchButton = document.getElementById('search-button');
-        
-        
-        if (menuButton && mobileMenu) {
-            menuButton.addEventListener('click', () => {
-                mobileMenu.classList.toggle('hidden');
-            });
-            
-            // 点击菜单外部区域关闭菜单
-            document.addEventListener('click', (event) => {
-                if (!menuButton.contains(event.target as Node) && !mobileMenu.contains(event.target as Node)) {
-                    mobileMenu.classList.add('hidden');
-                }
-            });
-        }
-        
-        // 监听滚动事件
-        let isFixed = false;
-        window.addEventListener('scroll', () => {
-            if (window.scrollY > 0 && !isFixed && navBar && navBarList) {
-                // 页面不在顶部，添加fixed类
-                navBar.classList.add('fixed', 'top-4', 'z-20',);
-                navBarList.classList.add('border' ,'border-[var(--button-border-color)]', 'shadow-[0_4px_12px_var(--shadow-color)]');
-                isFixed = true;
-            } else if (window.scrollY === 0 && isFixed && navBar && navBarList) {
-                // 页面回到顶部，移除fixed类
-                navBar.classList.remove('fixed', 'top-4', 'z-20', );
-                navBarList.classList.remove('border' ,'border-[var(--button-border-color)]','shadow-[0_4px_12px_var(--shadow-color)]');
-                isFixed = false;
-            }
-        });
-    });
+function initMobileNav() {
+  const menuButton = document.getElementById('mobile-menu-button');
+  const mobileMenu = document.getElementById('mobile-menu');
+  const navBar = document.getElementById('nav-bar');
+  const navBarList = document.getElementById('nav-bar-list');
+
+  // 防止重复绑定
+  if (!menuButton || menuButton.dataset.bound === 'true') return;
+  menuButton.dataset.bound = 'true';
+
+  // 点击菜单按钮，切换菜单显示
+  menuButton.addEventListener('click', () => {
+    mobileMenu?.classList.toggle('hidden');
+  });
+
+  // 点击外部区域关闭菜单
+  document.addEventListener('click', (event) => {
+    if (
+      menuButton &&
+      mobileMenu &&
+      !menuButton.contains(event.target) &&
+      !mobileMenu.contains(event.target)
+    ) {
+      mobileMenu.classList.add('hidden');
+    }
+  });
+
+  // 滚动时控制导航栏样式
+  let isFixed = false;
+  window.addEventListener('scroll', () => {
+    if (window.scrollY > 0 && !isFixed && navBar && navBarList) {
+      navBar.classList.add('fixed', 'top-4', 'z-20');
+      navBarList.classList.add(
+        'border',
+        'border-[var(--button-border-color)]',
+        'shadow-[0_4px_12px_var(--shadow-color)]'
+      );
+      isFixed = true;
+    } else if (window.scrollY === 0 && isFixed && navBar && navBarList) {
+      navBar.classList.remove('fixed', 'top-4', 'z-20');
+      navBarList.classList.remove(
+        'border',
+        'border-[var(--button-border-color)]',
+        'shadow-[0_4px_12px_var(--shadow-color)]'
+      );
+      isFixed = false;
+    }
+  });
+}
+
+// 初次加载
+document.addEventListener('DOMContentLoaded', initMobileNav);
+
+// 路由切换后重新绑定（ClientRouter 兼容）
+document.addEventListener('astro:after-swap', initMobileNav);
 </script>
 <script>
-// 添加到现有 script 标签中
-const languageButton = document.getElementById('language-button');
-const languageMenu = document.getElementById('language-menu');
+function initLanguageMenu() {
+  const languageButton = document.getElementById('language-button');
+  const languageMenu = document.getElementById('language-menu');
 
-if (languageButton && languageMenu) {
-    languageButton.addEventListener('click', () => {
-        languageMenu.classList.toggle('hidden');
-    });
-    
-    // 点击菜单外部区域关闭菜单
-    document.addEventListener('click', (event) => {
-        if (!languageButton.contains(event.target as Node) && !languageMenu.contains(event.target as Node)) {
-            languageMenu.classList.add('hidden');
-        }
-    });
+  // 避免重复绑定
+  if (!languageButton || languageButton.dataset.bound === 'true') return;
+  languageButton.dataset.bound = 'true';
+
+  // 点击按钮切换菜单
+  languageButton.addEventListener('click', (e) => {
+    e.stopPropagation(); // 防止触发外部点击关闭
+    languageMenu?.classList.toggle('hidden');
+  });
+
+  // 点击菜单外部关闭
+  document.addEventListener('click', (event) => {
+    if (
+      languageButton &&
+      languageMenu &&
+      !languageButton.contains(event.target) &&
+      !languageMenu.contains(event.target)
+    ) {
+      languageMenu.classList.add('hidden');
+    }
+  });
 }
+
+document.addEventListener('astro:page-load', initLanguageMenu);
+document.addEventListener('astro:after-swap', initLanguageMenu);
 </script>
 
-{
-import.meta.env.PROD && 
-<script is:inline define:vars={{scriptUrl: baseUrl('/pagefind/pagefind.js')}}>
-async function loadPagefind() {
-    try {
-        const response = await fetch(scriptUrl, { method: 'HEAD' });
-        if (!response.ok) {
-            throw new Error(`Pagefind script not found: ${response.status}`);
-        }
 
-        const pagefind = await import(scriptUrl);
+{import.meta.env.PROD && 
+<script is:inline define:vars={{ scriptUrl: baseUrl('/pagefind/pagefind.js') }}>
+function initPagefind() {
+  // 如果已经存在 Pagefind 实例，就直接触发 ready
+  if (window.pagefind && typeof window.pagefind.search === 'function') {
+    document.dispatchEvent(new CustomEvent('pagefindready'));
+    return;
+  }
+  // 防止重复加载
+  if (window.pagefindLoading) return;
+  window.pagefindLoading = true;
 
-        await pagefind.options({
-            excerptLength: 20
-        });
-
-        window.pagefind = pagefind;
-
-        document.dispatchEvent(new CustomEvent('pagefindready'));
-        // console.log('Pagefind loaded and initialized successfully, event dispatched.');
-    } catch (error) {
-        console.error('Failed to load Pagefind:', error);
-        window.pagefind = {
-            search: () => Promise.resolve({ results: [] }),
-            options: () => Promise.resolve(),
-        };
-        document.dispatchEvent(new CustomEvent('pagefindloaderror'));
-        // console.log('Pagefind load error, event dispatched.');
-    }
+  // 加载 Pagefind
+  fetch(scriptUrl, { method: 'HEAD' })
+    .then((response) => {
+      if (!response.ok) throw new Error(`Pagefind script not found: ${response.status}`);
+      return import(scriptUrl);
+    })
+    .then(async (pagefind) => {
+      await pagefind.options({ 
+        excerptLength: 20
+     });
+      window.pagefind = pagefind;
+      document.dispatchEvent(new CustomEvent('pagefindready'));
+      // console.log('Pagefind initialized successfully');
+    })
+    .catch((error) => {
+      console.error('Failed to load Pagefind:', error);
+      window.pagefind = {
+        search: () => Promise.resolve({ results: [] }),
+        options: () => Promise.resolve(),
+      };
+      document.dispatchEvent(new CustomEvent('pagefindloaderror'));
+    });
+    // console.log('Pagefind loading...');
 }
+document.addEventListener('astro:page-load', initPagefind);
 
+document.addEventListener('astro:after-swap', initPagefind);
 if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', loadPagefind);
+  document.addEventListener('DOMContentLoaded', initPagefind);
 } else {
-    loadPagefind();
+  initPagefind();
 }
 </script>
 }

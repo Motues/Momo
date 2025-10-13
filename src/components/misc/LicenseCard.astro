@@ -13,7 +13,7 @@ interface Props {
 const { locale = i18n!.defaultLocale } = Astro.params;
 const { author, url, license } = Astro.props;
 
-const currentLang = locale;
+const currentLang = i18n.locales.includes(locale) ? locale : i18n!.defaultLocale;
 const t = i18nit(currentLang);
 
 const className = Astro.props.class;
