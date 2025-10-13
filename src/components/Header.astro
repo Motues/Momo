@@ -51,10 +51,45 @@ const aboutPage = getRelativeLocaleUrl(currentLang, "/about");
     <!-- nav_bar -->
     <div id="nav-bar" class="hidden md:flex absolute left-1/2 transform -translate-x-1/2 justify-center items-center text-lg font-bold">
         <div id="nav-bar-list" class="transition relative z-10 flex max-w-max flex-1 items-center justify-center rounded-outer p-2 backdrop-blur rounded-xl bg-[color:var(--bg-color)]/20">
-            <a href={ indexPage } class="transition-colors hover:bg-[var(--button-hover-color)] rounded-lg px-3 py-1 mx-1 hover:text-current">{t("header.home")}</a>
+        <!-- 首页链接 -->
+        <a href={ indexPage } class={`transition-colors rounded-lg px-3 py-1 mx-1 hover:text-current ${
+            Astro.url.pathname === indexPage 
+                ? 'bg-[var(--button-hover-color)]' 
+                : 'hover:bg-[var(--button-hover-color)]'
+            }`}>
+            {t("header.home")}
+        </a>
+
+        <!-- 归档链接 -->
+        <a href={ archivesPage } class={`transition-colors rounded-lg px-3 py-1 mx-1 hover:text-current ${
+            Astro.url.pathname === archivesPage 
+                ? 'bg-[var(--button-hover-color)]' 
+                : 'hover:bg-[var(--button-hover-color)]'
+            }`}>
+            {t("header.archive")}
+        </a>
+
+        <!-- 关于链接 -->
+        <a href={ aboutPage } class={`transition-colors rounded-lg px-3 py-1 mx-1 hover:text-current ${
+            Astro.url.pathname === aboutPage 
+                ? 'bg-[var(--button-hover-color)]' 
+                : 'hover:bg-[var(--button-hover-color)]'
+            }`}>
+            {t("header.about")}
+        </a>
+
+        <!-- 友链链接 -->
+        <a href={ friendsPage } class={`transition-colors rounded-lg px-3 py-1 mx-1 hover:text-current ${
+            Astro.url.pathname === friendsPage 
+                ? 'bg-[var(--button-hover-color)]' 
+                : 'hover:bg-[var(--button-hover-color)]'
+            }`}>
+            {t("header.friends")}
+        </a>
+            <!-- <a href={ indexPage } class="transition-colors hover:bg-[var(--button-hover-color)] rounded-lg px-3 py-1 mx-1 hover:text-current">{t("header.home")}</a>
             <a href={ archivesPage } class="transition-colors hover:bg-[var(--button-hover-color)] rounded-lg px-3 py-1 mx-1 hover:text-current">{t("header.archive")}</a>
             <a href={ aboutPage } class="transition-colors hover:bg-[var(--button-hover-color)] rounded-lg px-3 py-1 mx-1 hover:text-current">{t("header.about")}</a>
-            <a href={ friendsPage } class="transition-colors hover:bg-[var(--button-hover-color)] rounded-lg px-3 py-1 mx-1 hover:text-current">{t("header.friends")}</a>
+            <a href={ friendsPage } class="transition-colors hover:bg-[var(--button-hover-color)] rounded-lg px-3 py-1 mx-1 hover:text-current">{t("header.friends")}</a> -->
         </div>
     </div>
     
@@ -76,15 +111,21 @@ const aboutPage = getRelativeLocaleUrl(currentLang, "/about");
                 <Icon name="fa6-solid:globe" class="w-4 h-4" />
             </button>
             
-            <!-- Language Dropdown Menu -->
-            <div id="language-menu" class="hidden absolute right-0 mt-2 w-30 bg-[var(--bg-color)] border border-[var(--button-border-color)] rounded-lg shadow-lg z-50">
-                <div class="py-1">
-                    <!-- 中文链接 -->
-                    <a href={getLocalePath("/", "zh-cn")} class="block px-4 py-2 text-sm hover:bg-[var(--button-hover-color)]">简体中文</a>
-                    <!-- 英文链接 -->
-                    <a href={getLocalePath("/", "en")} class="block px-4 py-2 text-sm hover:bg-[var(--button-hover-color)]">English</a>
-                </div>
-            </div>
+<!-- Language Dropdown Menu -->
+<div id="language-menu" class="hidden absolute right-0 mt-2 w-30 bg-[var(--bg-color)] border border-[var(--button-border-color)] rounded-lg shadow-lg z-50">
+    <div class="py-1 text-right">
+        <!-- 中文链接 -->
+        <a href={getLocalePath("/", "zh-cn")} class="block px-4 py-2 text-sm hover:bg-[var(--button-hover-color)]">
+          {currentLang === "zh-cn" ? <Icon name="fa6-solid:circle" class="w-3 h-3 inline mr-2" /> : ""}
+          简体中文
+        </a>
+        <!-- 英文链接 -->
+        <a href={getLocalePath("/", "en")} class="block px-4 py-2 text-sm hover:bg-[var(--button-hover-color)]">
+          {currentLang === "en" ? <Icon name="fa6-solid:circle" class="w-3 h-3 inline mr-2" /> : ""}
+          English
+        </a>
+    </div>
+</div>
         </div>
         <!-- Mobile Menu -->
         <button id="mobile-menu-button" class="focus:outline-none md:hidden flex items-center justify-center w-10 h-10 hover:bg-[var(--button-hover-color)] rounded-lg cursor-pointer  border border-[var(--button-border-color)] transition-all duration-300">
@@ -95,12 +136,31 @@ const aboutPage = getRelativeLocaleUrl(currentLang, "/about");
 
 <!-- Mobile Menu -->
 <div id="mobile-menu" class="md:hidden hidden fixed top-16 left-0 w-full bg-[var(--bg-color)] text-[var(--text-color)] shadow-lg z-50">
-    <div class="flex flex-col py-2">
-        <a href={ indexPage } class="px-6 py-3 hover:bg-[var(--button-hover-color)]">{t("header.home")}</a>
-        <a href={ archivesPage }  class="px-6 py-3 hover:bg-[var(--button-hover-color)]">{t("header.archive")}</a>
-        <a href={ aboutPage }  class="px-6 py-3 hover:bg-[var(--button-hover-color)]">{t("header.about")}</a>
-        <a href={ friendsPage } class="px-6 py-3 hover:bg-[var(--button-hover-color)]">{t("header.friends")}</a>
-    </div>
+  <div class="flex flex-col py-2">
+    <a href={ indexPage } class={`px-6 py-3 ${
+      Astro.url.pathname === indexPage 
+        ? 'bg-[var(--button-hover-color)]' 
+        : 'hover:bg-[var(--button-hover-color)]'
+    }`}>{t("header.home")}</a>
+    
+    <a href={ archivesPage } class={`px-6 py-3 ${
+      Astro.url.pathname === archivesPage 
+        ? 'bg-[var(--button-hover-color)]' 
+        : 'hover:bg-[var(--button-hover-color)]'
+    }`}>{t("header.archive")}</a>
+    
+    <a href={ aboutPage } class={`px-6 py-3 ${
+      Astro.url.pathname === aboutPage 
+        ? 'bg-[var(--button-hover-color)]' 
+        : 'hover:bg-[var(--button-hover-color)]'
+    }`}>{t("header.about")}</a>
+    
+    <a href={ friendsPage } class={`px-6 py-3 ${
+      Astro.url.pathname === friendsPage 
+        ? 'bg-[var(--button-hover-color)]' 
+        : 'hover:bg-[var(--button-hover-color)]'
+    }`}>{t("header.friends")}</a>
+  </div>
 </div>
 
 <script>
