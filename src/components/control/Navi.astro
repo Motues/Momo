@@ -1,6 +1,7 @@
 ---
 import { i18n } from "astro:config/client";
 import i18nit from '@i18n/translation'
+import { getRelativeLocaleUrl } from '@utils/url-utils';
 
 const { page } = Astro.props;
 
@@ -25,7 +26,7 @@ const indexPage = !locale || locale === i18n?.defaultLocale ? "" : `/${locale}`;
   <div class="prev-page w-28">
     {
       showPrevious ? (
-        <a href={indexPage + previousPageUrl} class="px-4 py-2 text-[var(--text-color)] hover:bg-[var(--button-hover-color)] active:scale-90 border border-[var(--button-border-color)] rounded-lg transition-all duration-200 flex items-center justify-center">
+        <a href={getRelativeLocaleUrl(locale, previousPageUrl)} class="px-4 py-2 text-[var(--text-color)] hover:bg-[var(--button-hover-color)] active:scale-90 border border-[var(--button-border-color)] rounded-lg transition-all duration-200 flex items-center justify-center">
           <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
           </svg>
@@ -44,7 +45,7 @@ const indexPage = !locale || locale === i18n?.defaultLocale ? "" : `/${locale}`;
   <div class="next-page w-28">
     {
       showNext ? (
-        <a href={indexPage + nextPageUrl} class="px-4 py-2 text-[var(--text-color)] hover:bg-[var(--button-hover-color)] active:scale-90 border border-[var(--button-border-color)] rounded-lg transition-all duration-200 flex items-center justify-center">
+        <a href={getRelativeLocaleUrl(locale, nextPageUrl)} class="px-4 py-2 text-[var(--text-color)] hover:bg-[var(--button-hover-color)] active:scale-90 border border-[var(--button-border-color)] rounded-lg transition-all duration-200 flex items-center justify-center">
           {t("pageNavigation.next")}
           <svg class="w-5 h-5 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>

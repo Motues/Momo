@@ -1,3 +1,5 @@
+import { i18n } from "astro:config/client";
+
 /**
  * 将相对于content/blog目录的路径转换为相对于src目录的路径
  * @param contentPath 相对于content/blog目录的路径
@@ -63,4 +65,14 @@ export function formatDateToArchive(date: Date | string | number): string {
     const month = String(d.getMonth() + 1).padStart(2, '0');
     const day = String(d.getDate()).padStart(2, '0');
     return `${month}-${day}`;
+}
+
+export function getRelativeLocaleUrl(lang: string, path: string) : string { 
+    const prefixDefaultLocale = i18n.routing.prefixDefaultLocale;
+    if(prefixDefaultLocale) {
+        return joinUrl("/", lang, path);
+    }else {
+        if(lang === i18n.defaultLocale) return joinUrl("/", path);
+        return joinUrl("/", lang, path);
+    }
 }

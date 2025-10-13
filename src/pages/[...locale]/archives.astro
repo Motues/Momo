@@ -9,7 +9,7 @@ import i18nit from '@i18n/translation'
 
 import { getCollection } from 'astro:content'
 import { i18n } from "astro:config/client";
-import { getRelativeLocaleUrl } from 'astro:i18n';
+import { getRelativeLocaleUrl } from '@utils/url-utils';
 
 const { locale = i18n!.defaultLocale } = Astro.params;
 
