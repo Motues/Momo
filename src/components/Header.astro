@@ -167,7 +167,10 @@ const aboutPage = getRelativeLocaleUrl(currentLang, "/about/");
 function initMobileNav() {
   const menuButton = document.getElementById('mobile-menu-button');
   const mobileMenu = document.getElementById('mobile-menu');
-  const languageMenu = document.getElementById('language-menu'); // 添加语言菜单引用
+  const languageMenu = document.getElementById('language-menu');
+  const navBar = document.getElementById('nav-bar');
+  const navBarList = document.getElementById('nav-bar-list');
+
 
   // 防止重复绑定
   if (!menuButton || menuButton.dataset.bound === 'true') return;
@@ -191,6 +194,28 @@ function initMobileNav() {
       !mobileMenu.contains(event.target)
     ) {
       mobileMenu.classList.add('hidden');
+    }
+  });
+
+  // 滚动时控制导航栏样式
+  let isFixed = false;
+  window.addEventListener('scroll', () => {
+    if (window.scrollY > 0 && !isFixed && navBar && navBarList) {
+      navBar.classList.add('fixed', 'top-4', 'z-20');
+      navBarList.classList.add(
+        'border',
+        'border-[var(--button-border-color)]',
+        'shadow-[0_4px_12px_var(--shadow-color)]'
+      );
+      isFixed = true;
+    } else if (window.scrollY === 0 && isFixed && navBar && navBarList) {
+      navBar.classList.remove('fixed', 'top-4', 'z-20');
+      navBarList.classList.remove(
+        'border',
+        'border-[var(--button-border-color)]',
+        'shadow-[0_4px_12px_var(--shadow-color)]'
+      );
+      isFixed = false;
     }
   });
 }
