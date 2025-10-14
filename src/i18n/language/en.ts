@@ -36,9 +36,8 @@ const translation: Translation = {
     },
     license: {
         author: "Author",
-        url: "URL",
-        description1: "This article is licensed under the",
-        description2: "license, please comply with the license when using."
+        license: "License",
+        publishon: "Published on"
     }
 }
 

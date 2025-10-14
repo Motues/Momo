@@ -1,36 +1,53 @@
 ---
 import type { LicenseConfig } from '@/types/config';
+import { licenseConfig, profileConfig } from '@/config';
+import { formatDateToISO } from '@utils/url-utils';
+
+import { Icon } from "astro-icon/components"
 import { i18n } from "astro:config/client";
 import i18nit from "@i18n/translation";
 
 interface Props {
-    author: string;
-    url: string;
+    title: string;
+    pubDate: string;
+    author?: string;
+    url?: string;
     class?: string;
-    license: LicenseConfig;
+    license?: LicenseConfig;
 }
 
 const { locale = i18n!.defaultLocale } = Astro.params;
-const { author, url, license } = Astro.props;
+const { title, pubDate, author, url, license } = Astro.props;
+const className = Astro.props.class;
 
 const currentLang = i18n.locales.includes(locale) ? locale : i18n!.defaultLocale;
 const t = i18nit(currentLang);
 
-const className = Astro.props.class;
+const postUrl = url ?? decodeURIComponent(Astro.url.toString());
+const postLicense = license ?? licenseConfig;
+const postAuthor = author ?? profileConfig.name;
 ---
 
-<div class={`p-3 text-sm rounded border border-[var(--button-border-color)]  bg-[var(--bg-color)] ${className || ''}`}>
-    <div class="space-y-1 text-[var(--text-color)]/80">
-        <p>
-            <b>{t("license.author")}: </b>{author}
-        </p>
-        <p >
-            <b>{t("license.url")}: </b><a href={url} class="hover:text-[var(--link-color)]">{url}</a>
-        </p>
-        <p>
-            <b>
-                {t("license.description1")} <a href={license.url} target="_blank" rel="noopener noreferrer" class="link-line">{license.name}</a> {t("license.description1")}
-            </b>
-        </p>
+<div class={`relative transition rounded overflow-hidden text-[var(--text-color)] bg-[var(--button-hover-color)] py-5 px-6 ${className}`}>
+    <div class="transition font-bold">
+        {title}
     </div>
+    <a href={postUrl} class="transition-all text-sm py-1 font-bold text-[var(--text-color)]/75 hover:text-[var(--link-color)]">
+        {postUrl}
+    </a>
+    <div class="flex gap-6 mt-3">
+        <div>
+            <div class="transition text-[var(--text-color)]/50">{t("license.author")}</div>
+            <div class="transition text-[var(--text-color)]/75 font-bold">{postAuthor}</div>
+        </div>
+        <div>
+            <div class="transition text-[var(--text-color)]/50">{t("license.publishon")}</div>
+            <div class="transition text-[var(--text-color)]/75 font-bold">{formatDateToISO(pubDate)}</div>
+        </div>
+        <div>
+            <div class="transition text-[var(--text-color)]/50">{t("license.license")}</div>
+            <a href={postLicense.url} target="_blank" class="transition-all  text-[var(--text-color)]/75 hover:text-[var(--link-color)] font-bold">{postLicense.name}</a>
+        </div>
+    </div>
+    <Icon name="fa6-brands:creative-commons" class="transition text-[15rem] absolute pointer-events-none right-6 top-1/2 -translate-y-1/2 text-[var(--text-color)]/5"></Icon>
 </div>

@@ -34,8 +34,7 @@ export interface Translation {
     };
     license: {
         author: string;
-        url: string;
-        description1: string;
-        description2: string;
+        license: string;
+        publishon: string;
     };
 }

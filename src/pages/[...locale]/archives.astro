@@ -39,27 +39,25 @@ const indexPage = getRelativeLocaleUrl(currentLang, "");
 ---
 
 <MainPageLayout title={pageTitle} lang={currentLang}>
-    <div class="archives mx-auto w-full max-w-[min(494px,90%)]">
+    <div class="archives mx-auto w-full max-w-[var(--page-width)]">
         <Cover title={t("cover.title.archive")} subTitle={t("cover.subTitle.archive", {count: postNumber})}/>
         
-        <div class="p-6 max-w-2xl mx-auto text-[var(--text-color)]">
+        <div class="py-6 mx-auto text-[var(--text-color)]">
             {Object.keys(postsByYear).sort().reverse().map(year => (
                 <div>
                     <h2 class="text-2xl font-bold my-4">{year}</h2>
                     <div class="">
                             {postsByYear[Number(year)].map((post, index, array) => (
-                                <div class="flex items-start gap-4 group">
-                                    <div class="flex flex-col items-center flex-shrink-0 relative" style="width: 8px;">
-                                        {index !== 0 && <div class="absolute top-0 w-px h-1/2 bg-gray-300" style="left: 50%; transform: translateX(-50%);"></div>}
-                                        <div class="w-2 h-2 rounded-full bg-gray-400 mt-5 mb-5 z-10"></div>
-                                        {index !== array.length - 1 && <div class="absolute bottom-0 w-px h-1/2 bg-gray-300" style="left: 50%; transform: translateX(-50%);"></div>}
-                                    </div>
-                                    <div class="flex-1 py-3">
-                                        <span class="text-gray-400 mr-3">{formatDateToArchive(post.data.pubDate)}</span>
-                                        <a href={getRelativeLocaleUrl(currentLang, `/blog/${post.id}`)} class="link-line">
-                                        {post.data.title}
+                                <div class="pb-2">
+                                    <a href={getRelativeLocaleUrl(currentLang, `/blog/${post.id}`)} 
+                                    class="flex items-center gap-2 hover:bg-[var(--button-hover-color)] p-2 rounded transition-colors duration-200 group">
+                                        <span class=" text-[var(--text-color)]/70 min-w-[100px] font-mono">
+                                            {formatDateToArchive(post.data.pubDate)}
+                                        </span>
+                                        <span class="text-lg group-hover:pl-2 group-hover:text-[var(--link-color)] group-hover:font-bold transition-all duration-200">
+                                            {post.data.title}
+                                        </span>
                                     </a>
-                                    </div>
                                 </div>
                             ))}
                     </div>
