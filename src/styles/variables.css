@@ -1,5 +1,6 @@
 :root {
   /* 布局变量 */
+  --header-width: min(1024px,90vw);
   --page-width: min(776px, 90vw);
   --toc-offset-left: calc(50vw + var(--page-width) / 2 + 3rem);
   --toc-width: calc((100vw - var(--page-width)) / 2 - 3rem);
@@ -25,8 +26,6 @@
     --scrollbar-thumb: #c1c1c1;
     --scrollbar-thumb-hover: #a8a8a8;
     --scrollbar-track: #e1e1e1;
-
-    --page-width: min(776px,90%);
   }
 
   [data-theme="dark"] {

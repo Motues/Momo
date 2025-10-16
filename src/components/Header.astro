@@ -41,11 +41,11 @@ const aboutPage = getRelativeLocaleUrl(currentLang, "/about/");
 ---
 
 <!-- header -->
-<div class="flex items-center py-4 text-[var(--text-color)] max-w-[min(1024px,90vw)] mx-auto">
+<div class="flex items-center py-4 text-[var(--text-color)] max-w-[var(--header-width)] mx-auto">
     <!-- logo -->
-    <div class="pr-4 py-2 font-bold z-30">
+    <div class="pr-4 py-2 z-30 header-logo">
         <a href={ indexPage } >
-            <span class="text-lg font-bold hover:opacity-60 transition-opacity">{ siteConfig.title }</span>
+            <span class="text-3xl font-bold hover:opacity-60 transition-opacity">{ siteConfig.title }</span>
         </a>
     </div>
     <!-- nav_bar -->
@@ -162,6 +162,12 @@ const aboutPage = getRelativeLocaleUrl(currentLang, "/about/");
         </div>
     </div>
 </div>
+
+<style>
+.header-logo {
+  font-family: "Eagle Lake", cursive;
+}
+</style>
 
 <script>
 function initMobileNav() {
