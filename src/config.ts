@@ -24,7 +24,7 @@ export const profileConfig: ProfileConfig = {
     avatar: "assets/Motues.jpg", // Relative to the /src directory. Relative to the /public directory if it starts with '/'
     name: "Momo",
     description: "Life is colorful!",
-    indexPage: "https://momo.motues.top",
+    indexPage: "https://motues.top",
 }
 
 export const licenseConfig: LicenseConfig = {

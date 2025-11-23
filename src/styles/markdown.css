@@ -123,6 +123,7 @@
 }
 
 .markdown-content blockquote {
+  font-family: "LXGW Bright Medium";
   margin: 1.5rem 0;
   padding: 0.1rem 1.2rem;
   border-left: 4px solid var(--quote-left-color);

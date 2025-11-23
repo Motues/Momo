@@ -50,7 +50,7 @@ const indexPage = getRelativeLocaleUrl(currentLang, "");
                             {postsByYear[Number(year)].map((post, index, array) => (
                                 <div class="pb-2">
                                     <a href={getRelativeLocaleUrl(currentLang, `/blog/${post.id}`)} 
-                                    class="flex items-center gap-2 hover:bg-[var(--button-hover-color)] p-2 rounded transition-colors duration-200 group">
+                                    class="flex items-center gap-2 active:bg-[var(--button-hover-color)] hover:bg-[var(--button-hover-color)] p-2 rounded transition-colors duration-200 group">
                                         <span class=" text-[var(--text-color)]/70 min-w-[100px] font-mono">
                                             {formatDateToArchive(post.data.pubDate)}
                                         </span>

@@ -2,6 +2,7 @@
 @import "./variables.css";
 @import "./special.css";
 @import "./scrollbar.css";
+@import "@chinese-fonts/lxgwwenkaibright/dist/LXGWBright-Medium/result.css";
 
 @layer base {
 
