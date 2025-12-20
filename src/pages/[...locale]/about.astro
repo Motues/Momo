@@ -15,7 +15,7 @@ export async function getStaticPaths() {
 }
 
 
-const currentLang = Astro.currentLocale || i18n?.defaultLocale;
+const currentLang = Astro.currentLocale || i18n!.defaultLocale;
 const t = i18nit(currentLang);
 
 const aboutPost = await getSpec(currentLang, 'about');

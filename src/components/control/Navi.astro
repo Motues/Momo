@@ -16,7 +16,7 @@ const nextPageUrl = `/${currentPage + 1}/`;
 
 
 
-const currentLang = Astro.currentLocale || i18n?.defaultLocale;
+const currentLang = Astro.currentLocale || i18n!.defaultLocale;
 const t = i18nit(currentLang);
 
 ---

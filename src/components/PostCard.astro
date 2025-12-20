@@ -19,7 +19,7 @@ const { title, description, image, pubDate, url } = Astro.props;
 
 
 
-const currentLang = Astro.currentLocale || i18n?.defaultLocale;
+const currentLang = Astro.currentLocale || i18n!.defaultLocale;
 const t = i18nit(currentLang);
 
 
