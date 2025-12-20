@@ -14,9 +14,9 @@ import { i18n } from "astro:config/client";
 import { blogCoverUrl, formatDateToISO } from '@/utils/url-utils'
 import { getBlogEntrySort } from '@utils/content-utils'
 
-const { locale = i18n!.defaultLocale } = Astro.params;
 
-const currentLang = i18n.locales.includes(locale) ? locale : i18n!.defaultLocale;
+
+const currentLang = Astro.currentLocale || i18n?.defaultLocale;
 
 export async function getStaticPaths() {
     

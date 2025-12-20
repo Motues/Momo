@@ -9,9 +9,9 @@ import { i18n } from "astro:config/client";
 import i18nit from '@i18n/translation'
 import { getRelativeLocaleUrl } from '@utils/url-utils';
 
-const { locale = i18n!.defaultLocale } = Astro.params;
 
-const currentLang = i18n.locales.includes(locale) ? locale : i18n!.defaultLocale;
+
+const currentLang = Astro.currentLocale || i18n?.defaultLocale;
 const t = i18nit(currentLang);
 
 

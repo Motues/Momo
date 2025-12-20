@@ -14,9 +14,9 @@ const showNext = currentPage < totalPages;
 const previousPageUrl = currentPage === 2 ? '/' : `/${currentPage - 1}/`;
 const nextPageUrl = `/${currentPage + 1}/`;
 
-const { locale = i18n!.defaultLocale } = Astro.params;
 
-const currentLang = i18n.locales.includes(locale) ? locale : i18n!.defaultLocale;
+
+const currentLang = Astro.currentLocale || i18n?.defaultLocale;
 const t = i18nit(currentLang);
 
 ---

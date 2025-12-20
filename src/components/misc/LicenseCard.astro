@@ -16,11 +16,11 @@ interface Props {
     license?: LicenseConfig;
 }
 
-const { locale = i18n!.defaultLocale } = Astro.params;
+
 const { title, pubDate, author, url, license } = Astro.props;
 const className = Astro.props.class;
 
-const currentLang = i18n.locales.includes(locale) ? locale : i18n!.defaultLocale;
+const currentLang = Astro.currentLocale || i18n?.defaultLocale;
 const t = i18nit(currentLang);
 
 const postUrl = url ?? decodeURIComponent(Astro.url.toString());
