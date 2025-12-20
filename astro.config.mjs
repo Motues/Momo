@@ -11,6 +11,9 @@ import { AdmonitionComponent } from "./src/plugins/rehype-component-admonition.m
 import { parseDirectiveNode } from "./src/plugins/remark-directive-rehype.js";
 
 
+import svelte from "@astrojs/svelte";
+
+
 // https://astro.build/config
 export default defineConfig({
   site: 'https://momo.motues.top', // Root URL of site
@@ -22,17 +25,15 @@ export default defineConfig({
       redirectToDefaultLocale: false
     }
   },
-  integrations: [
-    icon({
-      include: {
-        "fa6-brands": ["*"],
-        "fa6-solid": ["*"],
-        "simple-icons": ["*"],
-        "vscode-icons": ["*"],
-        "material-symbols": ["*"]
-      }
-    })
-  ],
+  integrations: [icon({
+    include: {
+      "fa6-brands": ["*"],
+      "fa6-solid": ["*"],
+      "simple-icons": ["*"],
+      "vscode-icons": ["*"],
+      "material-symbols": ["*"]
+    }
+  }), svelte()],
   markdown: {
     shikiConfig: {
       theme: 'one-dark-pro', // code theme
@@ -47,17 +48,17 @@ export default defineConfig({
     rehypePlugins: [
       rehypeKatex,
       [
-				rehypeComponents,
-				{
-					components: {
-						note: (x, y) => AdmonitionComponent(x, y, "note"),
-						tip: (x, y) => AdmonitionComponent(x, y, "tip"),
-						important: (x, y) => AdmonitionComponent(x, y, "important"),
-						caution: (x, y) => AdmonitionComponent(x, y, "caution"),
-						warning: (x, y) => AdmonitionComponent(x, y, "warning"),
-					},
-				},
-			],
+                rehypeComponents,
+                {
+                    components: {
+                        note: (x, y) => AdmonitionComponent(x, y, "note"),
+                        tip: (x, y) => AdmonitionComponent(x, y, "tip"),
+                        important: (x, y) => AdmonitionComponent(x, y, "important"),
+                        caution: (x, y) => AdmonitionComponent(x, y, "caution"),
+                        warning: (x, y) => AdmonitionComponent(x, y, "warning"),
+                    },
+                },
+            ],
     ]
   },
 

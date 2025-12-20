@@ -5,7 +5,7 @@ import MainPageLayout from '@layouts/MainPageLayout.astro'
 import Markdown from '@components/misc/Markdown.astro'
 import ImageModule from '@components/misc/ImageModule.astro'
 import BackTop from '@components/control/BackTop.astro'
-import TOC from '@components/TOC.astro'
+import TOC from '@components/TOC.svelte'
 import LicenseCard from '@components/misc/LicenseCard.astro'
 
 import { getCollection, render } from 'astro:content'
@@ -69,6 +69,6 @@ const image = blogCoverUrl(entry.data.image, entry.id);
         <LicenseCard title={entry.data.title} pubDate={entry.data.pubDate}/>
         }
     </div>
-    <TOC headings={headings}/>
+    <TOC headings={headings} language={currentLang} client:load/>
     <BackTop />
 </MainPageLayout>
