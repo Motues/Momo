@@ -10,7 +10,7 @@ const { title, subTitle } = Astro.props;
 ---
 
 <!-- Cover -->
-<div class="text-center pt-5 pb-10">
+<div class="text-center pt-5 pb-10 max-w-[var(--page-width)] mx-auto">
     { title && <p class="text-[var(--text-color)] text-3xl py-5 font-bold">{ title }</p> }
     { subTitle && <p class="text-[var(--cover-subtitle-color)]">{ subTitle }</p> }
 </div>

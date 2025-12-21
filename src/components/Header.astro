@@ -9,8 +9,6 @@ import { i18n } from "astro:config/client";
 import i18nit from '@i18n/translation'
 import { getRelativeLocaleUrl } from '@utils/url-utils';
 
-
-
 const currentLang = Astro.currentLocale || i18n!.defaultLocale;
 const t = i18nit(currentLang);
 
@@ -165,7 +163,8 @@ const aboutPage = getRelativeLocaleUrl(currentLang, "/about/");
 
 <style>
 .header-logo {
-  font-family: "Eagle Lake", cursive;
+  font-family: "EB Garamond", cursive;
+  letter-spacing: 1px;
 }
 </style>
 
