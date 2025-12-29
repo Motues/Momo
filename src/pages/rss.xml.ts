@@ -1,13 +1,13 @@
 import rss from "@astrojs/rss";
 import { getBlogEntrySort } from "../utils/content-utils"
-import { siteConfig } from '../config';
+import { siteConfig, profileConfig } from '../config';
 import type { APIContext } from "astro";
 
 export async function GET(context: APIContext) {
     const blog = await getBlogEntrySort();
     return rss({
-        title: siteConfig.title,
-        description: siteConfig.subTitle,
+        title: `${siteConfig.title} - siteConfig.subTitle`,
+        description: profileConfig.description,
         site: context.site ?? "https://blog.motues.top",
         items: blog.map((post) => ({
             title: post.data.title,
