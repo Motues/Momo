@@ -6,7 +6,7 @@ import type { APIContext } from "astro";
 export async function GET(context: APIContext) {
     const blog = await getBlogEntrySort();
     return rss({
-        title: `${siteConfig.title} - siteConfig.subTitle`,
+        title: `${siteConfig.title} - ${siteConfig.subTitle}`,
         description: profileConfig.description,
         site: context.site ?? "https://blog.motues.top",
         items: blog.map((post) => ({
