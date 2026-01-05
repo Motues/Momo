@@ -9,6 +9,8 @@ import rehypeComponents from "rehype-components";
 
 import { AdmonitionComponent } from "./src/plugins/rehype-component-admonition.mjs";
 import { parseDirectiveNode } from "./src/plugins/remark-directive-rehype.js";
+import { MusicCardComponent } from "./src/plugins/rehype-component-music-card.mjs";
+import { GithubCardComponent } from './src/plugins/rehype-component-github-card.mjs';
 
 
 import svelte from "@astrojs/svelte";
@@ -48,20 +50,21 @@ export default defineConfig({
     rehypePlugins: [
       rehypeKatex,
       [
-                rehypeComponents,
-                {
-                    components: {
-                        note: (x, y) => AdmonitionComponent(x, y, "note"),
-                        tip: (x, y) => AdmonitionComponent(x, y, "tip"),
-                        important: (x, y) => AdmonitionComponent(x, y, "important"),
-                        caution: (x, y) => AdmonitionComponent(x, y, "caution"),
-                        warning: (x, y) => AdmonitionComponent(x, y, "warning"),
-                    },
-                },
-            ],
+        rehypeComponents,
+        {
+          components: {
+            github: GithubCardComponent,
+            music: MusicCardComponent,
+            note: (x, y) => AdmonitionComponent(x, y, "note"),
+            tip: (x, y) => AdmonitionComponent(x, y, "tip"),
+            important: (x, y) => AdmonitionComponent(x, y, "important"),
+            caution: (x, y) => AdmonitionComponent(x, y, "caution"),
+            warning: (x, y) => AdmonitionComponent(x, y, "warning"),
+          },
+        },
+      ],
     ]
   },
-
   vite: {
     plugins: [tailwindcss()]
   }
