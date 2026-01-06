@@ -1,12 +1,13 @@
 ---
-title: 测试目录
+title: Test Directory
 pubDate: 2025-09-19
-description: 文章功能测试
+description: Article Functionality Testing
 image: ""
 draft: false
+slugId: momo/test/toc
 ---
 
-用来测试目录功能
+Used to test directory functionality
 
 ## 1
 

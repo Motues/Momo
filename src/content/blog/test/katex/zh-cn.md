@@ -4,6 +4,7 @@ pubDate: 2025-09-17
 description: 文章功能测试
 image: ""
 draft: false
+slugId: momo/test/katex
 ---
 
 ## KaTeX 数学公式测试

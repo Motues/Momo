@@ -4,6 +4,7 @@ pubDate: 2025-09-21
 description: 测试Markdown的基本功能
 image: "./cover.jpg"
 draft: false
+slugId: momo/markdown
 ---
 
 

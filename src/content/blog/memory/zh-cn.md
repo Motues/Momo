@@ -4,6 +4,7 @@ pubDate: 2024-07-10
 description: 纪念逝去的......
 image: "./images/banner.png"
 draft: false
+slugId: momo/memory
 ---
 
 # 凡是过往，皆为序章

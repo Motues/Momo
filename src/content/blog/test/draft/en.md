@@ -4,6 +4,7 @@ pubDate: 2024-12-31
 description: Article functionality testing
 image: ""
 draft: true
+slugId: momo/test/draft
 ---
 
 ## Draft

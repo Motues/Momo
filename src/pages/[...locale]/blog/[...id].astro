@@ -7,13 +7,13 @@ import ImageModule from '@components/misc/ImageModule.astro'
 import BackTop from '@components/control/BackTop.astro'
 import TOC from '@components/TOC.svelte'
 import LicenseCard from '@components/misc/LicenseCard.astro'
+import Comments from '@components/comment/Comments.svelte'
 
 import { getCollection, render } from 'astro:content'
 import { i18n } from "astro:config/client";
 
 import { blogCoverUrl, formatDateToISO } from '@/utils/url-utils'
 import { getBlogEntrySort } from '@utils/content-utils'
-
 
 
 const currentLang = Astro.currentLocale || i18n!.defaultLocale;
@@ -68,7 +68,14 @@ const image = blogCoverUrl(entry.data.image, entry.id);
         {licenseConfig.enable &&
         <LicenseCard title={entry.data.title} pubDate={entry.data.pubDate}/>
         }
+        {
+            siteConfig.comments.enable && 
+            <Comments postSlug={entry.data.slugId} language={currentLang} postTitle={entry.data.title} client:visible/>
+        }
     </div>
-    <TOC headings={headings} language={currentLang} client:load/>
+    {
+        siteConfig.toc.enable &&
+        <TOC headings={headings} language={currentLang} client:load/>
+    }
     <BackTop />
 </MainPageLayout>

@@ -4,6 +4,7 @@ pubDate: 2025-09-29
 description: Website Configuration
 image: ""
 draft: false
+slugId: momo/intro/publish
 ---
 
 ## Creating Article Files
@@ -40,6 +41,7 @@ draft: false
 | `description` | Article description |
 | `image` | Cover image, using relative paths relative to the current file, e.g., `./images/cover.png` |
 | `draft` | Draft status; articles in draft mode won't appear on the blog homepage when published |
+| `slugId` | Article ID, used for generating routes. Each article must be unique. It is recommended to use article paths, such as `intro/publish`. |
 
 ## Writing Article Content
 

@@ -4,6 +4,7 @@ pubDate: 2025-09-17
 description: Article functionality test
 image: ""
 draft: false
+slugId: momo/test/katex
 ---
 
 ## KaTeX Math Formula Testing

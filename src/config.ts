@@ -14,8 +14,12 @@ export const siteConfig: SiteConfig = {
 
     pageSize: 6, // Number of posts per page
     toc: {
-        enabled: true,
+        enable: true,
         depth: 3 // Max depth of the table of contents, between 1 and 4
+    },
+    comments: {
+        enable: false,
+        backendUrl: "https://api.motues.top"
     }
 
   }

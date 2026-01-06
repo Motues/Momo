@@ -4,6 +4,7 @@ pubDate: 2025-09-21
 description: Testing basic Markdown functionality
 image: "./cover.jpg"
 draft: false
+slugId: momo/markdown
 ---
 
 ## Headings

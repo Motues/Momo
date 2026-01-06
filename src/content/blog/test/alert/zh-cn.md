@@ -4,6 +4,7 @@ pubDate: 2025-09-18
 description: 文章功能测试
 image: ""
 draft: false
+slugId: momo/test/alert
 ---
 
 ## Alert 组件测试

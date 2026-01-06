@@ -4,6 +4,7 @@ pubDate: 2025-09-28
 description: Website Configuration
 image: ""
 draft: false
+slugId: momo/intro/config
 ---
 
 ## Website Information Configuration
@@ -30,6 +31,13 @@ The primary configuration files for the website are `astro.config.mjs` and `src/
 * `toc`
     * `enable`: Enable table of contents
     * `depth`: Table of contents depth
+* `comments`
+    * `enable`: Enable comment feature
+    * `backendUrl`： Url of the backend
+
+:::tip
+For the backend project, refer to [Momo-backend](https://github.com/Motues/Momo-Backend). Ensure all configurations are completed as specified, particularly for cross-domain domains.
+:::
 
 #### `profileConfig`
 

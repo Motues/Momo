@@ -6,8 +6,12 @@ export type SiteConfig = {
 
     pageSize: number;
     toc: {
-        enabled: boolean;
+        enable: boolean;
         depth: number;
+    };
+    comments: {
+        enable: boolean;
+        backendUrl: string;
     }
 }
 

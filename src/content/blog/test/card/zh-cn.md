@@ -4,6 +4,7 @@ pubDate: 2026-01-05
 description: 文章功能测试
 image: ""
 draft: false
+slugId: momo/test/card
 ---
 
 ## 音乐卡片

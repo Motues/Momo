@@ -4,6 +4,7 @@ pubDate: 2024-07-10
 description: In memory of those who have passed...
 image: "./images/banner.png"
 draft: false
+slugId: momo/memory
 ---
 
 # All That Has Passed Is But the Prelude

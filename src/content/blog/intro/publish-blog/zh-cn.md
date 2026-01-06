@@ -4,6 +4,7 @@ pubDate: 2025-09-29
 description: 网站配置
 image: ""
 draft: false
+slugId: momo/intro/publish
 ---
 
 
@@ -41,6 +42,7 @@ draft: false
 | `description` | 文章描述 |
 | `image` | 封面图片，使用相对路径，相对于当前文件，比如`./images/cover.png` |
 | `draft` | 是否草稿，当文章处于草稿状态，发布的时候将不会显示在博客主页 |
+| `slugId` | 文章的ID，用于生成路由，每篇文章必须是唯一的，建议使用文章路径，比如`intro/publish` |
 
 ## 编写文章内容
 

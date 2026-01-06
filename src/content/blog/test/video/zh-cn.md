@@ -4,6 +4,7 @@ pubDate: 2025-09-09
 description: 文章功能测试
 image: ""
 draft: false
+slugId: momo/test/video
 ---
 
 ## 视频卡片
