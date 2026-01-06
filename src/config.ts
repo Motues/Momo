@@ -18,7 +18,7 @@ export const siteConfig: SiteConfig = {
         depth: 3 // Max depth of the table of contents, between 1 and 4
     },
     comments: {
-        enable: false,
+        enable: true,
         backendUrl: "https://api.motues.top"
     }
 
