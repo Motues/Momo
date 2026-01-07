@@ -19,7 +19,7 @@ export const siteConfig: SiteConfig = {
     },
     comments: {
         enable: true,
-        backendUrl: "https://api.motues.top"
+        backendUrl: "https://momo-backend-worker.2901987286.workers.dev"
     }
 
   }
