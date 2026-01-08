@@ -29,7 +29,7 @@
 
 # 🔧 配置
 
-参考[配置指南](./doc/config_zh-ch.md)
+参考[配置指南](./doc/config_zh-ch.md)，详细信息可以访问[Momo](https://momo.motues.top/)，阅读对应文章获取详细信息。
 
 ## ⚡ 指令
 
@@ -54,7 +54,7 @@
 - [x] 添加目录
 - [x] 添加RSS
 - [ ] 其他小功能，比如~~回到顶部~~，预计阅读时间等
-- [x] 评论功能（支持零服务器部署）
+- [x] 评论功能（支持零服务器部署，[Backend](https://github.com/Motues/Momo-Backend)）
 - [x] 国际化（i18n）
 
 ## 📚 参考
