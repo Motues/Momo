@@ -42,6 +42,7 @@
 | `pnpm build` | 构建发布版本到 `./dist` 目录下 |
 | `pnpm preview` | 预览构建后的发布版本 |
 | `pnpm astro ...` | 运行 `astro` 命令，例如 `astro add` |
+| `pnpm new <path> <lang>` | 创建新文章，例如 `pnpm new docs/test.md zh-cn`，语言可以省略，默认为`zh-cn` |
 
 
 ## 📜 TODO
