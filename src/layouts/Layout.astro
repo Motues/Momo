@@ -26,6 +26,28 @@ const pageLang = lang || i18n?.defaultLocale || "zh-cn";
     <link rel="stylesheet" href="https://cdn.staticfile.net/KaTeX/0.16.9/katex.min.css" integrity="sha384-n8MVd4RsNIU0tAv4ct0nTaAbDJwPJzDEaqSD1odI+WdtXRGWt2kTvGFasHpSy3SV" crossorigin="anonymous">
     <title>{pageTitle}</title>
     <ClientRouter />
+
+    <script is:inline>
+        const theme = (() => {
+        // 1. 优先从 localStorage 获取用户之前的手动设置
+        if (typeof localStorage !== 'undefined' && localStorage.getItem('theme')) {
+            return localStorage.getItem('theme');
+        }
+        // 2. 其次根据系统偏好
+        if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
+            return 'dark';
+        }
+        return 'light';
+        })();
+
+        if (theme === 'dark') {
+        document.documentElement.classList.add('dark');
+        } else {
+        document.documentElement.classList.remove('dark');
+        }
+        window.localStorage.setItem('theme', theme);
+    </script>
+
 </head>
 <body class="h-full bg-[var(--bg-color)]">
     <slot />
