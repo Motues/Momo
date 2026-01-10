@@ -6,6 +6,11 @@
 
 @layer base {
 
+  :root {
+    background-color: var(--bg-color);
+    color: var(--text-color);
+  }
+
   body {
     @apply bg-[--bg-color] text-[--text-color];
     font-family: "Noto Serif SC", "Times New Roman", "STZhongsong", serif;
