@@ -39,6 +39,10 @@ const translation: Translation = {
         license: "License",
         publishon: "Published on"
     },
+    blogNavi: {
+        next: "Next Blog",
+        prev: "Previous Blog"
+    },
     comments: {
         name: "Name",
         email: "Email",

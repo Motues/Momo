@@ -179,10 +179,10 @@
   });
 </script>
 
-<div class="max-w-3xl mx-auto mt-10">
-  <div class="my-6 border border-[var(--text-color)]/70"></div>
+<div class="mt-4 max-w-3xl mx-auto border-t border-[var(--button-border-color)]">
+  <!-- <div class="my-6 border border-[var(--text-color)]/70"></div> -->
   <!-- 评论输入 -->
-  <div>
+  <div class="mt-4">
     <form on:submit|preventDefault={() => submitComment()} class="space-y-4">
       <div class="grid grid-cols-3 gap-3">
         <div>

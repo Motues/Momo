@@ -28,14 +28,14 @@ const postLicense = license ?? licenseConfig;
 const postAuthor = author ?? profileConfig.name;
 ---
 
-<div class={`relative transition rounded overflow-hidden text-[var(--text-color)] bg-[var(--button-hover-color)] py-5 px-6 ${className}`}>
+<div class={`relative transition rounded-lg overflow-hidden text-[var(--text-color)] bg-[var(--button-hover-color)] py-5 px-6 ${className}`}>
     <div class="transition font-bold">
         {title}
     </div>
     <a href={postUrl} class="transition-all text-sm py-1 font-bold text-[var(--text-color)]/75 hover:text-[var(--link-color)]">
         {postUrl}
     </a>
-    <div class="flex gap-6 mt-3">
+    <div class="flex gap-6 mt-3 text-sm">
         <div>
             <div class="transition text-[var(--text-color)]/50">{t("license.author")}</div>
             <div class="transition text-[var(--text-color)]/75 font-bold">{postAuthor}</div>

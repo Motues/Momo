@@ -9,6 +9,9 @@ export type SiteConfig = {
         enable: boolean;
         depth: number;
     };
+    blogNavi: {
+        enable: boolean;
+    }
     comments: {
         enable: boolean;
         backendUrl: string;

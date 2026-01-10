@@ -17,12 +17,14 @@ export const siteConfig: SiteConfig = {
         enable: true,
         depth: 3 // Max depth of the table of contents, between 1 and 4
     },
+    blogNavi: {
+        enable: true // Whether to enable blog navigation in the blog footer
+    },
     comments: {
-        enable: true,
-        backendUrl: "https://api-momo.motues.top"
+        enable: true, // Whether to enable comments
+        backendUrl: "https://api-momo.motues.top" // Backend URL for comments
     }
-
-  }
+}
 
 export const profileConfig: ProfileConfig = {
     avatar: "assets/Motues.jpg", // Relative to the /src directory. Relative to the /public directory if it starts with '/'
@@ -38,17 +40,17 @@ export const licenseConfig: LicenseConfig = {
 };
 
 export const friendLinkConfig: FriendLink[] = [
-  {
-    name: 'Motues',
-    avatar: 'https://avatars.githubusercontent.com/u/164032838',
-    url: 'https://motues.top',
-    description: 'Like River!'
-  },
-  {
-    name: 'Astro',
-    avatar: 'https://avatars.githubusercontent.com/u/44914786',
-    url: 'https://astro.build',
-    description: 'Build fast websites, faster.'
-  }
-  // Add more friend links here
+    {
+        name: 'Motues',
+        avatar: 'https://avatars.githubusercontent.com/u/164032838',
+        url: 'https://motues.top',
+        description: 'Like River!'
+    },
+    {
+        name: 'Astro',
+        avatar: 'https://avatars.githubusercontent.com/u/44914786',
+        url: 'https://astro.build',
+        description: 'Build fast websites, faster.'
+    }
+    // Add more friend links here
 ]

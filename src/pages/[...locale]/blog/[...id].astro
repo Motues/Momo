@@ -8,6 +8,7 @@ import BackTop from '@components/control/BackTop.astro'
 import TOC from '@components/TOC.svelte'
 import LicenseCard from '@components/misc/LicenseCard.astro'
 import Comments from '@components/comment/Comments.svelte'
+import BlogNavi from '@components/control/BlogNavi.astro'
 
 import { getCollection, render } from 'astro:content'
 import { i18n } from "astro:config/client";
@@ -28,24 +29,30 @@ export async function getStaticPaths() {
     
     for (const locale of locales) {
         const blogEntries = await getBlogEntrySort(locale);
-        for (const entry of blogEntries) {
-            
+
+        for (let i = 0; i < blogEntries.length; i++) {
+            const entry = blogEntries[i];
+            const next = i > 0 ? blogEntries[i - 1] : null;
+            const prev = i < blogEntries.length - 1 ? blogEntries[i + 1] : null;
+
             paths.push({
                 params: {
                     locale: locale === i18n?.defaultLocale ? undefined : locale,
                     id: entry.id
                 },
-                props: { entry }
+                props: { 
+                    entry,
+                    prev,
+                    next
+                }
             });
         }
     }
     
     return paths;
 }
-const { entry } = Astro.props;
+const { entry, prev, next } = Astro.props;
 const { Content, headings } = await render(entry); // 获取渲染后的正文内容
-
-
 
 const pageTitle = entry.data.title + ' - ' + siteConfig.title;
 const image = blogCoverUrl(entry.data.image, entry.id);
@@ -67,6 +74,10 @@ const image = blogCoverUrl(entry.data.image, entry.id);
         </Markdown>
         {licenseConfig.enable &&
         <LicenseCard title={entry.data.title} pubDate={entry.data.pubDate}/>
+        }
+        {
+            siteConfig.blogNavi.enable &&
+            <BlogNavi prev={prev} next={next}/>
         }
         {
             siteConfig.comments.enable && 

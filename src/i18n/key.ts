@@ -37,6 +37,10 @@ export interface Translation {
         license: string;
         publishon: string;
     };
+    blogNavi: {
+        next: string;
+        prev: string;
+    }
     comments: {
         name: string;
         email: string;

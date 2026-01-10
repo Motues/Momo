@@ -1,0 +1,58 @@
+---
+import { i18n } from "astro:config/client";
+import { Icon } from "astro-icon/components";
+import i18nit from '@i18n/translation'
+
+interface Props {
+    prev: any;
+    next: any;
+}
+
+const { prev, next } = Astro.props;
+
+const currentLang = Astro.currentLocale || i18n!.defaultLocale;
+const t = i18nit(currentLang);
+
+// 辅助函数：根据文章 id 和当前语言生成正确的 URL
+function getPostUrl(id: string) {
+  const isDefault = currentLang === i18n?.defaultLocale;
+  return isDefault ? `/blog/${id}` : `/${currentLang}/blog/${id}`;
+}
+---
+
+<nav class="mt-8 border-t border-[var(--button-border-color)] pt-4 ">
+    <div class="flex flex-row items-stretch gap-2 sm:gap-4">
+        <div class="flex-1 min-w-0">
+            {prev && (
+            <a 
+                href={getPostUrl(prev.id)} 
+                class="group flex h-full flex-col gap-1 rounded-lg p-3 no-underline transition-all hover:bg-[var(--button-hover-color)] sm:p-4"
+            >
+                <div class="flex items-center gap-1.5 text-[var(--text-color)]/70">
+                    <Icon name="fa6-solid:arrow-left" class="h-4 w-4" />
+                    <span class="text-sm transition-colors group-hover:text-[var(--text-color)]">{t("blogNavi.prev")}</span>
+                </div>
+                <span class="text-lg font-bold text-[var(--text-color)]">
+                    {prev.data.title}
+                </span>
+            </a>
+            )}
+        </div>
+        <div class="flex-1 min-w-0">
+            {next && (
+            <a 
+                href={getPostUrl(next.id)} 
+                class="group flex h-full flex-col items-end gap-1 rounded-lg p-3 text-right no-underline transition-all hover:bg-[var(--button-hover-color)] sm:p-4"
+            >
+                <div class="flex items-center gap-1.5 text-[var(--text-color)]/70">
+                    <span class="text-sm transition-colors group-hover:text-[var(--text-color)]">{t("blogNavi.next")}</span>
+                    <Icon name="fa6-solid:arrow-right" class="h-4 w-4" />
+                </div>
+                <span class="text-lg font-bold text-[var(--text-color)]">
+                    {next.data.title}
+                </span>
+            </a>
+            )}
+        </div>
+    </div>
+</nav>

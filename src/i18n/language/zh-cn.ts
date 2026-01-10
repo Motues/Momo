@@ -39,6 +39,10 @@ const translation: Translation = {
         license: "许可协议",
         publishon: "发布时间"
     },
+    blogNavi: {
+        next: "下一篇",
+        prev: "上一篇"
+    },
     comments: {
         name: "昵称",
         email: "邮箱",
