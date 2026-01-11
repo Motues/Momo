@@ -9,7 +9,7 @@
 ## 💻 Environment Requirements
 
 * Node.js (recommended version above 20.x)
-* pnpm (install using `npm -g pnpm`)
+* pnpm (install using `npm install -g pnpm`)
 
 ## 🚀 Quick Start
 

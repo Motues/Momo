@@ -1,21 +1,14 @@
-# Momo
-
-<div align="center">
-    <img src="./doc/images/index-light.jpg">
-    <p>一个极简的Blog模板，使用 <a href="https://astro.build/">Astro</a> 搭建</p>
-    <!-- <small><a href="../README.md">English</a></small> <small><ins>简体中文</ins></small> -->
-</div>
-
 ## ✨ 特性
 
 * 极简设计
 * 支持深色模式切换，并自动跟随系统
 * 支持文章搜索功能（pagefind）
+* 国际化（i18n）
 
 ## 💻 环境要求
 
 * Node.js （建议版本大于22.x）
-* pnpm （使用 `npm -g pnpm` 安装）
+* pnpm （使用 `npm install -g pnpm` 安装）
 
 ## 🚀 快速开始
 
