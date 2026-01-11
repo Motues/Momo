@@ -42,6 +42,80 @@ const pageLang = lang || i18n?.defaultLocale || "zh-cn";
     <ClientRouter />
 </head>
 <body class="h-full bg-[var(--bg-color)]">
+    
+    <div id="loading-overlay" aria-hidden="true">
+      <div class="spinner"></div>
+    </div>
+
     <slot />
+    
+    <script is:inline>
+        let loaderTimeout;
+
+        // 1. 开始准备跳转
+        document.addEventListener('astro:before-preparation', () => {
+            // 只有当加载超过 500ms 时才显示动画 (你可以根据需要调成 300ms 或 1s)
+            loaderTimeout = setTimeout(() => {
+            const overlay = document.getElementById('loading-overlay');
+            if (overlay) overlay.style.display = 'flex';
+            }, 500); 
+        });
+
+        // 2. 页面内容交换完成（DOM 已更新）
+        document.addEventListener('astro:after-swap', () => {
+            // 如果页面加载很快，在 500ms 内就完成了，这里会清除计时器，动画根本不会显示
+            clearTimeout(loaderTimeout);
+            
+            const overlay = document.getElementById('loading-overlay');
+            if (overlay) overlay.style.display = 'none';
+        });
+
+        // 3. 兜底方案：页面完全加载完成（包括资源）
+        document.addEventListener('astro:page-load', () => {
+            clearTimeout(loaderTimeout);
+            const overlay = document.getElementById('loading-overlay');
+            if (overlay) overlay.style.display = 'none';
+        });
+        </script>
 </body>
 </html>
+
+<style is:global>
+  /* 加载动画的遮罩层 */
+  #loading-overlay {
+    position: fixed;
+    inset: 0;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    background-color: rgba(255, 255, 255, 0.7);
+    z-index: 9999;
+    backdrop-filter: blur(2px);
+    /* 添加一个简单的淡入过渡 */
+    animation: fadeIn 0.3s ease-out;
+  }
+
+  [data-theme="dark"] #loading-overlay {
+    background-color: rgba(0, 0, 0, 0.7);
+  }
+
+  @keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+
+  /* 旋转图标样式 */
+  .spinner {
+    width: 40px;
+    height: 40px;
+    border: 4px solid var(--button-hover-color);
+    border-top: 4px solid var(--link-color); /* 进度颜色 */
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+  }
+
+  @keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+  }
+</style>

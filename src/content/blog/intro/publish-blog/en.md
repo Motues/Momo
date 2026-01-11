@@ -31,6 +31,7 @@ pubDate: 2025-01-01
 description: Brief article description
 image: ""
 draft: false
+slugId: intro/publish
 ---
 ```
 

@@ -32,6 +32,7 @@ pubDate: 2025-01-01
 description: 文章简短描述
 image: ""
 draft: false
+slugId: intro/publish
 ---
 ```
 

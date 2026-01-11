@@ -26,13 +26,13 @@ function getPostUrl(id: string) {
             {prev && (
             <a 
                 href={getPostUrl(prev.id)} 
-                class="group flex h-full flex-col gap-1 rounded-lg p-3 no-underline transition-all hover:bg-[var(--button-hover-color)] sm:p-4"
+                class="group flex h-full flex-col gap-1 rounded-lg p-3 no-underline transition-all hover:bg-[var(--button-hover-color)] active:bg-[var(--button-hover-color)] sm:p-4"
             >
                 <div class="flex items-center gap-1.5 text-[var(--text-color)]/70">
                     <Icon name="fa6-solid:arrow-left" class="h-4 w-4" />
                     <span class="text-sm transition-colors group-hover:text-[var(--text-color)]">{t("blogNavi.prev")}</span>
                 </div>
-                <span class="text-lg font-bold text-[var(--text-color)]">
+                <span class="transition-colors text-lg font-bold text-[var(--text-color)] group-hover:text-[var(--link-color)]">
                     {prev.data.title}
                 </span>
             </a>
@@ -42,13 +42,13 @@ function getPostUrl(id: string) {
             {next && (
             <a 
                 href={getPostUrl(next.id)} 
-                class="group flex h-full flex-col items-end gap-1 rounded-lg p-3 text-right no-underline transition-all hover:bg-[var(--button-hover-color)] sm:p-4"
+                class="group flex h-full flex-col items-end gap-1 rounded-lg p-3 text-right no-underline transition-all hover:bg-[var(--button-hover-color)] active:bg-[var(--button-hover-color)] sm:p-4"
             >
                 <div class="flex items-center gap-1.5 text-[var(--text-color)]/70">
                     <span class="text-sm transition-colors group-hover:text-[var(--text-color)]">{t("blogNavi.next")}</span>
                     <Icon name="fa6-solid:arrow-right" class="h-4 w-4" />
                 </div>
-                <span class="text-lg font-bold text-[var(--text-color)]">
+                <span class="transition-colors text-lg font-bold text-[var(--text-color)] group-hover:text-[var(--link-color)]">
                     {next.data.title}
                 </span>
             </a>
