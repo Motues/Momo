@@ -13,9 +13,10 @@ interface Props {
     image: string;
     pubDate: string;
     url: string;
+    fallback: boolean;
 }
 
-const { title, description, image, pubDate, url } = Astro.props;
+const { title, description, image, pubDate, url, fallback } = Astro.props;
 
 
 
@@ -33,7 +34,14 @@ const pageUrl = getRelativeLocaleUrl(currentLang, "/blog/" + url);
         </div>
     )}
     <div class="content p-6">
-        <h2 class="title text-xl font-semibold text-[var(--text-color)] mb-3">{title}</h2>
+        <h2 class="title text-xl font-semibold text-[var(--text-color)] mb-3">
+            {title}
+            {
+                fallback && (
+                <span class="self-center px-1 ml-2 text-sm text-[var(--text-color)]/70 font-mono uppercase bg-[var(--button-hover-color)] rounded border border-[var(--button-border-color)]">{i18n!.defaultLocale}</span>
+                )
+            }
+        </h2>
         <p class="description text-[var(--text-color)]/40 leading-relaxed">{description}</p>
         <p class="pubdate text-sm text-[var(--text-color)]/70 mt-4">{pubDate}</p>
     </div>

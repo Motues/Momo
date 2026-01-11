@@ -21,6 +21,10 @@
     
     --image-shadow-color: rgba(0, 0, 0, 0.15);
     --selection-color: #e5e5e5;
+
+    --warning-text-color: #4d3800;
+    --warning-bg-color: #fff7ed;
+    --warning-border-color: #e6a700;
     
     /* 滚动条颜色 */
     --scrollbar-thumb: #c1c1c1;
@@ -36,12 +40,16 @@
     --footer-text-color: #999;
     --link-color: #57ace7;
     --button-hover-color: #262626;
-    --button-border-color: #262626;
+    --button-border-color: #3d3d3d;
     --postcard-bg-color: #242526;
     
     
     --image-shadow-color: rgba(59, 130, 246, 0.4);
     --selection-color: #3b3b3b;
+
+    --warning-text-color: #f2d680;
+    --warning-bg-color: #332a00;
+    --warning-border-color: #ad8002;
     
     /* 滚动条颜色 */
     --scrollbar-thumb: #4a5568;

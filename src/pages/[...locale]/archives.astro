@@ -56,6 +56,11 @@ const indexPage = getRelativeLocaleUrl(currentLang, "");
                                         </span>
                                         <span class="text-lg group-hover:pl-2 group-hover:text-[var(--link-color)] group-hover:font-bold transition-all duration-200">
                                             {post.data.title}
+                                            {
+                                                post.isFallback && (
+                                                    <span class="self-center px-1 ml-2 text-sm text-[var(--text-color)]/70 font-mono uppercase bg-[var(--button-hover-color)] rounded border border-[var(--button-border-color)]">{i18n!.defaultLocale}</span>
+                                                )
+                                            }
                                         </span>
                                     </a>
                                 </div>

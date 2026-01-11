@@ -70,6 +70,10 @@ const translation: Translation = {
         characters: "字符",
         words: "单词",
         contentTooLong: "评论内容超出限制：不超过2000字或1000单词"
+    },
+    langNote: {
+        note: "注意：",
+        description: "当前页面不支持简体中文，使用默认语言版本"
     }
 }
 

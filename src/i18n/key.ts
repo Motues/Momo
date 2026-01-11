@@ -68,5 +68,9 @@ export interface Translation {
         characters: string;
         words: string;
         contentTooLong: string;
+    },
+    langNote: {
+        note: string;
+        description: string;
     }
 }
