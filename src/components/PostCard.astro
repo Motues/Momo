@@ -3,6 +3,7 @@ import "@styles/global.css"
 import ImageModule from "./misc/ImageModule.astro";
 
 import { getRelativeLocaleUrl } from '@utils/url-utils';
+import { formatFullDate } from '@/utils/time'
 
 import { i18n } from "astro:config/client";
 import i18nit from '@i18n/translation'
@@ -11,7 +12,7 @@ interface Props {
     title: string;
     description: string;
     image: string;
-    pubDate: string;
+    pubDate: Date;
     url: string;
     fallback: boolean;
 }
@@ -43,6 +44,6 @@ const pageUrl = getRelativeLocaleUrl(currentLang, "/blog/" + url);
             }
         </h2>
         <p class="description text-[var(--text-color)]/40 leading-relaxed">{description}</p>
-        <p class="pubdate text-sm text-[var(--text-color)]/70 mt-4">{pubDate}</p>
+        <p class="pubdate text-sm text-[var(--text-color)]/70 mt-4">{formatFullDate(pubDate, currentLang)}</p>
     </div>
 </a>

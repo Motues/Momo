@@ -35,35 +35,6 @@ export function blogCoverUrl(contentPath: string, blogName: string): string {
     return joinUrl("content/blog/", blogName, normalizedPath)
 }
 
-/**
- * 将日期转换为 YYYY年MM月DD日 格式
- * @param date 需要格式化的日期
- * @returns 格式化后的日期字符串，格式为 "YYYY年MM月DD日"
- */
-export function formatDateToChinese(date: Date | string | number): string {
-    const d = new Date(date);
-    const year = d.getFullYear();
-    const month = (d.getMonth() + 1).toString()
-    const day = d.getDate().toString()
-    
-    return `${year}年${month}月${day}日`;
-}
-
-export function formatDateToISO(dateString: string): string {
-    return new Date(dateString).toISOString().split('T')[0];
-}
-
-/**
- * 将日期转换为 MM-DD 格式
- * @param date 
- */
-export function formatDateToArchive(date: Date | string | number): string {
-    const d = new Date(date);
-    const month = String(d.getMonth() + 1).padStart(2, '0');
-    const day = String(d.getDate()).padStart(2, '0');
-    return `${month}-${day}`;
-}
-
 export function getRelativeLocaleUrl(lang: string, path: string) : string { 
     const prefixDefaultLocale = i18n.routing.prefixDefaultLocale;
     if(prefixDefaultLocale) {

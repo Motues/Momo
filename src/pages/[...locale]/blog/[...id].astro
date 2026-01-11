@@ -14,7 +14,8 @@ import { getCollection, render } from 'astro:content'
 import { i18n } from "astro:config/client";
 import i18nit from '@i18n/translation'
 
-import { blogCoverUrl, formatDateToISO } from '@/utils/url-utils'
+import { blogCoverUrl } from '@/utils/url-utils'
+import { formatFullDate } from '@/utils/time'
 import { getBlogEntrySort } from '@utils/content-utils'
 
 
@@ -64,7 +65,7 @@ const image = blogCoverUrl(entry.data.image, entry.id);
     <div class="mx-auto w-full max-w-[var(--page-width)] py-8">
         <div class="mb-8 text-center">
             <h1 class="font-bold text-3xl mb-2 pt-10 text-[var(--text-color)]">{ entry.data.title }</h1>
-            <p class="font-bold text-[var(--text-color)]/60 pt-4 pb-10">{ formatDateToISO(entry.data.pubDate) }</p>
+            <p class="font-bold text-[var(--text-color)]/60 pt-4 pb-10">{ formatFullDate(entry.data.pubDate, currentLang) }</p>
         </div>
         {image && (
             <div class="cover overflow-hidden">

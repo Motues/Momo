@@ -4,6 +4,7 @@
   import CommentItem from './CommentItem.svelte';
   import i18nit from '../../i18n/translation.ts';
   import { siteConfig } from '@/config.ts';
+  import { formatFullDate } from '@/utils/time'
 
   export let c: any;
   export let postSlug: string;
@@ -67,7 +68,7 @@
   <div class="flex-1 min-w-0">
     <div class="flex items-center gap-2">
       <span class="font-semibold text-[var(--text-color)]">{c.author}</span>
-      <span class="text-sm text-[var(--text-color)]/80">{new Date(c.pubDate).toLocaleDateString()}</span>
+      <span class="text-sm text-[var(--text-color)]/80">{formatFullDate(new Date(c.pubDate), language)}</span>
     </div>
 
     <div class="text-[var(--text-color)] mt-1 leading-relaxed w-full max-w-full min-w-0">

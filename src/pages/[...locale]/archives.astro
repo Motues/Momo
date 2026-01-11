@@ -3,7 +3,7 @@ import MainPageLayout from '@layouts/MainPageLayout.astro'
 import Cover from '@components/Cover.astro'
 
 import { siteConfig } from '@/config'
-import { formatDateToArchive } from '@utils/url-utils'
+import { formatMonthDay } from '@/utils/time'
 import { getBlogEntrySort } from '@utils/content-utils'
 import i18nit from '@i18n/translation'
 
@@ -51,8 +51,8 @@ const indexPage = getRelativeLocaleUrl(currentLang, "");
                                 <div class="pb-2">
                                     <a href={getRelativeLocaleUrl(currentLang, `/blog/${post.id}`)} 
                                     class="flex items-center gap-2 active:bg-[var(--button-hover-color)] hover:bg-[var(--button-hover-color)] p-2 rounded transition-colors duration-200 group">
-                                        <span class=" text-[var(--text-color)]/70 min-w-[100px] font-mono">
-                                            {formatDateToArchive(post.data.pubDate)}
+                                        <span class=" text-[var(--text-color)]/70 min-w-[100px] md:min-w-[120px]">
+                                            {formatMonthDay(post.data.pubDate, currentLang)}
                                         </span>
                                         <span class="text-lg group-hover:pl-2 group-hover:text-[var(--link-color)] group-hover:font-bold transition-all duration-200">
                                             {post.data.title}
