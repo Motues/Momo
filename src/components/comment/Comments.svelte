@@ -188,26 +188,26 @@
         <div>
           <label for="author" class="block text-sm text-[var(--text-color)] mb-1">{t('comments.name')}<span class="text-red-500">*</span></label>
           <input id="author" type="text" placeholder={t('comments.required')} bind:value={author}
-            class="w-full text-[var(--text-color)] border border-[var(--button-border-color)]  focus:ring-0 text-sm p-2" />
+            class="rounded w-full text-[var(--text-color)] border border-[var(--button-border-color)]  focus:outline-none focus:border-[var(--link-color)] text-sm p-2" />
         </div>
         <div>
           <label for="email" class="block text-sm text-[var(--text-color)] mb-1">{t('comments.email')}<span class="text-red-500">*</span></label>
           <input id="email" type="email" placeholder={t('comments.required')} bind:value={email}
-            class="w-full text-[var(--text-color)] border border-[var(--button-border-color)]  focus:ring-0 text-sm p-2" />
+            class="rounded w-full text-[var(--text-color)] border border-[var(--button-border-color)]  focus:outline-none focus:border-[var(--link-color)] text-sm p-2" />
         </div>
         <div>
           <label for="url" class="block text-sm text-[var(--text-color)] mb-1">{t('comments.site')}</label>
           <input id="url" type="url" placeholder={t('comments.optional')} bind:value={url}
-            class="w-full text-[var(--text-color)] border border-[var(--button-border-color)]  focus:ring-0 text-sm p-2" />
+            class="rounded w-full text-[var(--text-color)] border border-[var(--button-border-color)]  focus:outline-none focus:border-[var(--link-color)] text-sm p-2" />
         </div>
       </div>
 
       <div>
         <textarea placeholder={t('comments.welcome')}
-          class="w-full border text-[var(--text-color)] border-[var(--button-border-color)]  focus:ring-0 text-sm p-3 min-h-[100px]"
+          class="rounded w-full border text-[var(--text-color)] border-[var(--button-border-color)]  focus:outline-none focus:border-[var(--link-color)] text-sm p-3 min-h-[100px]"
           bind:value={content}></textarea>
         <div class="text-right text-sm text-[var(--text-color)]/80 mt-1">
-          {getWordCount(content).chars} {t('comments.characters')} / {getWordCount(content).words} {t('comments.words')}
+          <!-- {getWordCount(content).chars} {t('comments.characters')} / {getWordCount(content).words} {t('comments.words')} -->
           {#if !isContentWithinLimit(content)}
             <span class="text-red-500 ml-2">{t('comments.contentTooLong') || '内容超出限制'}</span>
           {/if}
@@ -216,7 +216,7 @@
 
       <div class="flex justify-end gap-3">
         <button type="submit" disabled={submitting || !isContentWithinLimit(content)}
-          class="px-4 py-2 text-sm font-medium text-[var(--text-color)] border border-[var(--button-border-color)] hover:bg-[var(--button-hover-color)] disabled:opacity-50">
+          class="rounded px-4 py-2 text-sm font-medium text-[var(--text-color)] border border-[var(--button-border-color)] hover:bg-[var(--button-hover-color)] disabled:opacity-50">
           {submitting ? t('comments.sending') : t('comments.send')}
         </button>
       </div>

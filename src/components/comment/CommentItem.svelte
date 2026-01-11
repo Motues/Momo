@@ -131,26 +131,26 @@
             <div>
               <label for="reply-author-{c.id}" class="block text-xs text-[var(--text-color)] mb-1">{t('comments.name')}<span class="text-red-500">*</span></label>
               <input id="reply-author-{c.id}" type="text" placeholder={t('comments.required')} bind:value={replyAuthor}
-                class="w-full text-[var(--text-color)] border border-[var(--button-border-color)] focus:ring-0 text-sm p-1" />
+                class="rounded w-full text-[var(--text-color)] border border-[var(--button-border-color)] focus:outline-none focus:border-[var(--link-color)] text-sm p-1" />
             </div>
             <div>
               <label for="reply-email-{c.id}" class="block text-xs text-[var(--text-color)] mb-1">{t('comments.email')}<span class="text-red-500">*</span></label>
               <input id="reply-email-{c.id}" type="email" placeholder={t('comments.required')} bind:value={replyEmail}
-                class="w-full text-[var(--text-color)] border border-[var(--button-border-color)] focus:ring-0 text-sm p-1" />
+                class="rounded w-full text-[var(--text-color)] border border-[var(--button-border-color)] focus:outline-none focus:border-[var(--link-color)] text-sm p-1" />
             </div>
             <div>
               <label for="reply-url-{c.id}" class="block text-xs text-[var(--text-color)] mb-1">{t('comments.site')}</label>
               <input id="reply-url-{c.id}" type="url" placeholder={t('comments.optional')} bind:value={replyUrl}
-                class="w-full text-[var(--text-color)] border border-[var(--button-border-color)] focus:ring-0 text-sm p-1" />
+                class="rounded w-full text-[var(--text-color)] border border-[var(--button-border-color)] focus:outline-none focus:border-[var(--link-color)] text-sm p-1" />
             </div>
           </div>
 
           <div>
             <textarea placeholder={t('comments.replyPlaceholder') || "写下你的回复..."} 
-              class="w-full border text-[var(--text-color)] border-[var(--button-border-color)] focus:ring-0 text-sm p-2 min-h-[80px]"
+              class="rounded w-full border text-[var(--text-color)] border-[var(--button-border-color)] focus:outline-none focus:border-[var(--link-color)] text-sm p-2 min-h-[80px]"
               bind:value={replyContent}></textarea>
             <div class="text-right text-xs text-[var(--text-color)]/80 mt-1">
-              {getWordCount(replyContent).chars} {t('comments.characters')} / {getWordCount(replyContent).words} {t('comments.words')}
+              <!-- {getWordCount(replyContent).chars} {t('comments.characters')} / {getWordCount(replyContent).words} {t('comments.words')} -->
               {#if !isContentWithinLimit(replyContent)}
                 <span class="text-red-500 ml-2">{t('comments.contentTooLong') || '内容超出限制'}</span>
               {/if}
@@ -161,10 +161,10 @@
             <button type="button" on:click={() => {
               dispatch('cancel');
               replySubmitting = false; // 取消时重置提交状态
-            }} class="px-3 py-1 text-sm text-[var(--text-color)] border border-[var(--button-border-color)] hover:bg-[var(--button-hover-color)]">
+            }} class="rounded px-3 py-1 text-sm text-[var(--text-color)] border border-[var(--button-border-color)] hover:bg-[var(--button-hover-color)]">
               {t('comments.cancel')}
             </button>
-            <button type="submit" disabled={replySubmitting || !isContentWithinLimit(replyContent)} class="px-3 py-1 text-sm font-medium text-[var(--text-color)] border border-[var(--button-border-color)] hover:bg-[var(--button-hover-color)] disabled:opacity-50">
+            <button type="submit" disabled={replySubmitting || !isContentWithinLimit(replyContent)} class="rounded px-3 py-1 text-sm font-medium text-[var(--text-color)] border border-[var(--button-border-color)] hover:bg-[var(--button-hover-color)] disabled:opacity-50">
               {replySubmitting ? t('comments.sending') : t('comments.reply')}
             </button>
           </div>

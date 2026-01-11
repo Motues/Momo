@@ -8,8 +8,8 @@ export async function GET(context: APIContext) {
     return rss({
         title: `${siteConfig.title} - ${siteConfig.subTitle}`,
         description: profileConfig.description,
-        site: context.site ?? "https://blog.motues.top",
-        items: blog.map((post) => ({
+        site: context.site ?? "https://momo.motues.top",
+        items: blog.slice(0, 20).map((post) => ({
             title: post.data.title,
             pubDate: post.data.pubDate,
             description: post.data.description,

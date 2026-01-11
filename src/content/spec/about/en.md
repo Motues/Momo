@@ -21,7 +21,7 @@
 2. Run `pnpm install` to install dependencies
 3. Run `pnpm dev` to start the development server
 
-# 🔧 Configuration
+## 🔧 Configuration
 
 Refer to the [Configuration Guide](/en/blog/intro/config)
 
@@ -36,6 +36,7 @@ All commands below can be executed in the root directory
 | `pnpm build` | Build release version to `./dist` directory |
 | `pnpm preview` | Preview built release version |
 | `pnpm astro ...` | Run `astro` commands, e.g., `astro add` |
+| `pnpm new <path> <lang>` | Create a new article, e.g., `pnpm new docs/test.md zh-cn`, the language can be omitted, defaulting to `zh-cn` |
 
 ## 📜 TODO
 
@@ -47,9 +48,11 @@ All commands below can be executed in the root directory
 - [x] Add table of contents
 - [x] Add RSS feed
 - [ ] Other minor features, e.g., ~~back to top~~, estimated reading time
+- [x] Support comment（serverless deployment, [Backend](https://github.com/Motues/Momo-Backend)）
 - [x] Internationalization (i18n)
 
 ## 📚 References
 
 * [Astro](https://astro.build/)
 * [Fuwari](https://github.com/saicaca/fuwari)
+* [Tyndall](https://github.com/moyuin-aka/tyndall-public)
