@@ -1,5 +1,5 @@
 ---
-title: 测试Katex
+title: 测试 Katex
 pubDate: 2025-09-17
 description: 文章功能测试
 image: ""

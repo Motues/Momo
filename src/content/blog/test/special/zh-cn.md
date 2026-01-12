@@ -1,11 +1,38 @@
 ---
-title: 测试 Alert
-pubDate: 2025-09-18
+title: 测试自定义样式
+pubDate: 2026-01-12
 description: 文章功能测试
 image: ""
-draft: true
-slugId: momo/test/alert
+draft: false
+slugId: momo/test/special
 ---
+
+## 引用测试
+
+### 普通文本
+
+:::quote
+
+宇宙就是一座黑暗森林，每个文明都是带枪的猎人，像幽灵般潜行于林间，轻轻拨开挡路的树枝，竭力不让脚步发出一点儿声音，连呼吸都必须小心翼翼：他必须小心，因为林中到处都有与他一样潜行的猎人，如果他发现了别的生命，能做的只有一件事：开枪消灭之。
+
+<br><right>——《三体 II：黑暗森林》</right>
+:::
+
+### 数学公式
+
+:::quote
+$E = mc^2$
+:::
+
+## 卡片测试
+
+### 音乐卡片
+
+::music{id="30431366"}
+
+### Github 卡片
+
+::github{repo="Motues/Momo"}
 
 ## Alert 组件测试
 

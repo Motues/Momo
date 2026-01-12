@@ -11,6 +11,7 @@ import { AdmonitionComponent } from "./src/plugins/rehype-component-admonition.m
 import { parseDirectiveNode } from "./src/plugins/remark-directive-rehype.js";
 import { MusicCardComponent } from "./src/plugins/rehype-component-music-card.mjs";
 import { GithubCardComponent } from './src/plugins/rehype-component-github-card.mjs';
+import { QuoteComponent } from "./src/plugins/rehype-component-quote.mjs"
 
 
 import svelte from "@astrojs/svelte";
@@ -55,6 +56,7 @@ export default defineConfig({
           components: {
             github: GithubCardComponent,
             music: MusicCardComponent,
+            quote: QuoteComponent,
             note: (x, y) => AdmonitionComponent(x, y, "note"),
             tip: (x, y) => AdmonitionComponent(x, y, "tip"),
             important: (x, y) => AdmonitionComponent(x, y, "important"),
