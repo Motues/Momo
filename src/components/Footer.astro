@@ -1,4 +1,5 @@
 ---
+import { Icon } from "astro-icon/components";
 import { profileConfig } from "../config";
 
 let introPage : string;
@@ -11,16 +12,28 @@ if (profileConfig.indexPage) {
 ---
 
 <!-- footer -->
-<footer class="py-4 text-center footer font-bold text-xs">
-    <div class="text-[var(--text-color)]/50">
-        <p class="mb-1">Made with ❤️ by <a target="_self" href={introPage}>Motues</a></p>
-        <p>Powered by <a target="_blank" href="https://astro.build">Astro</a></p>
-        <p class="pt-[5px]">© 2024 - {new Date().getFullYear()} / <a href="/rss.xml">RSS</a></p>
+<footer class="flex flex-row justify-between items-center py-10 text-[var(--text-color)]/50 text-sm max-w-[var(--header-width)] mx-auto w-full font-bold">
+    <div>
+        © <a class="link-line" target="_self" href={introPage}>Motues</a> since 2024. 
+    </div>
+    <div class="right">
+        <p>Powered by 
+        <a target="_blank" href="https://astro.build" title="Astro" class="tooltip-wrapper"><Icon name="simple-icons:astro" class="inline-block" /></a> 
+        <a target="_blank" href="https://svelte.dev/" title="Svelte" class="tooltip-wrapper"><Icon name="simple-icons:svelte" class="inline-block"/></a> 
+        <a target="_blank" href="https://tailwindcss.com/" title="tailwindcss" class="tooltip-wrapper"><Icon name="simple-icons:tailwindcss" class="inline-block"/></a> 
+        <a target="_blank" href="https://github.com/Motues/Momo" title="Momo" class="tooltip-wrapper"><Icon name="simple-icons:github" class="inline-block"/></a> 
+         | 
+        <a href="/rss.xml" target="_self" title="RSS" class="tooltip-wrapper"><Icon name="simple-icons:rss" class="inline-block" /></a>
+        </p>
     </div>
 </footer>
 
+
 <style>
-   .footer a {
+    footer {
+        font-family:  "LXGW Bright" !important; 
+    }
+   .right a {
         color: inherit;
         /* transition: color 0.3s ease; */
         text-decoration: none;
@@ -28,26 +41,47 @@ if (profileConfig.indexPage) {
         display: inline-block;
     }
     
-    .footer a::before {
-        content: "";
-        position: absolute;
-        bottom: 0;
-        left: 0;
-        width: 100%;
-        border-bottom-style: dotted;
-        border-bottom-width: 2px;
-        /* background: currentColor; */
-        transition: transform 0.3s ease;
-        transform-origin: right;
-        transform: scaleX(1);
-    }
-    
-    .footer a:hover {
+    .right a:hover {
         color: var(--link-color);
     }
     
-    .footer a:hover::before {
-        transform-origin: right;
-        transform: scaleX(0);
+    .tooltip-wrapper {
+        position: relative;
+        display: inline-block;
+    }
+
+    .tooltip-wrapper:hover::after {
+        content: attr(title);
+        position: absolute;
+        bottom: 80%; /* 在元素上方并留出一点间隙 */
+        left: 50%;
+        transform: translateX(-50%);
+        padding: 4px 8px;
+        background-color: var(--text-color);
+        color:var(--bg-color);
+        font-size: 12px; /* 更小的字体 */
+        border-radius: 6px;
+        white-space: nowrap;
+        z-index: 1000;
+        opacity: 0;
+        animation: fadeInTooltip 0.3s forwards;
+        margin-bottom: 5px;
+        text-align: center;
+    }
+
+    /* 隐藏浏览器默认的title提示 */
+    .tooltip-wrapper {
+        text-decoration: none !important;
+    }
+
+    .tooltip-wrapper:hover {
+        outline: none !important;
+        border: none !important;
+    }
+
+    @keyframes fadeInTooltip {
+        to {
+            opacity: 1;
+        }
     }
 </style>
