@@ -119,3 +119,86 @@ const pageLang = lang || i18n?.defaultLocale || "zh-cn";
     100% { transform: rotate(360deg); }
   }
 </style>
+
+<style is:global>
+  /* 1. 容器必须是相对定位，以便定位按钮 */
+  pre {
+    position: relative !important;
+  }
+
+  .copy-btn {
+    position: absolute;
+    top: 12px;
+    right: 8px;
+    padding: 6px;
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 6px;
+    cursor: pointer;
+    color: #ccc;
+    opacity: 0; /* 初始隐藏 */
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10;
+  }
+
+  @media (hover: none) {
+  .copy-btn {
+    opacity: 1; /* 直接默认显示 */
+    background: rgba(255, 255, 255, 0.1); /* 移动端可以调浅一点，避免遮挡代码 */
+  }
+}
+
+  /* 2. 鼠标悬停在 pre 上时显示按钮 */
+  pre:hover .copy-btn {
+    opacity: 1;
+  }
+
+  .copy-btn:hover {
+    background: rgba(255, 255, 255, 0.2);
+    color: #fff;
+  }
+
+  /* 3. 图标切换逻辑 */
+  .copy-btn .icon-check { display: none; }
+  .copy-btn.copied .icon-copy { display: none; }
+  .copy-btn.copied .icon-check { display: block; }
+</style>
+
+<script>
+  const copyIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>`;
+  const checkIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#4caf50" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>`;
+
+  function createCopyButtons() {
+    // 寻找所有 pre 标签
+    const blocks = document.querySelectorAll("pre");
+
+    blocks.forEach((block) => {
+      // 防止重复添加（针对 Astro 的 ViewTransitions）
+      if (block.querySelector(".copy-btn")) return;
+
+      const button = document.createElement("button");
+      button.className = "copy-btn";
+      button.innerHTML = `<span class="icon-copy">${copyIcon}</span><span class="icon-check">${checkIcon}</span>`;
+      
+      block.appendChild(button);
+
+      button.addEventListener("click", async () => {
+        const code = block.querySelector("code");
+        const text = code ? code.innerText : block.innerText;
+
+        await navigator.clipboard.writeText(text);
+
+        button.classList.add("copied");
+        setTimeout(() => button.classList.remove("copied"), 2000);
+      });
+    });
+  }
+
+  // 初始化执行
+  createCopyButtons();
+  // 如果使用了 ViewTransitions，监听页面跳转事件
+  document.addEventListener("astro:page-load", createCopyButtons);
+</script>

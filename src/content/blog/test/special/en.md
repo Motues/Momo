@@ -34,6 +34,28 @@ $E = mc^2$
 
 ::github{repo="Motues/Momo"}
 
+## Special Syntax
+
+### Blur Effect
+
+Here is a !!blur!! effect, which will remove the blur effect when the mouse hovers over it; when clicked, it will remain clear for 3 seconds.
+
+### Pinyin
+
+Below words will show pinyin:
+
+{拼音}(pīn|yīn)，{君の名は}(きみ||な|)
+
+### Rainbow Text
+
+This is an ==rainbow== text effect.
+
+### Nested Effect
+
+The above styles can be nested, such as:
+
+!!==Do you like the movie {君の名は}(きみ||な|)==!!
+
 ## Alert Component Testing
 
 ### Single-Line Content Testing

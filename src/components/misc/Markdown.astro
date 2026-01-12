@@ -12,6 +12,34 @@ const className = Astro.props.class
     <slot/>
 </div>
 
-<style is:global>
+<script>
+  function setupSpoilers() {
+    const spoilers = document.querySelectorAll('.spoiler');
+    
+    spoilers.forEach(el => {
+      // 存储定时器 ID，防止连续点击导致逻辑混乱
+      let timeoutId = null;
 
-</style>
+      el.addEventListener('click', () => {
+        // 1. 变为清晰
+        el.classList.add('revealed');
+
+        // 2. 如果之前已经有定时器在跑，先清除它
+        if (timeoutId) {
+          clearTimeout(timeoutId);
+        }
+
+        // 3. 设置 3 秒后自动变回模糊
+        timeoutId = setTimeout(() => {
+          el.classList.remove('revealed');
+          timeoutId = null;
+        }, 3000); // 这里 3000 毫秒 = 3 秒
+      });
+    });
+  }
+
+  // 初始化
+  setupSpoilers();
+  // 适配 Astro 的视图过渡 (View Transitions)
+  document.addEventListener('astro:page-load', setupSpoilers);
+</script>
