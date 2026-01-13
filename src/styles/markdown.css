@@ -244,7 +244,6 @@
   background: var(--text-color);
 }
 
-/* src/styles/alerts.css 或直接写在组件里 */
 .note, .tip, .warning, .important, .caution {
   padding: 0.5rem 1rem;
   border-radius: 0.25rem;
@@ -476,7 +475,7 @@
     transition: all 0.3s ease;
     border: 1px solid var(--button-border-color);
     max-width: 500px;
-    margin: 1rem auto; /* 居中显示 */
+    margin: 1rem auto;
     width: 100%;
 }
 
@@ -537,7 +536,6 @@
     background-repeat: no-repeat;
 }
 
-/* 黑暗模式下的图标调整 */
 [data-theme="dark"] .card-github .github-logo {
     background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'%3E%3Cpath fill='%23aaaaaa' d='M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z'/%3E%3C/svg%3E");
 }
@@ -616,8 +614,6 @@
     border: 1px solid #ff6b6b;
 }
 
-/* ... existing code ... */
-
 .quote {
     font-family: "LXGW Bright Medium";
     position: relative;
@@ -661,7 +657,6 @@ div.quote::after {
 	display: block;
 }
 
-/* 基础样式 */
 .spoiler {
   filter: blur(5px);
   background-color: rgba(128, 128, 128, 0.2);
@@ -671,7 +666,6 @@ div.quote::after {
   padding: 0 2px;
 }
 
-/* PC端悬停逻辑：仅在非 revealed 状态下生效 */
 @media (hover: hover) {
   .spoiler:not(.revealed):hover {
     filter: blur(0);
@@ -679,7 +673,6 @@ div.quote::after {
   }
 }
 
-/* 核心状态：当拥有 revealed 类时，保持清晰 */
 .spoiler.revealed {
   filter: blur(0) !important;
   background-color: transparent !important;
@@ -692,38 +685,31 @@ ruby {
 }
 
 rt {
-  font-size: 0.65em;   /* 拼音大小通常为汉字的 65% */
-  color: #888;         /* 调淡拼音颜色，突出汉字 */
-  user-select: none;   /* 防止复制时连拼音一起选中（可选） */
-  transform: translateY(-2px); /* 微调上下位置 */
+  font-size: 0.65em;  
+  color: #888;   
+  user-select: none;  
+  transform: translateY(-2px); 
 }
 
 .rainbow-text {
-  /* 创建渐变背景 */
   background: linear-gradient(
     to right,
     #ef5350, #f48fb1, #7e57c2, #2196f3, #26c6da, #43a047, #eeff41, #f9a825, #ef5350
   );
-  /* 核心：将背景剪裁到文字上 */
   background-clip: text;
   -webkit-background-clip: text;
-  /* 使原本的文字颜色透明 */
   color: transparent;
-  /* 放大背景以便滚动 */
   background-size: 200% auto;
   font-weight: bold;
-  /* 添加动画 */
   animation: rainbow-animation 3s linear infinite;
   display: inline-block;
 }
 
-/* 定义背景流动的动画 */
 @keyframes rainbow-animation {
   0% { background-position: 0% center; }
   100% { background-position: 200% center; }
 }
 
-/* 如果是深色模式，可以调高亮度 */
 [data-theme='dark'] .rainbow-text {
   filter: brightness(1.2);
 }
@@ -731,7 +717,7 @@ rt {
 .typst-render {
   display: flex;
   flex-direction: column;
-  align-items: center; /* 水平居中核心 */
+  align-items: center;
   justify-content: center;
   margin: 2rem 0;
   width: 100%;

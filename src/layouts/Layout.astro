@@ -60,7 +60,6 @@ const pageLang = lang || i18n?.defaultLocale || "zh-cn";
 
         // 1. 开始准备跳转
         document.addEventListener('astro:before-preparation', () => {
-            // 只有当加载超过 500ms 时才显示动画 (你可以根据需要调成 300ms 或 1s)
             loaderTimeout = setTimeout(() => {
             const overlay = document.getElementById('loading-overlay');
             if (overlay) overlay.style.display = 'flex';
@@ -69,7 +68,6 @@ const pageLang = lang || i18n?.defaultLocale || "zh-cn";
 
         // 2. 页面内容交换完成（DOM 已更新）
         document.addEventListener('astro:after-swap', () => {
-            // 如果页面加载很快，在 500ms 内就完成了，这里会清除计时器，动画根本不会显示
             clearTimeout(loaderTimeout);
             
             const overlay = document.getElementById('loading-overlay');
@@ -87,7 +85,6 @@ const pageLang = lang || i18n?.defaultLocale || "zh-cn";
 </html>
 
 <style is:global>
-  /* 加载动画的遮罩层 */
   #loading-overlay {
     position: fixed;
     inset: 0;
@@ -97,7 +94,6 @@ const pageLang = lang || i18n?.defaultLocale || "zh-cn";
     background-color: rgba(255, 255, 255, 0.7);
     z-index: 9999;
     backdrop-filter: blur(2px);
-    /* 添加一个简单的淡入过渡 */
     animation: fadeIn 0.3s ease-out;
   }
 
@@ -110,12 +106,11 @@ const pageLang = lang || i18n?.defaultLocale || "zh-cn";
     to { opacity: 1; }
   }
 
-  /* 旋转图标样式 */
   .spinner {
     width: 40px;
     height: 40px;
     border: 4px solid var(--button-hover-color);
-    border-top: 4px solid var(--link-color); /* 进度颜色 */
+    border-top: 4px solid var(--link-color);
     border-radius: 50%;
     animation: spin 1s linear infinite;
   }
@@ -127,7 +122,6 @@ const pageLang = lang || i18n?.defaultLocale || "zh-cn";
 </style>
 
 <style is:global>
-  /* 1. 容器必须是相对定位，以便定位按钮 */
   pre {
     position: relative !important;
   }
@@ -142,7 +136,7 @@ const pageLang = lang || i18n?.defaultLocale || "zh-cn";
     border-radius: 6px;
     cursor: pointer;
     color: #ccc;
-    opacity: 0; /* 初始隐藏 */
+    opacity: 0;
     transition: all 0.2s ease;
     display: flex;
     align-items: center;
@@ -152,12 +146,11 @@ const pageLang = lang || i18n?.defaultLocale || "zh-cn";
 
   @media (hover: none) {
   .copy-btn {
-    opacity: 1; /* 直接默认显示 */
-    background: rgba(255, 255, 255, 0.1); /* 移动端可以调浅一点，避免遮挡代码 */
+    opacity: 1; 
+    background: rgba(255, 255, 255, 0.1);
   }
 }
 
-  /* 2. 鼠标悬停在 pre 上时显示按钮 */
   pre:hover .copy-btn {
     opacity: 1;
   }
@@ -167,7 +160,6 @@ const pageLang = lang || i18n?.defaultLocale || "zh-cn";
     color: #fff;
   }
 
-  /* 3. 图标切换逻辑 */
   .copy-btn .icon-check { display: none; }
   .copy-btn.copied .icon-copy { display: none; }
   .copy-btn.copied .icon-check { display: block; }
@@ -182,7 +174,6 @@ const pageLang = lang || i18n?.defaultLocale || "zh-cn";
     const blocks = document.querySelectorAll("pre");
 
     blocks.forEach((block) => {
-      // 防止重复添加（针对 Astro 的 ViewTransitions）
       if (block.querySelector(".copy-btn")) return;
 
       const button = document.createElement("button");
@@ -203,8 +194,7 @@ const pageLang = lang || i18n?.defaultLocale || "zh-cn";
     });
   }
 
-  // 初始化执行
+
   createCopyButtons();
-  // 如果使用了 ViewTransitions，监听页面跳转事件
   document.addEventListener("astro:page-load", createCopyButtons);
 </script>
