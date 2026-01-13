@@ -22,9 +22,15 @@ const pageLang = lang || i18n?.defaultLocale || "zh-cn";
         (function() {
         const savedTheme = localStorage.getItem('theme');
         const systemTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-        const theme = savedTheme || systemTheme;
+        let theme;
+        if ( savedTheme === 'system') {
+          theme = systemTheme;
+        } else {
+          theme = savedTheme || 'light';
+        }
+        localStorage.setItem('theme', savedTheme || theme);
         document.documentElement.setAttribute('data-theme', theme);
-        
+
         if (theme === 'dark') {
             document.documentElement.classList.add('dark');
         } else {
