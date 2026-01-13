@@ -23,6 +23,7 @@ export type ProfileConfig = {
     name: string;
     description: string;
     indexPage?: string;
+    startYear: number;
     links?: {
         name: string;
         url: string;

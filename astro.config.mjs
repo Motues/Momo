@@ -13,6 +13,7 @@ import { MusicCardComponent } from "./src/plugins/rehype-component-music-card.mj
 import { GithubCardComponent } from './src/plugins/rehype-component-github-card.mjs';
 import { QuoteComponent } from "./src/plugins/rehype-component-quote.mjs"
 import { remarkCombined } from './src/plugins/remark-combined.mjs';
+import { remarkTypst } from './src/plugins/remark-typst.mjs';
 
 import svelte from "@astrojs/svelte";
 
@@ -46,6 +47,7 @@ export default defineConfig({
     remarkPlugins: [
       remarkMath,
       remarkDirective,
+      remarkTypst,
       parseDirectiveNode,
       remarkCombined
     ],

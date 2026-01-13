@@ -727,3 +727,19 @@ rt {
 [data-theme='dark'] .rainbow-text {
   filter: brightness(1.2);
 }
+
+.typst-render {
+  display: flex;
+  flex-direction: column;
+  align-items: center; /* 水平居中核心 */
+  justify-content: center;
+  margin: 2rem 0;
+  width: 100%;
+}
+
+.typst-render .typst-title {
+  margin-top: 0.8rem;
+  font-size: 0.9rem;
+  color: #666;
+  font-family: 'Times New Roman', Times, serif;
+}

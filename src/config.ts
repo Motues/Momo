@@ -28,9 +28,10 @@ export const siteConfig: SiteConfig = {
 
 export const profileConfig: ProfileConfig = {
     avatar: "assets/Motues.jpg", // Relative to the /src directory. Relative to the /public directory if it starts with '/'
-    name: "Momo",
+    name: "Motues",
     description: "Life is colorful!",
     indexPage: "https://motues.top",
+    startYear: 2024,
 }
 
 export const licenseConfig: LicenseConfig = {
