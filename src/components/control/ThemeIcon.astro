@@ -52,7 +52,6 @@ if (typeof window !== 'undefined') {
       }
     };
 
-    // 移除旧监听，防止重复注册
     const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
     mediaQuery.removeEventListener?.('change', handleSystemThemeChange);
     mediaQuery.addEventListener('change', handleSystemThemeChange);
@@ -66,15 +65,12 @@ if (typeof window !== 'undefined') {
       setTheme(nextTheme);
     };
 
-    // 重新绑定点击事件
     themeToggle?.removeEventListener('click', handleToggleClick);
     themeToggle?.addEventListener('click', handleToggleClick);
 
-    // 初始化主题
     setTheme(getTheme());
   }
 
-  // 页面首次加载 + ClientRouter 导航后执行
   document.addEventListener('astro:page-load', initThemeToggle);
   document.addEventListener('astro:after-swap', initThemeToggle);
 }
@@ -94,12 +90,10 @@ if (typeof window !== 'undefined') {
         display: none;
     }
     
-    /* 默认显示太阳图标 */
     #themeToggle .sun {
         display: inline-block;
     }
     
-    /* 黑暗模式显示月亮图标 */
     html[data-theme="dark"] #themeToggle .moon {
         display: inline-block;
     }
@@ -108,7 +102,6 @@ if (typeof window !== 'undefined') {
         display: none;
     }
     
-    /* 系统模式下的图标切换 */
     html.system-theme #themeToggle .system {
         display: inline-block;
     }

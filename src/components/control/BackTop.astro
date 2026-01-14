@@ -44,9 +44,7 @@ function initBackTop() {
   handleScroll();
 }
 
-// 初次加载
 document.addEventListener('astro:page-load', initBackTop);
-// 每次页面切换完成后重新挂载
 document.addEventListener('astro:after-swap', initBackTop);
 </script>
 

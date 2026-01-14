@@ -13,30 +13,25 @@
 	let activeIndex = $state(-1);
 	let tocListElement = $state(null);
 
-	// 弹簧动画：处理索引位置的连续过渡
 	const focusSpring = spring(-1, {
 		stiffness: 0.12,
 		damping: 0.7
 	});
 
-	// 基础逻辑计算
 	let minDepth = $derived(headings.length > 0 ? Math.min(...headings.map(h => h.depth)) : 0);
 	let maxDepth = $derived(minDepth + (siteConfig?.toc?.depth || 2));
 	let filteredHeadings = $derived(headings.filter(h => h.depth <= maxDepth));
 
-	// 同步动画索引
 	$effect(() => {
 		focusSpring.set(activeIndex);
 	});
 
-	// 滚动监听逻辑
 	function handleScroll() {
 		const headerCoverHeight = 200;
 		const scrollY = window.scrollY || window.pageYOffset;
 		tocVisible = scrollY > headerCoverHeight;
 	}
 
-	// 交叉观察器：检测当前阅读章节
 	function initObserver() {
 		const observer = new IntersectionObserver((entries) => {
 			entries.forEach(entry => {
@@ -57,7 +52,6 @@
 		return observer;
 	}
 
-	// 目录内部自动滚动 
 	function autoScrollTOC(index) {
 		if (tocListElement) {
 			const items = tocListElement.querySelectorAll('a');
@@ -70,12 +64,9 @@
 		}
 	}
 
-	// 动态样式算法：基于弹簧数值计算透明度与字重
 	function getSpringStyle(index, currentSpring) {
 		const distance = Math.abs(index - currentSpring);
-		// 距离当前激活项越近，越明显
 		const opacity = Math.max(0.2, 1 - distance * 0.2);
-		// 只有距离非常近时才加粗
 		const fontWeight = distance < 0.5 ? '700' : '400';
 		
 		return `opacity: ${opacity}; font-weight: ${fontWeight};`;
@@ -135,7 +126,6 @@
 		display: none;
 	}
 	
-	/* 确保文字不会因为加粗而产生剧烈的布局抖动 */
 	a {
 		will-change: opacity, font-weight;
 		display: block;

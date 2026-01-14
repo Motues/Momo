@@ -112,10 +112,7 @@ function initSearchModal() {
   });
 }
 
-// 初次加载执行
 document.addEventListener('DOMContentLoaded', initSearchModal);
-
-// 路由切换后重新初始化
 document.addEventListener('astro:after-swap', initSearchModal);
 </script>
 
@@ -271,10 +268,7 @@ document.addEventListener('pagefindloaderror', () => {
   console.log('Pagefind failed to load, search functionality will not work');
 });
 
-// 初次加载
 document.addEventListener('DOMContentLoaded', initPagefindSearch);
-
-// 路由切换后重新绑定
 document.addEventListener('astro:after-swap', initPagefindSearch);
 </script>
 
