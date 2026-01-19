@@ -28,7 +28,7 @@ const t = i18nit(currentLang);
 const pageUrl = getRelativeLocaleUrl(currentLang, "/blog/" + url);
 ---
 
-<a href={pageUrl} class="block min-w-0 w-full max-w-[var(--page-width)] mx-auto my-6  rounded-xl shadow border border-[var(--button-border-color)] overflow-hidden transition-all duration-300 hover:-translate-y-1">
+<a href={pageUrl} class="block min-w-0 w-full max-w-[var(--page-width)] mx-auto my-6  rounded-xl shadow border border-[var(--button-border-color)] overflow-hidden transition-all duration-300 hover:-translate-y-1 hover:bg-[var(--button-hover-color)] active:bg-[var(--button-hover-color)]">
     {image && (
         <div class="cover h-60 overflow-hidden">
             <ImageModule src={image} alt={title} class="w-full h-full object-cover"/>

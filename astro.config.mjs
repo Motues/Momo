@@ -12,6 +12,7 @@ import { parseDirectiveNode } from "./src/plugins/remark-directive-rehype.js";
 import { MusicCardComponent } from "./src/plugins/rehype-component-music-card.mjs";
 import { GithubCardComponent } from './src/plugins/rehype-component-github-card.mjs';
 import { QuoteComponent } from "./src/plugins/rehype-component-quote.mjs"
+import { customFigurePlugin } from "./src/plugins/rehype-figure-plugin.mjs";
 import { remarkCombined } from './src/plugins/remark-combined.mjs';
 import { remarkTypst } from './src/plugins/remark-typst.mjs';
 
@@ -53,6 +54,7 @@ export default defineConfig({
     ],
     rehypePlugins: [
       rehypeKatex,
+      customFigurePlugin,
       [
         rehypeComponents,
         {

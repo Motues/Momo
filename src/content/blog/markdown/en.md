@@ -230,14 +230,14 @@ Welcome to Motues' [Blog](https://motues.top “Motues' Blog”)!
 
 ## Images
 
-Start with an exclamation mark (!), then add alternative text in parentheses. Include the image resource path or URL within the parentheses. Optionally, add a title after the URL in the parentheses.
+Start with an exclamation mark (!), then add alternative text in parentheses. Include the image resource path or URL within the parentheses. Optionally, add a title after the URL in the parentheses.The title will be displayed below the image.
 
 ```markdown
-![Motues](./Motues.png “This is my avatar”)
+![Motues](./Motues.png "This is my avatar")
 ```
 
 Displayed as:  
-![Motues](./Motues.png “This is my avatar”)
+![Motues](./Motues.png "This is my avatar")
 <!-- <img src="./Motues.png" alt="Motues" title="This is my avatar" width="256" height="256"> -->
 
 ## Tables
