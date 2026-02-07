@@ -359,7 +359,7 @@
     border-radius: 12px;
     /* box-shadow: 0 4px 12px var(--shadow-color); */
     text-decoration: none;
-    transition: all 0.3s ease;
+    transition: all 0.8s ease !important; 
     border: 1px solid var(--button-border-color);
     overflow: hidden;
     position: relative;
@@ -472,7 +472,7 @@
     border-radius: 8px;
     /* box-shadow: 0 4px 12px var(--shadow-color); */
     text-decoration: none;
-    transition: all 0.3s ease;
+    transition: all 0.8s ease !important;
     border: 1px solid var(--button-border-color);
     max-width: 500px;
     margin: 1rem auto;

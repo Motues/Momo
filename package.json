@@ -17,6 +17,7 @@
     "@myriaddreamin/typst-ts-node-compiler": "0.7.0-rc2",
     "@myriaddreamin/typst.ts": "0.7.0-rc2",
     "@tailwindcss/vite": "^4.1.13",
+    "aos": "^2.3.4",
     "astro": "^5.13.7",
     "astro-icon": "^1.1.5",
     "hastscript": "^9.0.1",

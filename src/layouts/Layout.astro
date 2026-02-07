@@ -2,6 +2,7 @@
 import { siteConfig } from '@/config';
 import "@styles/global.css"
 import 'katex/dist/katex.min.css';
+import 'aos/dist/aos.css';
 import { i18n } from "astro:config/client";
 import { ClientRouter } from "astro:transitions";
 
@@ -42,6 +43,8 @@ const pageLang = lang || i18n?.defaultLocale || "zh-cn";
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="alternate" type="application/rss+xml" title={siteConfig.title} href={new URL("rss.xml", Astro.site)} >
     <link rel="icon" href={siteConfig.favicon} type="image/x-icon">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;700&display=swap">
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=EB+Garamond">
     <script defer src="https://umami.motues.top/script.js" data-website-id="6e5cc0f3-a67e-4eca-9962-8a2259cccb44" is:inline></script>
@@ -121,3 +124,32 @@ const pageLang = lang || i18n?.defaultLocale || "zh-cn";
     100% { transform: rotate(360deg); }
   }
 </style>
+
+<script>
+  import AOS from 'aos';
+
+  function initApp() {
+    // 1. 先处理 Markdown 的动态注入 (如果有)
+    const container = document.querySelector('.markdown-content');
+    if (container) {
+      const elements = container.querySelectorAll(':scope > *');
+      elements.forEach((el, i) => {
+        el.setAttribute('data-aos', 'fade-up');
+        el.setAttribute('data-aos-delay', (i % 5 * 50).toString());
+      });
+    }
+
+    // 2. 统一初始化
+    AOS.init({
+      duration: 800,
+      once: true,
+    });
+    
+    // 3. 强力刷新
+    AOS.refreshHard();
+  }
+
+  document.addEventListener('astro:page-load', initApp);
+  document.addEventListener('astro:after-swap', initApp);
+
+</script>

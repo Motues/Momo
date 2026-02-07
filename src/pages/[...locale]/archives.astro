@@ -45,11 +45,11 @@ const indexPage = getRelativeLocaleUrl(currentLang, "");
         <div class="py-6 mx-auto text-[var(--text-color)]">
             {Object.keys(postsByYear).sort().reverse().map(year => (
                 <div>
-                    <h2 class="text-2xl font-bold my-4">{year}</h2>
+                    <h2 data-aos="fade-up" class="text-2xl font-bold my-4">{year}</h2>
                     <div class="">
                             {postsByYear[Number(year)].map((post, index, array) => (
                                 <div class="pb-2">
-                                    <a href={getRelativeLocaleUrl(currentLang, `/blog/${post.id}`)} 
+                                    <a data-aos="fade-up" href={getRelativeLocaleUrl(currentLang, `/blog/${post.id}`)} 
                                     class="flex items-center gap-2 active:bg-[var(--button-hover-color)] hover:bg-[var(--button-hover-color)] p-2 rounded transition-colors duration-200 group">
                                         <span class=" text-[var(--text-color)]/70 min-w-[100px] md:min-w-[120px]">
                                             {formatMonthDay(post.data.pubDate, currentLang)}

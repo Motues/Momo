@@ -12,8 +12,8 @@ if (profileConfig.indexPage) {
 ---
 
 <!-- footer -->
-<footer class="flex flex-row justify-between items-center py-10 text-[var(--text-color)]/50 text-sm max-w-[var(--header-width)] mx-auto w-full font-bold">
-    <div>
+<footer class="flex flex-col md:flex-row md:justify-between items-start md:items-center py-10 text-[var(--text-color)]/50 text-sm max-w-[var(--header-width)] mx-auto w-full font-bold">
+    <div class="mb-4 md:mb-0">
         © <a class="link-line" target="_self" href={introPage}>{profileConfig.name}</a> since {profileConfig.startYear}. 
     </div>
     <div class="right">

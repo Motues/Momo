@@ -56,7 +56,7 @@
 
 
 
-<div class="flex gap-3 w-full max-w-full">
+<div data-aos="fade-up" class="flex gap-3 w-full max-w-full">
   {#if c.url}
   <a href={c.url} target="_blank" class="w-10 h-10">
     <img src={avatarUrl} alt="avatar" class="w-10 h-10"/>
