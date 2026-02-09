@@ -62,7 +62,7 @@ const image = blogCoverUrl(entry.data.image, entry.id);
 
 ---
 <MainPageLayout title={pageTitle} lang={currentLang}>
-    <div class="mx-auto w-full max-w-[var(--page-width)] py-8">
+    <div class="mx-auto w-full max-w-[var(--page-width)] py-8 md:mt-0 mt-18">
         <div class="mb-8 text-center">
             <h1 class="font-bold text-3xl mb-2 pt-10 text-[var(--text-color)]">{ entry.data.title }</h1>
             <p class="font-bold text-[var(--text-color)]/60 pt-4 pb-10">{ formatFullDate(entry.data.pubDate, currentLang) }</p>

@@ -39,53 +39,13 @@ const aboutPage = getRelativeLocaleUrl(currentLang, "/about/");
 ---
 
 <!-- header -->
+<div id="main-header" class="fixed top-0 left-0 right-0 z-50 transition-transform duration-300 ease-in-out md:relative md:translate-y-0">
 <div class="flex items-center py-4 text-[var(--text-color)] max-w-[var(--header-width)] mx-auto">
     <!-- logo -->
     <div class="pr-4 py-2 z-30 header-logo">
         <a href={ indexPage } >
             <span class="text-3xl font-bold hover:opacity-60 transition-opacity">{ siteConfig.title }</span>
         </a>
-    </div>
-    <!-- nav_bar -->
-    <div id="nav-bar" class="hidden md:flex absolute left-1/2 transform -translate-x-1/2 justify-center items-center text-lg font-bold">
-        <div id="nav-bar-list" class="transition relative z-10 flex max-w-max flex-1 items-center justify-center rounded-outer p-2 backdrop-blur rounded-xl bg-[color:var(--bg-color)]/20">
-          <!-- 首页链接 -->
-          <a href={ indexPage } class={`transition-colors rounded-lg px-3 py-1 mx-1 hover:text-current ${
-              Astro.url.pathname === indexPage 
-                  ? 'bg-[var(--button-hover-color)]' 
-                  : 'hover:bg-[var(--button-hover-color)]'
-              }`}>
-              {t("header.home")}
-          </a>
-          <!-- 归档链接 -->
-          <a href={ archivesPage } class={`transition-colors rounded-lg px-3 py-1 mx-1 hover:text-current ${
-              Astro.url.pathname === archivesPage 
-                  ? 'bg-[var(--button-hover-color)]' 
-                  : 'hover:bg-[var(--button-hover-color)]'
-              }`}>
-              {t("header.archive")}
-          </a>
-          <!-- 关于链接 -->
-          <a href={ aboutPage } class={`transition-colors rounded-lg px-3 py-1 mx-1 hover:text-current ${
-              Astro.url.pathname === aboutPage 
-                  ? 'bg-[var(--button-hover-color)]' 
-                  : 'hover:bg-[var(--button-hover-color)]'
-              }`}>
-              {t("header.about")}
-          </a>
-          <!-- 友链链接 -->
-          <a href={ friendsPage } class={`transition-colors rounded-lg px-3 py-1 mx-1 hover:text-current ${
-              Astro.url.pathname === friendsPage 
-                  ? 'bg-[var(--button-hover-color)]' 
-                  : 'hover:bg-[var(--button-hover-color)]'
-              }`}>
-              {t("header.friends")}
-          </a>
-            <!-- <a href={ indexPage } class="transition-colors hover:bg-[var(--button-hover-color)] rounded-lg px-3 py-1 mx-1 hover:text-current">{t("header.home")}</a>
-            <a href={ archivesPage } class="transition-colors hover:bg-[var(--button-hover-color)] rounded-lg px-3 py-1 mx-1 hover:text-current">{t("header.archive")}</a>
-            <a href={ aboutPage } class="transition-colors hover:bg-[var(--button-hover-color)] rounded-lg px-3 py-1 mx-1 hover:text-current">{t("header.about")}</a>
-            <a href={ friendsPage } class="transition-colors hover:bg-[var(--button-hover-color)] rounded-lg px-3 py-1 mx-1 hover:text-current">{t("header.friends")}</a> -->
-        </div>
     </div>
     
     <!-- tools -->
@@ -160,12 +120,70 @@ const aboutPage = getRelativeLocaleUrl(currentLang, "/about/");
         </div>
     </div>
 </div>
+</div>
 
-<style>
+    <!-- nav_bar -->
+    <div id="nav-bar" class="hidden md:flex absolute left-1/2 top-0 transform -translate-x-1/2  justify-center items-center text-lg font-bold my-5 z-100">
+        <div id="nav-bar-list" class="transition relative z-10 flex max-w-max flex-1 items-center justify-center rounded-outer p-2 backdrop-blur rounded-xl bg-[color:var(--bg-color)]/20">
+          <!-- 首页链接 -->
+          <a href={ indexPage } class={`transition-colors rounded-lg px-3 py-1 mx-1 hover:text-current ${
+              Astro.url.pathname === indexPage 
+                  ? 'bg-[var(--button-hover-color)]' 
+                  : 'hover:bg-[var(--button-hover-color)]'
+              }`}>
+              {t("header.home")}
+          </a>
+          <!-- 归档链接 -->
+          <a href={ archivesPage } class={`transition-colors rounded-lg px-3 py-1 mx-1 hover:text-current ${
+              Astro.url.pathname === archivesPage 
+                  ? 'bg-[var(--button-hover-color)]' 
+                  : 'hover:bg-[var(--button-hover-color)]'
+              }`}>
+              {t("header.archive")}
+          </a>
+          <!-- 关于链接 -->
+          <a href={ aboutPage } class={`transition-colors rounded-lg px-3 py-1 mx-1 hover:text-current ${
+              Astro.url.pathname === aboutPage 
+                  ? 'bg-[var(--button-hover-color)]' 
+                  : 'hover:bg-[var(--button-hover-color)]'
+              }`}>
+              {t("header.about")}
+          </a>
+          <!-- 友链链接 -->
+          <a href={ friendsPage } class={`transition-colors rounded-lg px-3 py-1 mx-1 hover:text-current ${
+              Astro.url.pathname === friendsPage 
+                  ? 'bg-[var(--button-hover-color)]' 
+                  : 'hover:bg-[var(--button-hover-color)]'
+              }`}>
+              {t("header.friends")}
+          </a>
+            <!-- <a href={ indexPage } class="transition-colors hover:bg-[var(--button-hover-color)] rounded-lg px-3 py-1 mx-1 hover:text-current">{t("header.home")}</a>
+            <a href={ archivesPage } class="transition-colors hover:bg-[var(--button-hover-color)] rounded-lg px-3 py-1 mx-1 hover:text-current">{t("header.archive")}</a>
+            <a href={ aboutPage } class="transition-colors hover:bg-[var(--button-hover-color)] rounded-lg px-3 py-1 mx-1 hover:text-current">{t("header.about")}</a>
+            <a href={ friendsPage } class="transition-colors hover:bg-[var(--button-hover-color)] rounded-lg px-3 py-1 mx-1 hover:text-current">{t("header.friends")}</a> -->
+        </div>
+    </div>
+
+<style is:global>
 .header-logo {
   font-family: "EB Garamond", cursive;
   letter-spacing: 1px;
 }
+  /* 移动端 (小于 776px) 的毛玻璃和阴影 */
+  @media (max-width: 775px) {
+    #main-header {
+      /* 背景使用带透明度的变量颜色，配合 blur */
+      background-color: rgba(var(--bg-color, 255, 255, 255), 0.7); 
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border-bottom: 1px solid rgba(var(--button-border-color-rgb, 0, 0, 0), 0.1);
+    }
+  }
+
+  /* 当手指上滑时，JS 会给这个 ID 添加该类来隐藏 Header */
+  .header-hidden {
+    transform: translateY(-100%);
+  }
 </style>
 
 <script>
@@ -200,7 +218,7 @@ function initMobileNav() {
   let isFixed = false;
   window.addEventListener('scroll', () => {
     if (window.scrollY > 0 && !isFixed && navBar && navBarList) {
-      navBar.classList.add('fixed', 'top-4', 'z-20');
+      navBar.classList.add('fixed');
       navBarList.classList.add(
         'border',
         'border-[var(--button-border-color)]',
@@ -208,7 +226,7 @@ function initMobileNav() {
       );
       isFixed = true;
     } else if (window.scrollY === 0 && isFixed && navBar && navBarList) {
-      navBar.classList.remove('fixed', 'top-4', 'z-20');
+      navBar.classList.remove('fixed');
       navBarList.classList.remove(
         'border',
         'border-[var(--button-border-color)]',
@@ -250,6 +268,45 @@ function initLanguageMenu() {
 }
 document.addEventListener('astro:page-load', initLanguageMenu);
 document.addEventListener('astro:after-swap', initLanguageMenu);
+</script>
+
+<script>
+  function initHeaderScroll() {
+    const header = document.getElementById('main-header');
+    if (!header) return; // 容错处理
+
+    let lastScrollY = window.scrollY;
+    const threshold = 10;
+
+    function handleScroll() {
+      if (window.innerWidth < 776) {
+        const currentScrollY = window.scrollY;
+        const scrollDelta = currentScrollY - lastScrollY;
+
+        if (scrollDelta > threshold && currentScrollY > 100) {
+          header.classList.add('header-hidden');
+        } else if (scrollDelta < -threshold) {
+          header.classList.remove('header-hidden');
+        }
+
+        if (currentScrollY <= 0) {
+          header.classList.remove('header-hidden');
+        }
+        lastScrollY = currentScrollY;
+      } else {
+        header.classList.remove('header-hidden');
+      }
+    }
+
+    // 移除旧的监听器（防止重复绑定）并添加新的
+    window.removeEventListener('scroll', handleScroll);
+    window.addEventListener('scroll', handleScroll, { passive: true });
+  }
+
+  // 关键点：监听 Astro 的页面加载/切换完成事件
+  document.addEventListener('astro:page-load', () => {
+    initHeaderScroll();
+  });
 </script>
 
 
