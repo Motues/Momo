@@ -40,7 +40,7 @@ const aboutPage = getRelativeLocaleUrl(currentLang, "/about/");
 
 <!-- header -->
 <div id="main-header" class="fixed top-0 left-0 right-0 z-50 transition-transform duration-300 ease-in-out md:relative md:translate-y-0">
-<div class="flex items-center py-4 text-[var(--text-color)] max-w-[var(--header-width)] mx-auto">
+<div class="flex items-center pt-2 md:py-4 text-[var(--text-color)] max-w-[var(--header-width)] mx-auto">
     <!-- logo -->
     <div class="pr-4 py-2 z-30 header-logo">
         <a href={ indexPage } >
@@ -176,7 +176,7 @@ const aboutPage = getRelativeLocaleUrl(currentLang, "/about/");
       background-color: rgba(var(--bg-color, 255, 255, 255), 0.7); 
       backdrop-filter: blur(12px);
       -webkit-backdrop-filter: blur(12px);
-      border-bottom: 1px solid rgba(var(--button-border-color-rgb, 0, 0, 0), 0.1);
+      border-bottom: 1px solid rgba(var(--button-border-color, 0, 0, 0), 0.1);
     }
   }
 
@@ -273,40 +273,44 @@ document.addEventListener('astro:after-swap', initLanguageMenu);
 <script>
   function initHeaderScroll() {
     const header = document.getElementById('main-header');
-    if (!header) return; // 容错处理
+    if (!header) return;
 
     let lastScrollY = window.scrollY;
-    const threshold = 10;
+    let ticking = false;
 
-    function handleScroll() {
+    function updateHeader() {
+      const currentScrollY = window.scrollY;
+      const scrollDelta = currentScrollY - lastScrollY;
+
       if (window.innerWidth < 776) {
-        const currentScrollY = window.scrollY;
-        const scrollDelta = currentScrollY - lastScrollY;
-
-        if (scrollDelta > threshold && currentScrollY > 100) {
+        if (currentScrollY <= 50) {
+          header.classList.remove('header-hidden');
+        } 
+        else if (scrollDelta > 0 && currentScrollY > 100) {
           header.classList.add('header-hidden');
-        } else if (scrollDelta < -threshold) {
+        } 
+        else if (scrollDelta < 0) {
           header.classList.remove('header-hidden');
         }
-
-        if (currentScrollY <= 0) {
-          header.classList.remove('header-hidden');
-        }
-        lastScrollY = currentScrollY;
       } else {
         header.classList.remove('header-hidden');
       }
+      lastScrollY = currentScrollY;
+      ticking = false;
     }
 
-    // 移除旧的监听器（防止重复绑定）并添加新的
-    window.removeEventListener('scroll', handleScroll);
-    window.addEventListener('scroll', handleScroll, { passive: true });
+    function onScroll() {
+      if (!ticking) {
+        window.requestAnimationFrame(updateHeader);
+        ticking = true;
+      }
+    }
+
+    window.removeEventListener('scroll', onScroll);
+    window.addEventListener('scroll', onScroll, { passive: true });
   }
 
-  // 关键点：监听 Astro 的页面加载/切换完成事件
-  document.addEventListener('astro:page-load', () => {
-    initHeaderScroll();
-  });
+  document.addEventListener('astro:page-load', initHeaderScroll);
 </script>
 
 
