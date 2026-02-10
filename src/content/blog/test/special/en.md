@@ -38,7 +38,9 @@ $E = mc^2$
 
 ### Blur Effect
 
-Here is a !!blur!! effect, which will remove the blur effect when the mouse hovers over it; when clicked, it will remain clear for 3 seconds.
+Here is a !!blur!! effect. 
+
+On desktop, hovering removes the blur, and clicking keeps it clear for 3 seconds. On mobile, clicking removes the blur, but it only becomes blurry again after 3 seconds have passed since the click and the page has been scrolled.
 
 ### Pinyin
 

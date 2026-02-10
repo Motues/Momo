@@ -11,8 +11,6 @@ export async function getStaticPaths() {
 	return i18n?.locales.map(locale => ({ params: { locale: locale == i18n?.defaultLocale ? undefined : (locale as string) } }));
 }
 
-
-
 const currentLang = Astro.currentLocale || i18n!.defaultLocale;
 const t = i18nit(currentLang);
 
@@ -30,7 +28,7 @@ const pageTitle = t("header.friends") + " - " + siteConfig.title;
                         href={friend.url} 
                         target="_blank" 
                         rel="noopener noreferrer"
-                        class="flex items-center p-4 border border-[var(--button-border-color)] rounded-lg shadow-sm hover:bg-[var(--button-hover-color)] transition-all duration-300 hover:scale-105"
+                        class="flex items-center p-4 border border-[var(--button-border-color)] rounded-lg shadow-sm active:bg-[var(--button-hover-color)] hover:bg-[var(--button-hover-color)] transition-all duration-300 hover:scale-105"
                     >
                         <img 
                             src={friend.avatar} 
