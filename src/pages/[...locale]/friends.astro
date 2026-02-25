@@ -2,9 +2,12 @@
 import MainPageLayout from '@layouts/MainPageLayout.astro'
 import { siteConfig, friendLinkConfig } from '@/config'
 import Cover from '@components/Cover.astro';
+import Markdown from '@components/misc/Markdown.astro';
+
+import { getSpec } from '@utils/content-utils'
 
 import i18nit from '@i18n/translation';
-
+import { getEntry, render } from 'astro:content'
 import { i18n } from "astro:config/client";
 
 export async function getStaticPaths() {
@@ -14,6 +17,12 @@ export async function getStaticPaths() {
 const currentLang = Astro.currentLocale || i18n!.defaultLocale;
 const t = i18nit(currentLang);
 
+const friendsPost = await getSpec(currentLang, 'friends');
+if (!friendsPost) {
+    throw new Error('No friends post found');
+}
+const { Content } = await render(friendsPost);
+
 const pageTitle = t("header.friends") + " - " + siteConfig.title;
 ---
 
@@ -21,7 +30,7 @@ const pageTitle = t("header.friends") + " - " + siteConfig.title;
     <div class="mx-auto w-full max-w-[var(--page-width)]">
         <Cover title={t("cover.title.friends")} subTitle={t("cover.subTitle.friends")} />
         
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 text-[var(--text-color)]">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 text-[var(--text-color)] mb-12">
             {
                 friendLinkConfig.map((friend) => (
                     <a 
@@ -44,6 +53,8 @@ const pageTitle = t("header.friends") + " - " + siteConfig.title;
                 ))
             }
         </div>
-        
+        <Markdown class="mb-6 markdown-content onload-animation">
+            <Content />
+        </Markdown>
     </div>
 </MainPageLayout>
