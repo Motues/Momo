@@ -20,6 +20,9 @@ importers:
       '@fontsource-variable/jetbrains-mono':
         specifier: ^5.2.8
         version: 5.2.8
+      '@iconify/svelte':
+        specifier: ^5.2.1
+        version: 5.2.1(svelte@5.46.0)
       '@myriaddreamin/typst-ts-node-compiler':
         specifier: 0.7.0-rc2
         version: 0.7.0-rc2
@@ -44,12 +47,18 @@ importers:
       katex:
         specifier: ^0.16.22
         version: 0.16.22
+      mdast-util-to-string:
+        specifier: ^4.0.0
+        version: 4.0.0
       overlayscrollbars:
         specifier: ^2.12.0
         version: 2.12.0
       pagefind:
         specifier: ^1.4.0
         version: 1.4.0
+      reading-time:
+        specifier: ^1.5.0
+        version: 1.5.0
       rehype-components:
         specifier: ^0.3.0
         version: 0.3.0
@@ -329,6 +338,11 @@ packages:
 
   '@iconify-json/vscode-icons@1.2.29':
     resolution: {integrity: sha512-ByqO3YPYs0n7hakQ/ZUXltJQnYibeOv41H1AdciOs7Pmba5/OsKKK1/oOjcBmvXrYuENO+IvIzORYkl6sFXgqA==}
+
+  '@iconify/svelte@5.2.1':
+    resolution: {integrity: sha512-zHmsIPmnIhGd5gc95bNN5FL+GifwMZv7M2rlZEpa7IXYGFJm/XGHdWf6PWQa6OBoC+R69WyiPO9NAj5wjfjbow==}
+    peerDependencies:
+      svelte: '>5.0.0'
 
   '@iconify/tools@4.1.2':
     resolution: {integrity: sha512-q6NzLQYEN9zkDfcyBqD3vItHcZw97w/s++3H3TBxUORr57EfHxj6tOW6fyufDjMq+Vl56WXWaPx1csBPYlI5CA==}
@@ -1940,6 +1954,9 @@ packages:
     resolution: {integrity: sha512-GDhwkLfywWL2s6vEjyhri+eXmfH6j1L7JE27WhqLeYzoh/A3DBaYGEj2H/HFZCn/kMfim73FXxEJTw06WtxQwg==}
     engines: {node: '>= 14.18.0'}
 
+  reading-time@1.5.0:
+    resolution: {integrity: sha512-onYyVhBNr4CmAxFsKS7bz+uTLRakypIe4R+5A824vBSkQy/hB3fZepoVEf8OVAxzLvK+H/jm9TzpI3ETSm64Kg==}
+
   regex-recursion@6.0.2:
     resolution: {integrity: sha512-0YCaSCq2VRIebiaUviZNs0cBz1kg5kVS2UKUfNIx8YVs1cN3AV7NTctO5FOKBA+UT2BPJIWZauYHPqJODG50cg==}
 
@@ -2644,6 +2661,11 @@ snapshots:
   '@iconify-json/vscode-icons@1.2.29':
     dependencies:
       '@iconify/types': 2.0.0
+
+  '@iconify/svelte@5.2.1(svelte@5.46.0)':
+    dependencies:
+      '@iconify/types': 2.0.0
+      svelte: 5.46.0
 
   '@iconify/tools@4.1.2':
     dependencies:
@@ -4502,6 +4524,8 @@ snapshots:
   radix3@1.1.2: {}
 
   readdirp@4.1.2: {}
+
+  reading-time@1.5.0: {}
 
   regex-recursion@6.0.2:
     dependencies:

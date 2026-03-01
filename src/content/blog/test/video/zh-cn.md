@@ -2,6 +2,7 @@
 title: 测试外部视频导入
 pubDate: 2025-09-09
 description: 文章功能测试
+category: 测试
 image: ""
 draft: false
 slugId: momo/test/video

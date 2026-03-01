@@ -2,6 +2,7 @@
 title: Testing Special Markdown
 pubDate: 2026-01-12
 description: Article functionality test
+category: Test
 image: ""
 draft: false
 slugId: momo/test/special

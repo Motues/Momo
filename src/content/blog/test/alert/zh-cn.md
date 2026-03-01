@@ -2,6 +2,7 @@
 title: 测试 Alert
 pubDate: 2025-09-18
 description: 文章功能测试
+category: 测试
 image: ""
 draft: true
 slugId: momo/test/alert

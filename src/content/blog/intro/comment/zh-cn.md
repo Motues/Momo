@@ -2,6 +2,7 @@
 title: 部署评论系统
 pubDate: 2026-01-08
 description: 网站配置
+category: 指南
 image: ""
 draft: false
 slugId: momo/intro/comment

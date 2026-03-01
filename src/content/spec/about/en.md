@@ -47,7 +47,7 @@ All commands below can be executed in the root directory
 - [x] Implement article pagination
 - [x] Add table of contents
 - [x] Add RSS feed
-- [ ] Other minor features, e.g., ~~back to top~~, estimated reading time
+- [ ] Other minor features, e.g., ~~back to top~~, ~~estimated reading time~~
 - [x] Support comment（serverless deployment, [Backend](https://github.com/Motues/Momo-Backend)）
 - [x] Internationalization (i18n)
 

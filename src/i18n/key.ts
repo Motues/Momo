@@ -40,6 +40,11 @@ export interface Translation {
     blogNavi: {
         next: string;
         prev: string;
+    },
+    pagecard: {
+        words: string;
+        minutes: string;
+        uncategorized: string;
     }
     comments: {
         name: string;
@@ -71,6 +76,10 @@ export interface Translation {
     },
     langNote: {
         note: string;
+        description: string;
+    },
+    draftNote: {
+        warning: string;
         description: string;
     }
 }

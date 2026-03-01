@@ -2,6 +2,7 @@
 title: 文章发布指南
 pubDate: 2025-09-29
 description: 网站配置
+category: 指南
 image: ""
 draft: false
 slugId: momo/intro/publish
@@ -30,6 +31,7 @@ slugId: momo/intro/publish
 title: 文章标题
 pubDate: 2025-01-01
 description: 文章简短描述
+category: 分类
 image: ""
 draft: false
 slugId: intro/publish
@@ -41,6 +43,7 @@ slugId: intro/publish
 | `title` | 文章标题 | 
 | `pubDate` | 发布时间，格式为 `YYYY-MM-DD` |
 | `description` | 文章描述 |
+| `category` | 分类，不填时，默认为`未分类` |
 | `image` | 封面图片，使用相对路径，相对于当前文件，比如`./images/cover.png` |
 | `draft` | 是否草稿，当文章处于草稿状态，发布的时候将不会显示在博客主页 |
 | `slugId` | 文章的ID，用于生成路由，每篇文章必须是唯一的，建议使用文章路径，比如`intro/publish` |
@@ -48,7 +51,6 @@ slugId: intro/publish
 ## 编写文章内容
 
 文章内容可以使用 Markdown 格式编写，支持一些特殊语法，具体可以参考其他测试文章。
-
 
 ## 特殊页面
 

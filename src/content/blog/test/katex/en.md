@@ -2,6 +2,7 @@
 title: Testing KaTeX
 pubDate: 2025-09-17
 description: Article functionality test
+category: Test
 image: ""
 draft: false
 slugId: momo/test/katex

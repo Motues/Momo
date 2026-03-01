@@ -25,6 +25,10 @@
     --warning-text-color: #4d3800;
     --warning-bg-color: #fff7ed;
     --warning-border-color: #e6a700;
+
+    --danger-text-color: #4b1113;
+    --danger-bg-color: #ffebec;
+    --danger-border-color: #e13238;
     
     /* 滚动条颜色 */
     --scrollbar-thumb: #c1c1c1;
@@ -50,6 +54,10 @@
     --warning-text-color: #f2d680;
     --warning-bg-color: #332a00;
     --warning-border-color: #ad8002;
+
+    --danger-text-color: #f2a0a3;
+    --danger-bg-color: #3b1d1e;
+    --danger-border-color: #e13238;
     
     /* 滚动条颜色 */
     --scrollbar-thumb: #4a5568;

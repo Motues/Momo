@@ -2,13 +2,18 @@
 import "@styles/global.css"
 import ImageModule from "./misc/ImageModule.astro";
 
+import type { CollectionEntry } from 'astro:content';
+import { getCollection, render } from 'astro:content'
+
 import { getRelativeLocaleUrl } from '@utils/url-utils';
 import { formatFullDate } from '@/utils/time'
 
 import { i18n } from "astro:config/client";
 import i18nit from '@i18n/translation'
+import { Icon } from "astro-icon/components";
 
 interface Props {
+    entry: CollectionEntry<'blog'>;
     title: string;
     description: string;
     image: string;
@@ -17,33 +22,79 @@ interface Props {
     fallback: boolean;
 }
 
-const { title, description, image, pubDate, url, fallback } = Astro.props;
-
-
+const { entry, title, description, image, pubDate, url, fallback } = Astro.props;
 
 const currentLang = Astro.currentLocale || i18n!.defaultLocale;
 const t = i18nit(currentLang);
 
-
 const pageUrl = getRelativeLocaleUrl(currentLang, "/blog/" + url);
+const { remarkPluginFrontmatter } = await render(entry);
 ---
 
-<a data-aos="fade-up" href={pageUrl} class="block min-w-0 w-full max-w-[var(--page-width)] mx-auto my-6  rounded-xl shadow border border-[var(--button-border-color)] overflow-hidden transition-all duration-300 hover:bg-[var(--button-hover-color)] active:bg-[var(--button-hover-color)]">
+<div data-aos="fade-up"  class="block min-w-0 w-full max-w-[var(--page-width)] mx-auto my-6  rounded-xl shadow border border-[var(--button-border-color)] overflow-hidden">
     {image && (
-        <div class="cover h-60 overflow-hidden">
+        <a href={pageUrl} class="cover h-60 overflow-hidden hover-scale block">
             <ImageModule src={image} alt={title} class="w-full h-full object-cover"/>
-        </div>
+        </a>
     )}
     <div class="content p-6">
-        <h2 class="title text-xl font-semibold text-[var(--text-color)] mb-3">
-            {title}
+        <a href={pageUrl} class="title text-xl font-semibold text-[var(--text-color)] mb-3 hover:text-[var(--link-color)] active:text-[var(--link-color)] flex items-center group transition-colors duration-300 ease-in-out">
+            <span>{title}</span>
+            <Icon 
+                name="fa6-solid:angle-right" 
+                class="ml-2 opacity-100 md:opacity-0 md:group-hover:opacity-100 transform md:translate-x-[-5px] md:group-hover:translate-x-0 transition-all duration-300 ease-in-out text-[var(--text-color)] group-hover:text-[var(--link-color)] group-active:text-[var(--link-color)]"
+            />
+        </a>
+        <p class="description text-[var(--text-color)]/40 leading-relaxed mt-2">
             {
                 fallback && (
-                <span class="self-center px-1 ml-2 text-sm text-[var(--text-color)]/70 font-mono uppercase bg-[var(--button-hover-color)] rounded border border-[var(--button-border-color)]">{i18n!.defaultLocale}</span>
+                <span class="self-center px-1 mr-2 text-sm text-[var(--text-color)]/70 font-mono uppercase bg-[var(--button-hover-color)] rounded border border-[var(--button-border-color)]">{i18n!.defaultLocale}</span>
                 )
             }
-        </h2>
-        <p class="description text-[var(--text-color)]/40 leading-relaxed">{description}</p>
-        <p class="pubdate text-sm text-[var(--text-color)]/70 mt-4">{formatFullDate(pubDate, currentLang)}</p>
+            {description}
+        </p>
+        <div class="flex items-center justify-start text-sm text-[var(--text-color)]/70 mt-4 space-x-4">
+            <p class="pubdate flex items-center">
+                <Icon name="fa6-solid:calendar-days" class="mr-1"></Icon> 
+                <span class="py-1 px-1">{formatFullDate(pubDate, currentLang)}</span>
+            </p>
+        </div>
+        <div class="flex flex-wrap items-center justify-start text-sm text-[var(--text-color)]/70 mt-2 gap-2">
+            <p class="words flex items-center whitespace-nowrap mr-2">
+                <Icon name="fa6-solid:pen-nib" class="mr-1"></Icon> 
+                <span class="py-1 px-1">{remarkPluginFrontmatter.words || 0} {t("pagecard.words")}</span>
+            </p>
+            <p class="reading-time flex items-center whitespace-nowrap mr-2">
+                <Icon name="fa6-solid:clock" class="mr-1"></Icon> 
+                <span class="py-1 px-1">{remarkPluginFrontmatter.minutes || 0} {t("pagecard.minutes")}</span>
+            </p>
+            <p class="flex items-center whitespace-nowrap mr-2">
+                <Icon name="fa6-solid:hashtag" class="mr-1"></Icon> 
+                <a href={getRelativeLocaleUrl(currentLang, `/archives/?category=${entry.data.category}`)} class="category-tag">{entry.data.category || t("pagecard.uncategorized")}</a>
+            </p>
+        </div>
     </div>
-</a>
+</div>
+
+<style is:global>
+.hover-scale {
+  transition: transform 0.3s ease;
+}
+
+.hover-scale:hover {
+  transform: scale(1.05);
+}
+.category-tag {
+  transition: all 0.3s ease;
+  background-color: transparent;
+  display: inline-block;
+  border-radius: 0.25rem;
+  padding: 0.25rem 0.25rem; 
+}
+
+.category-tag:hover {
+  color: var(--link-color);
+  background-color: var(--button-hover-color);
+  text-shadow: 0.5px 0 0 currentColor, -0.5px 0 0 currentColor;
+}
+</style>

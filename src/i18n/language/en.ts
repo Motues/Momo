@@ -43,6 +43,11 @@ const translation: Translation = {
         next: "Next Blog",
         prev: "Previous Blog"
     },
+    pagecard: {
+        words: "words",
+        minutes: "min read",
+        uncategorized: "Uncategorized"
+    },
     comments: {
         name: "Name",
         email: "Email",
@@ -74,6 +79,10 @@ const translation: Translation = {
     langNote: {
         note: "Note: ",
         description: "This page does not support English, using the default language version"
+    },
+    draftNote: {
+        warning: "Draft Warning: ",
+        description: "This article is a draft and only appears in the testing environment. It will not be displayed in the production environment."
     }
 }
 

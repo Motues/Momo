@@ -2,6 +2,7 @@
 title: 测试草稿
 pubDate: 2024-12-31
 description: 文章功能测试
+category: 测试
 image: ""
 draft: true
 slugId: momo/test/draft
