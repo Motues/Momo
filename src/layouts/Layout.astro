@@ -1,5 +1,5 @@
 ---
-import { siteConfig } from '@/config';
+import { siteConfig, profileConfig } from '@/config';
 import "@styles/global.css"
 import 'katex/dist/katex.min.css';
 import 'aos/dist/aos.css';
@@ -9,8 +9,9 @@ import { ClientRouter } from "astro:transitions";
 interface Props {
   title: string;
   lang?: string;
+  description?: string;
 }
-const { title, lang } = Astro.props;
+const { title, lang, description } = Astro.props;
 
 const pageTitle = title;
 const pageLang = lang || i18n?.defaultLocale || "zh-cn";
@@ -41,10 +42,12 @@ const pageLang = lang || i18n?.defaultLocale || "zh-cn";
     </script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content={((description != null && description !== undefined && description !== "") ? description : profileConfig.description) + " This is a blog site, which is built with Astro."}>
+    <meta name="author" content={profileConfig.name}>
     <link rel="alternate" type="application/rss+xml" title={siteConfig.title} href={new URL("rss.xml", Astro.site)} >
     <link rel="icon" href={siteConfig.favicon} type="image/x-icon">
     <link rel="stylesheet" href="https://fonts.font.im/css2?family=Noto+Serif+SC:wght@400;700&display=swap">
-    <link rel="stylesheet" href="https://fonts.font.im/css2?family=EB+Garamond">
+    <link rel="stylesheet" href="https://fonts.font.im/css2?family=EB+Garamond&display=swap">
     <script defer src="https://umami.motues.top/script.js" data-website-id="6e5cc0f3-a67e-4eca-9962-8a2259cccb44" is:inline></script>
     <title>{pageTitle}</title>
     <ClientRouter />

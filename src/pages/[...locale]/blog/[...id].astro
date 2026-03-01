@@ -64,7 +64,7 @@ const image = blogCoverUrl(entry.data.image, entry.id);
 
 const { remarkPluginFrontmatter } = await render(entry);
 ---
-<MainPageLayout title={pageTitle} lang={currentLang}>
+<MainPageLayout title={pageTitle} lang={currentLang} description={entry.data.description}>
     <div class="mx-auto w-full max-w-[var(--page-width)] py-8 md:mt-0 mt-18">
         <div class="mb-18 text-center">
             <h1 class="font-bold text-3xl mb-2 pt-10 text-[var(--text-color)]">{ entry.data.title }</h1>
