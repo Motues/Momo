@@ -316,45 +316,39 @@ document.addEventListener('astro:after-swap', initLanguageMenu);
 
 {import.meta.env.PROD && 
 <script is:inline define:vars={{ scriptUrl: baseUrl('/pagefind/pagefind.js') }}>
-function initPagefind() {
+async function loadAndSearch() {
+  // 1. 如果已经加载过了，直接返回
   if (window.pagefind && typeof window.pagefind.search === 'function') {
-    document.dispatchEvent(new CustomEvent('pagefindready'));
     return;
   }
+  
   if (window.pagefindLoading) return;
   window.pagefindLoading = true;
 
-  // 加载 Pagefind
-  fetch(scriptUrl, { method: 'HEAD' })
-    .then((response) => {
-      if (!response.ok) throw new Error(`Pagefind script not found: ${response.status}`);
-      return import(scriptUrl);
-    })
-    .then(async (pagefind) => {
-      await pagefind.options({ 
-        excerptLength: 20
-     });
-      window.pagefind = pagefind;
-      document.dispatchEvent(new CustomEvent('pagefindready'));
-      // console.log('Pagefind initialized successfully');
-    })
-    .catch((error) => {
-      console.error('Failed to load Pagefind:', error);
-      window.pagefind = {
-        search: () => Promise.resolve({ results: [] }),
-        options: () => Promise.resolve(),
-      };
-      document.dispatchEvent(new CustomEvent('pagefindloaderror'));
-    });
-    // console.log('Pagefind loading...');
+  try {
+    // 动态导入脚本
+    const pagefind = await import(scriptUrl);
+    await pagefind.options({ excerptLength: 20 });
+    window.pagefind = pagefind;
+    
+    // 触发自定义事件，通知搜索组件：Pagefind 准备好了
+    document.dispatchEvent(new CustomEvent('pagefind-ready'));
+  } catch (error) {
+    console.error('Pagefind 加载失败:', error);
+  } finally {
+    window.pagefindLoading = false;
+  }
 }
-document.addEventListener('astro:page-load', initPagefind);
 
-document.addEventListener('astro:after-swap', initPagefind);
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', initPagefind);
-} else {
-  initPagefind();
+// 2. 绑定到搜索按钮
+function attachSearchListener() {
+  const btn = document.getElementById('search-button');
+  if (btn) {
+    btn.addEventListener('click', loadAndSearch, { once: true });
+  }
 }
+
+// 兼容 Astro 的 View Transitions
+document.addEventListener('astro:page-load', attachSearchListener);
 </script>
 }

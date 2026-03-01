@@ -56,7 +56,7 @@
 <div class="archives mx-auto w-full max-w-[var(--page-width)]">
     <div class="text-center pt-5 pb-10 max-w-[var(--page-width)] mx-auto md:mt-0 mt-28">
         <p class="text-[var(--text-color)] text-3xl py-5 font-bold">{t("header.archive")}</p>
-        <p class="text-[var(--cover-subtitle-color)]">{t("cover.subTitle.archive", {count: filteredPosts.length})}</p>
+        <p class="text-[var(--text-color)]/60 font-bold">{t("cover.subTitle.archive", {count: filteredPosts.length})}</p>
     </div>
 
     <div class="py-6 mx-auto text-[var(--text-color)]">
