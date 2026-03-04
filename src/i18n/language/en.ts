@@ -24,6 +24,7 @@ const translation: Translation = {
         }
     },
     toc: "Contents",
+    category: "Category",
     pageNavigation: {
         previous: "Prev",
         next: "Next",

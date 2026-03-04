@@ -2,7 +2,7 @@
 title: 测试 Katex
 pubDate: 2025-09-17
 description: 文章功能测试
-category: Test
+category: 测试
 image: ""
 draft: false
 slugId: momo/test/katex

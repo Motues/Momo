@@ -4,6 +4,7 @@
   --page-width: min(776px, 90vw);
   --toc-offset-left: calc(50vw + var(--page-width) / 2 + 3rem);
   --toc-width: calc((100vw - var(--page-width)) / 2 - 3rem);
+  --category-width: min(calc((100vw - var(--page-width)) / 3), 200px);
 }
 
 

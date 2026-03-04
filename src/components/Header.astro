@@ -89,34 +89,7 @@ const aboutPage = getRelativeLocaleUrl(currentLang, "/about/");
           <button id="mobile-menu-button" class="flex items-center justify-center w-10 h-10 hover:bg-[var(--button-hover-color)] active:scale-90 rounded-lg hover:text-current border border-[var(--button-border-color)] transition-all duration-300" aria-label="Mobile Menu">
               <Icon name="fa6-solid:align-justify" class="w-5 h-5" />
           </button>
-              <!-- Mobile Menu -->
-              <div id="mobile-menu" class="hidden absolute right-0 mt-2 w-30 bg-[var(--bg-color)] border border-[var(--button-border-color)] rounded-lg shadow-lg z-50">
-                <div class="flex flex-col py-1">
-                  <a href={ indexPage } class={`mx-2 my-1 p-2 text-sm rounded ${
-                    Astro.url.pathname === indexPage 
-                      ? 'bg-[var(--button-hover-color)]' 
-                      : 'hover:bg-[var(--button-hover-color)]'
-                  }`}>{t("header.home")}</a>
-                  
-                  <a href={ archivesPage } class={`mx-2 my-1 p-2 text-sm rounded ${
-                    Astro.url.pathname === archivesPage 
-                      ? 'bg-[var(--button-hover-color)]' 
-                      : 'hover:bg-[var(--button-hover-color)]'
-                  }`}>{t("header.archive")}</a>
-                  
-                  <a href={ aboutPage } class={`mx-2 my-1 p-2 text-sm rounded ${
-                    Astro.url.pathname === aboutPage 
-                      ? 'bg-[var(--button-hover-color)]' 
-                      : 'hover:bg-[var(--button-hover-color)]'
-                  }`}>{t("header.about")}</a>
-                  
-                  <a href={ friendsPage } class={`mx-2 my-1 p-2 text-sm rounded ${
-                    Astro.url.pathname === friendsPage 
-                      ? 'bg-[var(--button-hover-color)]' 
-                      : 'hover:bg-[var(--button-hover-color)]'
-                  }`}>{t("header.friends")}</a>
-                </div>
-              </div>
+              
         </div>
     </div>
 </div>
@@ -157,12 +130,46 @@ const aboutPage = getRelativeLocaleUrl(currentLang, "/about/");
               }`}>
               {t("header.friends")}
           </a>
-            <!-- <a href={ indexPage } class="transition-colors hover:bg-[var(--button-hover-color)] rounded-lg px-3 py-1 mx-1 hover:text-current">{t("header.home")}</a>
-            <a href={ archivesPage } class="transition-colors hover:bg-[var(--button-hover-color)] rounded-lg px-3 py-1 mx-1 hover:text-current">{t("header.archive")}</a>
-            <a href={ aboutPage } class="transition-colors hover:bg-[var(--button-hover-color)] rounded-lg px-3 py-1 mx-1 hover:text-current">{t("header.about")}</a>
-            <a href={ friendsPage } class="transition-colors hover:bg-[var(--button-hover-color)] rounded-lg px-3 py-1 mx-1 hover:text-current">{t("header.friends")}</a> -->
         </div>
     </div>
+<!-- Mobile Menu -->
+<div id="mobile-menu-container" class="fixed inset-0 z-[100] hidden">
+    <div id="mobile-menu-overlay" class="absolute inset-0 bg-black/60 backdrop-blur-sm opacity-0 transition-opacity duration-300 ease-in-out"></div>
+    
+    <div id="mobile-menu-drawer" class="absolute top-0 left-0 bottom-0 w-[70%] max-w-[300px] bg-[var(--bg-color)] shadow-2xl transform -translate-x-full transition-transform duration-300 ease-in-out flex flex-col">
+        
+        <div class="flex items-center justify-between p-5 border-b border-[var(--button-border-color)]">
+            <span class="text-xl font-bold header-logo">{ siteConfig.title }</span>
+            <button id="mobile-menu-close" class="w-10 h-10 flex items-center justify-center rounded-lg hover:bg-[var(--button-hover-color)] transition-colors">
+                <Icon name="fa6-solid:xmark" class="w-5 h-5" />
+            </button>
+        </div>
+
+        <nav class="flex flex-col py-4 px-2">
+            <a href={ indexPage } class="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-[var(--button-hover-color)] hover:text-[var(--link-color)] transition-colors active:bg-[var(--button-hover-color)] active:text-[var(--link-color)]">
+                <Icon name="fa6-solid:house" class="w-4 h-4 opacity-70" />
+                <span>{t("header.home")}</span>
+            </a>
+            <a href={ archivesPage } class="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-[var(--button-hover-color)] hover:text-[var(--link-color)] transition-colors active:bg-[var(--button-hover-color)] active:text-[var(--link-color)]">
+                <Icon name="fa6-solid:book-bookmark" class="w-4 h-4 opacity-70" />
+                <span>{t("header.archive")}</span>
+            </a>
+            <a href={ aboutPage } class="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-[var(--button-hover-color)] hover:text-[var(--link-color)] transition-colors active:bg-[var(--button-hover-color)] active:text-[var(--link-color)]">
+                <Icon name="fa6-solid:user" class="w-4 h-4 opacity-70" />
+                <span>{t("header.about")}</span>
+            </a>
+            <a href={ friendsPage } class="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-[var(--button-hover-color)] hover:text-[var(--link-color)] transition-colors active:bg-[var(--button-hover-color)] active:text-[var(--link-color)]">
+                <Icon name="fa6-solid:link" class="w-4 h-4 opacity-70" />
+                <span>{t("header.friends")}</span>
+            </a>
+        </nav>
+
+        <div class="mt-auto p-5 border-t border-[var(--button-border-color)] flex gap-4">
+             <a href={getLocalePath("/", "zh-cn")} class="text-sm opacity-70 active:text-[var(--link-color)]">简体中文</a>
+             <a href={getLocalePath("/", "en")} class="text-sm opacity-70 active:text-[var(--link-color)]">English</a>
+        </div>
+    </div>
+</div>
 
 <style is:global>
 .header-logo {
@@ -189,30 +196,43 @@ const aboutPage = getRelativeLocaleUrl(currentLang, "/about/");
 <script>
 function initMobileNav() {
   const menuButton = document.getElementById('mobile-menu-button');
-  const mobileMenu = document.getElementById('mobile-menu');
-  const languageMenu = document.getElementById('language-menu');
+  const closeButton = document.getElementById('mobile-menu-close');
+  const container = document.getElementById('mobile-menu-container');
+  const overlay = document.getElementById('mobile-menu-overlay');
+  const drawer = document.getElementById('mobile-menu-drawer');
   const navBar = document.getElementById('nav-bar');
   const navBarList = document.getElementById('nav-bar-list');
 
+  if (!menuButton || !container) return;
 
-  if (!menuButton || menuButton.dataset.bound === 'true') return;
-  menuButton.dataset.bound = 'true';
+  function openMenu() {
+    container.classList.remove('hidden');
+    // 强制重绘以触发动画
+    requestAnimationFrame(() => {
+      overlay?.classList.add('opacity-100');
+      drawer?.classList.remove('-translate-x-full');
+    });
+    document.body.style.overflow = 'hidden'; // 禁止页面滚动
+  }
 
-  menuButton.addEventListener('click', (e) => {
-    e.stopPropagation();
-    languageMenu?.classList.add('hidden');
-    mobileMenu?.classList.toggle('hidden');
-  });
+  function closeMenu() {
+    overlay?.classList.remove('opacity-100');
+    drawer?.classList.add('-translate-x-full');
+    
+    // 等待动画结束后隐藏容器
+    setTimeout(() => {
+      container.classList.add('hidden');
+      document.body.style.overflow = '';
+    }, 300);
+  }
 
-  document.addEventListener('click', (event) => {
-    if (
-      menuButton &&
-      mobileMenu &&
-      !menuButton.contains(event.target) &&
-      !mobileMenu.contains(event.target)
-    ) {
-      mobileMenu.classList.add('hidden');
-    }
+  menuButton.addEventListener('click', openMenu);
+  closeButton?.addEventListener('click', closeMenu);
+  overlay?.addEventListener('click', closeMenu);
+
+  // 监听导航点击（点击后自动关闭）
+  drawer?.querySelectorAll('a').forEach(link => {
+    link.addEventListener('click', closeMenu);
   });
 
   let isFixed = false;
@@ -238,7 +258,7 @@ function initMobileNav() {
 }
 
 document.addEventListener('DOMContentLoaded', initMobileNav);
-document.addEventListener('astro:after-swap', initMobileNav);
+document.addEventListener('astro:page-load', initMobileNav);
 </script>
 <script>
 function initLanguageMenu() {

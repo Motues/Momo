@@ -1,5 +1,7 @@
 <script>
   import { onMount } from 'svelte';
+  import { flip } from 'svelte/animate';
+  import { fade } from 'svelte/transition';
   import Icon from '@iconify/svelte';
   import i18nit from '@i18n/translation';
   import { formatMonthDay } from '@/utils/time'
@@ -9,15 +11,19 @@
   export let currentLang = "zh-cn";
   export let defaultLocale = "zh-cn";
 
-  let selectedCategory = null;
+  let selectedCategories = [];
   const t = i18nit(currentLang);
 
+  // 提取所有分类并去重
+  $: categories = [...new Set(sortedPosts.map(post => post.data.category || 'undefined'))].sort();
+
   // 响应式过滤逻辑 - 特殊处理 undefined 情况
-  $: filteredPosts = selectedCategory === 'undefined' 
-    ? sortedPosts.filter(post => !post.data.category || post.data.category === '')
-    : selectedCategory && selectedCategory !== 'null'
-      ? sortedPosts.filter(post => post.data.category === selectedCategory)
-      : sortedPosts;
+  $: filteredPosts = selectedCategories.length > 0
+    ? sortedPosts.filter(post => {
+        const postCat = post.data.category || 'undefined';
+        return selectedCategories.includes(postCat);
+      })
+    : sortedPosts;
 
   // 按年份分组逻辑
   $: postsByYear = filteredPosts.reduce((acc, post) => {
@@ -36,20 +42,44 @@
     
     // 当参数为 'undefined' 时，专门用于显示未分类文章
     if (categoryParam === 'undefined') {
-      selectedCategory = 'undefined';
+      selectedCategories = ['undefined'];
     } else if (categoryParam && categoryParam !== 'null') {
-      selectedCategory = categoryParam;
+      selectedCategories = categoryParam.split(',');
     }
 
     // 处理浏览器前进/后退
     const handlePopState = () => {
       const params = new URLSearchParams(window.location.search);
-      selectedCategory = params.get('category');
+      selectedCategories = params.get('category')?.split(',') || [];
     };
 
     window.addEventListener('popstate', handlePopState);
     return () => window.removeEventListener('popstate', handlePopState);
   });
+
+  // 筛选点击逻辑
+  function toggleCategory(cat) {
+    if (cat === null) {
+      selectedCategories = []; // 点击“全部”则清空
+    } else {
+      if (selectedCategories.includes(cat)) {
+        // 如果已选中，则移除
+        selectedCategories = selectedCategories.filter(c => c !== cat);
+      } else {
+        // 如果未选中，则添加
+        selectedCategories = [...selectedCategories, cat];
+      }
+    }
+
+    // 更新 URL，方便分享和刷新
+    const url = new URL(window.location);
+    if (selectedCategories.length > 0) {
+      url.searchParams.set('category', selectedCategories.join(','));
+    } else {
+      url.searchParams.delete('category');
+    }
+    window.history.replaceState({}, '', url);
+  }
 
 </script>
 
@@ -60,14 +90,16 @@
     </div>
 
     <div class="py-6 mx-auto text-[var(--text-color)]">
-        {#each years as year}
+        {#each years as year (year)}
             <div class="mb-8">
-                <h2 data-aos="fade-up" class="text-2xl font-bold my-4">{year}</h2>
+                <h2 class="text-2xl font-bold my-4 text-[var(--text-color)] flex items-center gap-3">
+                    <span class="w-1 h-6 bg-[var(--link-color)] rounded-full"></span>
+                    {year}
+                </h2>
                 <div class="space-y-2">
-                    {#each postsByYear[year] as post}
-                        <div class="">
+                    {#each postsByYear[year] as post (post.id)}
+                        <div animate:flip={{ duration: 600 }} in:fade={{ duration: 150 }} out:fade={{ duration: 150 }} >
                             <a 
-                                data-aos="fade-up"
                                 href={getRelativeLocaleUrl(currentLang, `/blog/${post.id}`)} 
                                 class="flex items-center gap-4 active:bg-[var(--button-hover-color)] hover:bg-[var(--button-hover-color)] p-2 rounded transition-all duration-200 group"
                             >
@@ -96,3 +128,27 @@
         {/each}
     </div>
 </div>
+
+<aside class="hidden lg:block absolute left-[var(--toc-offset-left)] top-70 bottom-0 w-[var(--category-width)]">
+        <div class="sticky top-24">
+            <div class="flex items-center gap-2 text-[var(--text-color)] font-bold mb-4 border-b border-[var(--button-border-color)] pb-2 uppercase tracking-wider">
+                <Icon icon="fa6-solid:hashtag" class="text-xs" />
+                <span>{t("category")}</span>
+            </div>
+
+            <div class="flex flex-wrap gap-2">
+                
+                {#each categories as cat}
+                    <button 
+                        on:click={() => toggleCategory(cat)}
+                        class="px-3 py-1 text-xs rounded-md transition-all border
+                        {selectedCategories.includes(cat) 
+                            ? 'bg-[var(--link-color)] text-[var(--bg-color)] border-[var(--link-color)]' 
+                            : 'hover:border-[var(--link-color)] border-[var(--button-border-color)] text-[var(--text-color)]'}"
+                    >
+                        {cat === 'undefined' ? t("pagecard.uncategorized") : cat}
+                    </button>
+                {/each}
+            </div>
+        </div>
+    </aside>

@@ -31,11 +31,11 @@ If you need to use the comment feature in other projects, you can directly impor
 <script src="https://cdn.jsdelivr.net/npm/@motues/momo-comment/dist/momo-comment.min.js"></script>
 <script>
     momo.init({
-        el: ‘#momo-comment’, // Comment container ID
-        title: ‘Test’, // Article title
-        slugId: ‘blog/test’, // Unique slugId of the article
-        lang: ‘zh-cn’, // Language, currently supports zh-cn, en
-        apiUrl: ‘https://api-momo.motues.top’ // Backend address
+        el: '#momo-comment', // Comment container ID
+        title: 'Test', // Article title
+        slugId: 'blog/test', // Unique slugId of the article
+        lang: 'zh-cn', // Language, currently supports zh-cn, en
+        apiUrl: 'https://api-momo.motues.top' // Backend address
     });
 </script>
 ```

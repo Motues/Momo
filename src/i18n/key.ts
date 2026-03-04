@@ -22,6 +22,7 @@ export interface Translation {
         };
     };
     toc:string;
+    category: string;
     pageNavigation: {
         previous: string;
         next: string;

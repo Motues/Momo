@@ -24,6 +24,7 @@ const translation: Translation = {
         }
     },
     toc: "目录",
+    category: "分类",
     pageNavigation: {
         previous: "上一页",
         next: "下一页",
