@@ -3,7 +3,7 @@
 <div align="center">
     <img src="./doc/images/index-light.jpg">
     <p>一个极简的Blog模板，使用 <a href="https://astro.build/">Astro</a> 搭建</p>
-    <!-- <small><a href="../README.md">English</a></small> <small><ins>简体中文</ins></small> -->
+    <small><ins>简体中文</ins></small> <small><a href="./doc/README_en.md">English</a></small> 
 </div>
 
 ## ✨ 特性
@@ -11,6 +11,7 @@
 * 极简设计
 * 支持深色模式切换，并自动跟随系统
 * 支持文章搜索功能（pagefind）
+* 国际化（i18n）
 
 ## 💻 环境要求
 
@@ -27,7 +28,7 @@
 2. 运行 `pnpm install` 安装依赖
 3. 运行 `pnpm dev` 启动开发服务器
 
-# 🔧 配置
+## 🔧 配置
 
 参考[配置指南](./doc/config_zh-ch.md)，详细信息可以访问[Momo](https://momo.motues.top/)，阅读对应文章获取详细信息。
 

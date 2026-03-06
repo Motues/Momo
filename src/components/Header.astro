@@ -36,6 +36,14 @@ const indexPage = getRelativeLocaleUrl(currentLang, "/");
 const archivesPage = getRelativeLocaleUrl(currentLang, "/archives/");
 const friendsPage = getRelativeLocaleUrl(currentLang, "/friends/");
 const aboutPage = getRelativeLocaleUrl(currentLang, "/about/");
+
+let introPage : string;
+
+if (profileConfig.indexPage) {
+    introPage = profileConfig.indexPage;
+} else {
+    introPage = import.meta.env.BASE_URL;
+}
 ---
 
 <!-- header -->
@@ -164,9 +172,10 @@ const aboutPage = getRelativeLocaleUrl(currentLang, "/about/");
             </a>
         </nav>
 
-        <div class="mt-auto p-5 border-t border-[var(--button-border-color)] flex gap-4">
-             <a href={getLocalePath("/", "zh-cn")} class="text-sm opacity-70 active:text-[var(--link-color)]">简体中文</a>
-             <a href={getLocalePath("/", "en")} class="text-sm opacity-70 active:text-[var(--link-color)]">English</a>
+        <div class="mt-auto p-5 border-t border-[var(--button-border-color)] flex gap-1 text-sm opacity-70">
+             <!-- <a href={getLocalePath("/", "zh-cn")} class="text-sm opacity-70 active:text-[var(--link-color)]">简体中文</a>
+             <a href={getLocalePath("/", "en")} class="text-sm opacity-70 active:text-[var(--link-color)]">English</a> -->
+             © {profileConfig.startYear} - {new Date().getFullYear()} <a class="link-line" target="_self" href={introPage}>{profileConfig.name}</a>.
         </div>
     </div>
 </div>

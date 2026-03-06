@@ -1,3 +1,11 @@
+# Momo
+
+<div align="center">
+    <img src="./images/index-light-en.jpg">
+    <p>A nimimal blog template build with <a href="https://astro.build/">Astro</a></p>
+    <small><a href="../README.md">简体中文</a></small> <small><ins>English</ins></small>
+</div>
+
 
 ## ✨ Features
 
@@ -23,7 +31,7 @@
 
 ## 🔧 Configuration
 
-Refer to the [Configuration Guide](/en/blog/intro/config), detailed information can be found at [Momo](https://momo.motues.top/).
+Refer to the [Configuration Guide](./config_en.md), detailed information can be found at [Momo](https://momo.motues.top/).
 
 ## ⚡ Commands
 

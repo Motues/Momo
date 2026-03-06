@@ -22,7 +22,7 @@
 
 ## 🔧 配置
 
-参考[配置指南](./doc/config_zh-ch.md)，详细信息可以访问[Momo](https://momo.motues.top/)，阅读对应文章获取详细信息。
+参考[配置指南](/blog/intro/config)，详细信息可以访问[Momo](https://momo.motues.top/)，阅读对应文章获取详细信息。
 
 ## ⚡ 指令
 
