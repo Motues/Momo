@@ -155,38 +155,50 @@ const className = Astro.props.class
 <script>
     import PhotoSwipeLightbox from 'photoswipe/lightbox';
 
-    const container = document.querySelector('.markdown-content');
-    if (container) {
-      // 查找文章区域内所有的 figure 元素
-      console.log('Initializing PhotoSwipe Lightbox for images in .markdown-content');
-      const figures = container.querySelectorAll('figure');
+    function createPhotoSwipeLightbox() {
+      const container = document.querySelector('.markdown-content');
+      if (container) {
+        // 查找文章区域内所有的 figure 元素
+        // console.log('Initializing PhotoSwipe Lightbox for images in .markdown-content');
+        const figures = container.querySelectorAll('figure');
 
-      figures.forEach((figure) => {
-        const img = figure.querySelector('img');
-        if (!img) return;
+        figures.forEach((figure) => {
+          const img = figure.querySelector('img');
+          if (!img) return;
 
-        // 创建 a 标签
-        const a = document.createElement('a');
-        a.href = img.src;
-        a.className = 'pswp-link';
-        a.setAttribute('data-pswp-width', img.getAttribute('width') || '1080');
-        a.setAttribute('data-pswp-height', img.getAttribute('height') || '1080');
-        
-        // 把 a 标签插在 img 前面，然后把 img 塞进去
-        figure.insertBefore(a, img);
-        a.appendChild(img);
-      });
+          // 检查 img 是否是 figure 的直接子节点
+          if (!figure.contains(img) || img.parentElement !== figure) {
+            // console.warn('Image is not a direct child of figure, skipping:', img);
+            return;
+          }
 
-      // 初始化 Lightbox
-      const lightbox = new PhotoSwipeLightbox({
-        // 指定文章内所有包含图片的链接
-        gallery: '.markdown-content',
-        children: 'a.pswp-link',
-        pswpModule: () => import('photoswipe')
-      });
-      lightbox.init();
-      console.log('PhotoSwipe Lightbox initialized');
-    }else {
-      console.log('No .markdown-content found, skipping PhotoSwipe Lightbox initialization.');
+          // 创建 a 标签
+          const a = document.createElement('a');
+          a.href = img.src;
+          a.className = 'pswp-link';
+          a.setAttribute('data-pswp-width', img.getAttribute('width') || '1080');
+          a.setAttribute('data-pswp-height', img.getAttribute('height') || '1080');
+          
+          // 把 a 标签插在 img 前面，然后把 img 塞进去
+          figure.insertBefore(a, img);
+          a.appendChild(img);
+        });
+
+        // 初始化 Lightbox
+        const lightbox = new PhotoSwipeLightbox({
+          // 指定文章内所有包含图片的链接
+          gallery: '.markdown-content',
+          children: 'a.pswp-link',
+          pswpModule: () => import('photoswipe')
+        });
+        lightbox.init();
+        console.log('PhotoSwipe Lightbox initialized');
+      }else {
+        console.log('No .markdown-content found, skipping PhotoSwipe Lightbox initialization.');
+      }
     }
+
+    document.addEventListener('astro:page-load', createPhotoSwipeLightbox);
+    // document.addEventListener('astro:after-swap', createPhotoSwipeLightbox);
+    
 </script>
