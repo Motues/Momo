@@ -11,14 +11,12 @@ export interface Translation {
             archive: string;
             about: string;
             friends: string;
-            page404: string;
         };
         subTitle: {
             home: string;
             archive: string;
             about: string;
             friends: string;
-            page404: string;
         };
     };
     toc:string;
@@ -28,6 +26,14 @@ export interface Translation {
         next: string;
         currentPage: string;
     };
+    button: {
+        switchDarkMode: string;
+        backToTop: string;
+        backToBottom: string;
+        meun: string;
+        toc: string;
+        backToComments: string;
+    }
     search: {
         placeholder: string;
         noresult: string;
@@ -82,5 +88,13 @@ export interface Translation {
     draftNote: {
         warning: string;
         description: string;
+    },
+    page404: {
+        title: string;
+        subTitle: string;
+        backToHome: string;
+        backToPreview: string;
+        errorCode: string;
+        notice: string;
     }
 }

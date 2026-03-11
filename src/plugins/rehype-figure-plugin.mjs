@@ -15,7 +15,7 @@ export function customFigurePlugin() {
           type: 'element',
           tagName: 'figcaption',
           properties: {
-            className: ['text-center', 'text-sm', 'text-[var(--text-color)]/60'],
+            className: ['text-center', 'text-sm', 'text-[var(--text-color-70)]'],
           },
           children: [{ type: 'text', value: title }],
         });

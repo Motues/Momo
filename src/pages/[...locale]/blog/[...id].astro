@@ -4,7 +4,7 @@ import { siteConfig, licenseConfig, profileConfig } from '@/config'
 import MainPageLayout from '@layouts/MainPageLayout.astro'
 import Markdown from '@components/misc/Markdown.astro'
 import ImageModule from '@components/misc/ImageModule.astro'
-import BackTop from '@components/control/BackTop.astro'
+import FabMenu from '@components/control/FabMenu.astro'
 import TOC from '@components/TOC.svelte'
 import LicenseCard from '@components/misc/LicenseCard.astro'
 import Comments from '@components/comment/Comments.svelte'
@@ -68,9 +68,12 @@ const { remarkPluginFrontmatter } = await render(entry);
     <div class="mx-auto w-full max-w-[var(--page-width)] py-8 md:mt-0 mt-18">
         <div class="mb-18 text-center">
             <h1 class="font-bold text-3xl mb-2 pt-10 text-[var(--text-color)]">{ entry.data.title }</h1>
-            <p class="font-bold text-[var(--text-color)]/60 pt-4">{ formatFullDate(entry.data.pubDate, currentLang) }</p>
+            <p class="flex flex-wrap items-center justify-center font-bold text-[var(--text-color-70)] mt-6">
+                <Icon name="fa6-solid:calendar-days" class="mr-2"></Icon>
+                <span> { formatFullDate(entry.data.pubDate, currentLang) }</span>
+            </p>
             <div class="flex justify-center">
-                <div class="flex flex-wrap items-center justify-center text-sm text-[var(--text-color)]/70 mt-2 gap-2">
+                <div class="flex flex-wrap items-center justify-center text-sm text-[var(--text-color-70)] mt-2 gap-2">
                     <p class="flex items-center whitespace-nowrap mr-2">
                         <Icon name="fa6-solid:pen-nib" class="mr-1"></Icon> 
                         <span class="py-1 px-1">{remarkPluginFrontmatter.words || 0} {t("pagecard.words")}</span>
@@ -140,5 +143,5 @@ const { remarkPluginFrontmatter } = await render(entry);
         siteConfig.toc.enable &&
         <TOC headings={headings} language={currentLang} client:load/>
     }
-    <BackTop />
+    <FabMenu headings={headings} showComment={true}/>
 </MainPageLayout>

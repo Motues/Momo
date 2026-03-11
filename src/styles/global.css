@@ -17,25 +17,15 @@
     overflow-y: scroll;
   }
   
-  /* 选中文本样式 */
-  ::selection {
-    background-color: #e5e5e5;
-    color: black;
-  }
-  
-  ::-moz-selection {
-    background-color: #e5e5e5;
-    color: black;
-  }
 
   ::selection {
-    background-color: var(--selection-color);
-    color: var(--text-color);
+    background-color: var(--button-hover-color);
+    /* color: var(--text-color); */
   }
   
   ::-moz-selection {
-    background-color: var(--selection-color);
-    color: var(--text-color);
+    background-color: var(--button-hover-color);
+    /* color: var(--text-color); */
   }
 
 }

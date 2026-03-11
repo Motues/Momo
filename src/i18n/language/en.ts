@@ -13,14 +13,12 @@ const translation: Translation = {
             archive: "Archive",
             about: "About",
             friends: "Friends",
-            page404: "Secret",
         },
         subTitle: {
             home: "Life is colorful!",
             archive: "Total of {count} articles",
             about: "A minimalist blog template",
             friends: "Interesting Souls",
-            page404: "Congratulations on finding a new world, this world is still under construction, please wait a bit longer."
         }
     },
     toc: "Contents",
@@ -29,6 +27,14 @@ const translation: Translation = {
         previous: "Prev",
         next: "Next",
         currentPage: "Page {currentPage} of {totalPages}",
+    },
+    button: {
+        switchDarkMode: "Switch Dark Mode",
+        backToTop: "Back to Top",
+        backToBottom: "Back to Bottom",
+        meun: "Menu",
+        toc: "Contents",
+        backToComments: "Back to Comments",
     },
     search: {
         placeholder: "Enter keywords to start searching",
@@ -84,6 +90,14 @@ const translation: Translation = {
     draftNote: {
         warning: "Draft Warning: ",
         description: "This article is a draft and only appears in the testing environment. It will not be displayed in the production environment."
+    },
+    page404: {
+        title: "404 - Void Realm",
+        subTitle: "It looks like you've stumbled into a code wasteland that hasn't been developed yet.",
+        backToHome: "Home",
+        backToPreview: "Previous Page",
+        errorCode: "Error Code: 404 - Void Realm",
+        notice: "Perhaps you can try:"
     }
 }
 

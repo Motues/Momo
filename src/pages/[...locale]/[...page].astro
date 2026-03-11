@@ -3,7 +3,7 @@ import MainPageLayout from '@layouts/MainPageLayout.astro';
 import Cover from '@components/Cover.astro';
 import PostPage from '@components/PostPage.astro';
 import Navi from '@components/control/Navi.astro';
-import BackTop from '@components/control/BackTop.astro';
+import FabMenu from '@components/control/FabMenu.astro';
 
 import { getBlogEntrySort } from '@utils/content-utils'
 import { siteConfig } from '@/config';
@@ -51,5 +51,5 @@ const pageTitle = `${siteConfig.title} - ${siteConfig.subTitle}`;
     <Cover title={t("cover.title.home")} subTitle={t("cover.subTitle.home")} />
     <PostPage page={page} />
     <Navi page={page} />
-    <BackTop />
+    <FabMenu showBackBottom={true} />
 </MainPageLayout>

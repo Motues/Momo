@@ -45,21 +45,21 @@ const { remarkPluginFrontmatter } = await render(entry);
                 class="ml-2 opacity-100 md:opacity-0 md:group-hover:opacity-100 transform md:translate-x-[-5px] md:group-hover:translate-x-0 transition-all duration-300 ease-in-out text-[var(--text-color)] group-hover:text-[var(--link-color)] group-active:text-[var(--link-color)]"
             />
         </a>
-        <p class="description text-[var(--text-color)]/60 leading-relaxed mt-2">
+        <p class="description text-[var(--text-color-70)] leading-relaxed mt-2">
             {
                 fallback && (
-                <span class="self-center px-1 mr-2 text-sm text-[var(--text-color)]/70 font-mono uppercase bg-[var(--button-hover-color)] rounded border border-[var(--button-border-color)]">{i18n!.defaultLocale}</span>
+                <span class="self-center px-1 mr-2 text-sm text-[var(--text-color-70)] font-mono uppercase bg-[var(--button-hover-color)] rounded border border-[var(--button-border-color)]">{i18n!.defaultLocale}</span>
                 )
             }
             {description}
         </p>
-        <div class="flex items-center justify-start text-sm text-[var(--text-color)]/70 mt-4 space-x-4">
+        <div class="flex items-center justify-start text-sm text-[var(--text-color-70)] mt-4 space-x-4">
             <p class="pubdate flex items-center">
                 <Icon name="fa6-solid:calendar-days" class="mr-1"></Icon> 
                 <span class="py-1 px-1">{formatFullDate(pubDate, currentLang)}</span>
             </p>
         </div>
-        <div class="flex flex-wrap items-center justify-start text-sm text-[var(--text-color)]/70 mt-2 gap-2">
+        <div class="flex flex-wrap items-center justify-start text-sm text-[var(--text-color-70)] mt-2 gap-2">
             <p class="words flex items-center whitespace-nowrap mr-2">
                 <Icon name="fa6-solid:pen-nib" class="mr-1"></Icon> 
                 <span class="py-1 px-1">{remarkPluginFrontmatter.words || 0} {t("pagecard.words")}</span>

@@ -1,9 +1,15 @@
 ---
-const className = Astro.props.class;
 import { Icon } from "astro-icon/components";
+import { i18n } from "astro:config/client";
+import i18nit from '@i18n/translation'
+
+const currentLang = Astro.currentLocale || i18n!.defaultLocale;
+const t = i18nit(currentLang);
+
+const className = Astro.props.class;
 ---
 
-<button id="themeToggle" title="切换明暗模式" class={className}>
+<button id="themeToggle" title={t("button.switchDarkMode")} class={className}>
     <Icon name="material-symbols:dark-mode-outline-rounded" class="moon w-5 h-5"/>
     <Icon name="material-symbols:wb-sunny-outline-rounded" class="sun w-5 h-5"/>
     <Icon name="material-symbols:radio-button-partial-outline" class="system w-5 h-5"/>

@@ -68,7 +68,7 @@
   <div class="flex-1 min-w-0">
     <div class="flex items-center gap-2">
       <span class="font-semibold text-[var(--text-color)]">{c.author}</span>
-      <span class="text-sm text-[var(--text-color)]/80">{formatFullDate(new Date(c.pubDate), language)}</span>
+      <span class="text-sm text-[var(--text-color-70)]">{formatFullDate(new Date(c.pubDate), language)}</span>
     </div>
 
     <div class="text-[var(--text-color)] mt-1 leading-relaxed w-full max-w-full min-w-0">
@@ -150,7 +150,7 @@
             <textarea placeholder={t('comments.replyPlaceholder') || "写下你的回复..."} 
               class="rounded w-full border text-[var(--text-color)] border-[var(--button-border-color)] focus:outline-none focus:border-[var(--link-color)] text-sm p-2 min-h-[80px]"
               bind:value={replyContent}></textarea>
-            <div class="text-right text-xs text-[var(--text-color)]/80 mt-1">
+            <div class="text-right text-xs text-[var(--text-color-70)] mt-1">
               <!-- {getWordCount(replyContent).chars} {t('comments.characters')} / {getWordCount(replyContent).words} {t('comments.words')} -->
               {#if !isContentWithinLimit(replyContent)}
                 <span class="text-red-500 ml-2">{t('comments.contentTooLong') || '内容超出限制'}</span>

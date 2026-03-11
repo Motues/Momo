@@ -28,25 +28,25 @@ const postLicense = license ?? licenseConfig;
 const postAuthor = author ?? profileConfig.name;
 ---
 
-<div data-aos="fade-up" class={`relative transition rounded-lg overflow-hidden text-[var(--text-color)] bg-[var(--button-hover-color)] py-5 px-6 ${className}`}>
+<div data-aos="fade-up" class={`relative transition rounded overflow-hidden text-[var(--text-color)] bg-[var(--button-hover-color)] py-5 px-6 ${className}`}>
     <div class="transition font-bold">
         {title}
     </div>
-    <a href={postUrl} class="transition-all text-sm py-1 font-bold text-[var(--text-color)]/75 hover:text-[var(--link-color)]">
+    <a href={postUrl} class="transition-all text-sm py-1 font-bold text-[var(--text-color-70)] hover:text-[var(--link-color)]">
         {postUrl}
     </a>
     <div class="flex gap-6 mt-3 text-sm">
         <div>
-            <div class="transition text-[var(--text-color)]/50">{t("license.author")}</div>
-            <div class="transition text-[var(--text-color)]/75 font-bold">{postAuthor}</div>
+            <div class="transition text-[var(--text-color-70)]">{t("license.author")}</div>
+            <div class="transition text-[var(--text-color)] font-bold">{postAuthor}</div>
         </div>
         <div>
-            <div class="transition text-[var(--text-color)]/50">{t("license.publishon")}</div>
-            <div class="transition text-[var(--text-color)]/75 font-bold">{formatFullDate(pubDate, currentLang)}</div>
+            <div class="transition text-[var(--text-color-70)]">{t("license.publishon")}</div>
+            <div class="transition text-[var(--text-color)] font-bold">{formatFullDate(pubDate, currentLang)}</div>
         </div>
         <div>
-            <div class="transition text-[var(--text-color)]/50">{t("license.license")}</div>
-            <a href={postLicense.url} target="_blank" class="transition-all  text-[var(--text-color)]/75 hover:text-[var(--link-color)] font-bold">{postLicense.name}</a>
+            <div class="transition text-[var(--text-color-70)]">{t("license.license")}</div>
+            <a href={postLicense.url} target="_blank" class="transition-all  text-[var(--text-color)] hover:text-[var(--link-color)] font-bold">{postLicense.name}</a>
         </div>
     </div>
     <Icon name="fa6-brands:creative-commons" class="transition text-[15rem] absolute pointer-events-none right-6 top-1/2 -translate-y-1/2 text-[var(--text-color)]/5"></Icon>

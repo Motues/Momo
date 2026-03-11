@@ -86,7 +86,7 @@
 <div class="archives mx-auto w-full max-w-[var(--page-width)]">
     <div class="text-center pt-5 pb-10 max-w-[var(--page-width)] mx-auto md:mt-0 mt-28">
         <p class="text-[var(--text-color)] text-3xl py-5 font-bold">{t("header.archive")}</p>
-        <p class="text-[var(--text-color)]/60 font-bold">{t("cover.subTitle.archive", {count: filteredPosts.length})}</p>
+        <p class="text-[var(--text-color-70)] font-bold">{t("cover.subTitle.archive", {count: filteredPosts.length})}</p>
     </div>
 
     <div class="py-6 mx-auto text-[var(--text-color)]">
@@ -103,11 +103,11 @@
                                 href={getRelativeLocaleUrl(currentLang, `/blog/${post.id}`)} 
                                 class="flex items-center gap-4 active:bg-[var(--button-hover-color)] hover:bg-[var(--button-hover-color)] p-2 rounded transition-all duration-200 group"
                             >
-                                <span class="text-[var(--text-color)]/70 min-w-[80px] md:min-w-[120px]">
+                                <span class="text-[var(--text-color-70)] min-w-[80px] md:min-w-[120px]">
                                     {formatMonthDay(post.data.pubDate, currentLang)}
                                 </span>
                                 
-                                <span class="text-lg group-hover:pl-2 group-hover:text-[var(--link-color)] group-hover:font-bold transition-all duration-200 flex-1">
+                                <span class="text-lg group-hover:pl-2 group-hover:text-[var(--link-color)] group-hover:font-bold transition-all duration-200 flex-1 group-active:text-[var(--link-color)]">
                                     {post.data.title}
                                     {#if post.isFallback}
                                         <span class="inline-block px-1 ml-2 text-xs font-mono uppercase bg-[var(--button-hover-color)] rounded border border-[var(--button-border-color)]">
@@ -116,7 +116,7 @@
                                     {/if}
                                 </span>
 
-                                <span class="hidden md:flex items-center font-mono text-sm text-[var(--text-color)]/70">
+                                <span class="hidden md:flex items-center font-mono text-sm text-[var(--text-color-70)]">
                                     <Icon icon="fa6-solid:hashtag" class="mr-1" />
                                     {post.data.category || t("pagecard.uncategorized")}
                                 </span>
@@ -143,7 +143,7 @@
                         on:click={() => toggleCategory(cat)}
                         class="px-3 py-1 text-xs rounded-md transition-all border
                         {selectedCategories.includes(cat) 
-                            ? 'bg-[var(--link-color)] text-[var(--bg-color)] border-[var(--link-color)]' 
+                            ? 'bg-[var(--link-color)] text-white border-[var(--link-color)]' 
                             : 'hover:border-[var(--link-color)] border-[var(--button-border-color)] text-[var(--text-color)]'}"
                     >
                         {cat === 'undefined' ? t("pagecard.uncategorized") : cat}

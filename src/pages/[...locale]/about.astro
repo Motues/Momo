@@ -2,7 +2,7 @@
 import MainPageLayout from '@layouts/MainPageLayout.astro'
 import Markdown from '@components/misc/Markdown.astro'
 import Cover from '@components/Cover.astro'
-import BackTop from '@components/control/BackTop.astro'
+import FabMenu from '@components/control/FabMenu.astro'
 
 import { getSpec } from '@utils/content-utils'
 
@@ -34,5 +34,5 @@ const pageTitle = t("header.about") + " - " + siteConfig.title;
             <Content />
         </Markdown>
     </div>
-    <BackTop />
+    <FabMenu showBackBottom={true} />
 </MainPageLayout>

@@ -13,14 +13,12 @@ const translation: Translation = {
             archive: "文章归档",
             about: "关于",
             friends: "友链",
-            page404: "秘密",
         },
         subTitle: {
             home: "生活多彩！",
             archive: "共 {count} 篇文章",
             about: "一个极简的Blog模板",
             friends: "有趣的灵魂",
-            page404: "恭喜你发现一片未知的世界，这片世界还处于建设之中，请过段时间再来看看呢！"
         }
     },
     toc: "目录",
@@ -29,6 +27,14 @@ const translation: Translation = {
         previous: "上一页",
         next: "下一页",
         currentPage: "第 {currentPage} 页，共 {totalPages} 页",
+    },
+    button: {
+        switchDarkMode: "切换明暗模式",
+        backToTop: "回到顶部",
+        backToBottom: "回到底部",
+        meun: "菜单",
+        toc: "目录",
+        backToComments: "前往评论区",
     },
     search: {
         placeholder: "输入关键词开始搜索",
@@ -84,6 +90,14 @@ const translation: Translation = {
     draftNote: {
         warning: "草稿警告：",
         description: "此文章为草稿，只出现在测试环境，生产环境将不会显示。"
+    },
+    page404: {
+        title: "404 - 虚无之境",
+        subTitle: "看起来你闯入了一片代码荒原，这里还没有被开发出来。",
+        backToHome: "返回首页",
+        backToPreview: "返回上一页",
+        errorCode: "错误代码：404 - 虚无之境",
+        notice: "或许你可以尝试："
     }
 }
 

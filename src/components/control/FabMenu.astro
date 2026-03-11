@@ -1,0 +1,316 @@
+---
+import { Icon } from "astro-icon/components";
+import { i18n } from "astro:config/client";
+import i18nit from '@i18n/translation'
+import type { MarkdownHeading } from 'astro';
+
+const currentLang = Astro.currentLocale || i18n!.defaultLocale;
+const t = i18nit(currentLang);
+
+interface Props {
+  showBackTop?: boolean;
+  showBackBottom?: boolean;
+  showComment?: boolean;
+  scrollToTopDistance?: number; // 滚动多少高度后显示菜单
+  headings?: MarkdownHeading[]; // 接收 Astro 解析出来的目录数组
+}
+
+const { 
+  showBackTop = true, 
+  showBackBottom = false, 
+  showComment = false,
+  scrollToTopDistance = 100,
+  headings = [] 
+} = Astro.props;
+
+// 过滤掉 h1 (通常是文章标题) 和层级过深的标题，保留 h2, h3, h4
+const tocHeadings = headings.filter(h => h.depth > 1 && h.depth < 5);
+---
+
+<div 
+  id="fabMenu" 
+  class="fixed bottom-[5vh] lg:bottom-[13.5vh] right-[7vw] lg:left-[var(--toc-offset-left)] w-10 h-10 z-[1000] transition-opacity duration-300 opacity-0 pointer-events-none"
+  data-scroll-distance={scrollToTopDistance}
+>
+  <div id="menuItems" class="absolute bottom-full left-0 mb-3 flex flex-col items-center gap-3 transition-all duration-300 ease-out translate-y-10 opacity-0 pointer-events-none [.is-active_&]:translate-y-0 [.is-active_&]:opacity-100 [.is-active_&]:pointer-events-auto">
+    
+    {showBackTop && (
+      <button id="backTop" title={t("button.backToTop")} class="relative w-10 h-10 rounded-full border border-[var(--text-color)]/20 cursor-pointer flex items-center justify-center transition-transform duration-200 active:scale-90 shadow-none backdrop-blur bg-[var(--bg-color)]/20 hover:bg-[var(--button-hover-color)]">
+        <svg class="absolute -top-[1px] -left-[1px] w-[calc(100%+2px)] h-[calc(100%+2px)] -rotate-90 overflow-visible" viewBox="0 0 40 40">
+          <circle 
+            id="progress-circle" 
+            cx="20" cy="20" r="19" 
+            fill="none" 
+            stroke="currentColor" 
+            stroke-width="2" 
+            stroke-dasharray="0 119.4" 
+            stroke-linecap="round"
+          ></circle>
+        </svg>
+        <Icon name="fa6-solid:arrow-up" class="relative z-10 text-lg text-[var(--text-color)]" />
+      </button>
+    )}
+
+    {tocHeadings.length > 0 && (
+      <button id="tocTrigger" title={t("button.toc") || "目录"} class="lg:hidden w-10 h-10 rounded-full border border-[var(--text-color)]/20 cursor-pointer flex items-center justify-center transition-transform duration-200 active:scale-90 shadow-none backdrop-blur bg-[var(--bg-color)]/20 hover:bg-[var(--button-hover-color)]">
+        <Icon name="fa6-solid:list-ul" class="text-lg text-[var(--text-color)]" />
+      </button>
+    )}
+
+    {showBackBottom && (
+      <button id="backBottom" title={t("button.backToBottom")} class="w-10 h-10 rounded-full border border-[var(--text-color)]/20 cursor-pointer flex items-center justify-center transition-transform duration-200 active:scale-90 shadow-none backdrop-blur bg-[var(--bg-color)]/20 hover:bg-[var(--button-hover-color)]">
+        <Icon name="fa6-solid:arrow-down" class="text-lg text-[var(--text-color)]" />
+      </button>
+    )}
+
+    {showComment && (
+      <button id="backComment" title={t("button.backToComments")} class="w-10 h-10 rounded-full border border-[var(--text-color)]/20 cursor-pointer flex items-center justify-center transition-transform duration-200 active:scale-90 shadow-none backdrop-blur bg-[var(--bg-color)]/20 hover:bg-[var(--button-hover-color)]">
+        <Icon name="material-symbols:comment-outline-rounded" class="text-lg text-[var(--text-color)]" />
+      </button>
+    )}
+  </div>
+
+  <button id="menuTrigger" title={t("button.meun")} class="w-full h-full rounded-full border border-[var(--text-color)]/20 cursor-pointer flex items-center justify-center transition-all duration-300 shadow-none backdrop-blur bg-[var(--bg-color)]/20 active:scale-95 hover:bg-[var(--button-hover-color)]">
+    <Icon name="fa6-solid:ellipsis" class="absolute text-lg text-[var(--text-color)] transition-all duration-300 opacity-100 rotate-0 [.is-active_&]:opacity-0 [.is-active_&]:rotate-90" />
+    <Icon name="fa6-solid:xmark" class="absolute text-lg text-[var(--text-color)] transition-all duration-300 opacity-0 -rotate-90 [.is-active_&]:opacity-100 [.is-active_&]:rotate-0" />
+  </button>
+
+  {tocHeadings.length > 0 && (
+    <div 
+      id="tocPanel" 
+      class="lg:hidden absolute bottom-25 right-0 lg:bottom-0 lg:left-14 w-60 lg:w-72 max-h-[60vh] flex flex-col bg-[var(--bg-color)]/95 backdrop-blur-lg border border-[var(--text-color)]/20 rounded-2xl shadow-2xl transition-all duration-300 ease-[cubic-bezier(0.34,1.56,0.64,1)] origin-bottom-right lg:origin-bottom-left scale-50 opacity-0 pointer-events-none translate-y-4 lg:translate-y-0 lg:-translate-x-4 [.toc-active_&]:scale-100 [.toc-active_&]:opacity-100 [.toc-active_&]:pointer-events-auto [.toc-active_&]:translate-y-0 [.toc-active_&]:translate-x-0 z-[1001]"
+    >
+      <div class="px-4 py-3 border-b border-[var(--text-color)]/10 font-bold text-sm text-[var(--text-color)] flex justify-between items-center bg-[var(--button-hover-color)] rounded-t-2xl">
+        <span>{t("button.toc")}</span>
+        <button id="closeToc" class="opacity-50 hover:opacity-100 transition-opacity p-1">
+          <Icon name="fa6-solid:xmark" class="text-sm text-[var(--text-color)]" />
+        </button>
+      </div>
+      <div class="overflow-y-auto p-2 overscroll-contain flex-1 scrollbar-thin scrollbar-thumb-[var(--text-color)]/20 scrollbar-track-transparent">
+        <ul class="flex flex-col text-sm space-y-1">
+          {tocHeadings.map(h => (
+            <li>
+              <a 
+                href={`#${h.slug}`} 
+                class="toc-link block py-1.5 px-3 rounded-lg hover:bg-[var(--text-color)]/10 text-[var(--text-color)]/80 hover:text-[var(--text-color)] transition-all duration-200 line-clamp-2"
+                style={`margin-left: ${(h.depth - 2) * 0.8}rem`}
+              >
+                {h.text}
+              </a>
+            </li>
+          ))}
+        </ul>
+      </div>
+    </div>
+  )}
+</div>
+
+<script is:inline>
+function initFabMenu() {
+  const container = document.getElementById('fabMenu');
+  const trigger = document.getElementById('menuTrigger');
+  const backTop = document.getElementById('backTop');
+  const backBottom = document.getElementById('backBottom');
+  const backComment = document.getElementById('backComment');
+  const progressCircle = document.getElementById('progress-circle');
+  const tocTrigger = document.getElementById('tocTrigger');
+  const closeToc = document.getElementById('closeToc');
+  const tocLinks = document.querySelectorAll('.toc-link');
+  
+  if (!container || !trigger) return;
+
+  const threshold = parseInt(container.dataset.scrollDistance) || 100;
+  let isTocOpen = false;
+  let scrollPosOnTocOpen = 0;
+
+  const handleScroll = () => {
+    const scrollTop = window.scrollY || document.documentElement.scrollTop;
+    const docHeight = document.documentElement.scrollHeight - document.documentElement.clientHeight;
+    
+    // 控制 FAB 整体显示/隐藏
+    if (scrollTop > threshold) {
+      container.classList.remove('opacity-0', 'pointer-events-none');
+      container.classList.add('opacity-100', 'pointer-events-auto');
+    } else {
+      container.classList.add('opacity-0', 'pointer-events-none');
+      container.classList.remove('opacity-100', 'pointer-events-auto', 'is-active', 'toc-active');
+      isTocOpen = false; // 回到顶部时同时关闭目录状态
+    }
+
+    // 滑动页面时平滑关闭目录 (设置 50px 的缓冲阈值，防止误触)
+    if (isTocOpen && Math.abs(scrollTop - scrollPosOnTocOpen) > 50) {
+      isTocOpen = false;
+      container.classList.remove('toc-active');
+    }
+
+    // 更新进度条
+    if (progressCircle && docHeight > 0) {
+      const scrollPercent = Math.min(100, (scrollTop / docHeight) * 100);
+      const circumference = 2 * Math.PI * 20;
+      const offset = circumference - (scrollPercent / 100) * circumference;
+      progressCircle.style.strokeDasharray = `${circumference - offset} ${offset}`;
+    }
+  };
+
+  // 主按钮切换
+  trigger.onclick = (e) => {
+    e.stopPropagation();
+    container.classList.toggle('is-active');
+    // 如果关闭了主菜单，也一并关闭目录
+    if (!container.classList.contains('is-active')) {
+      isTocOpen = false;
+      container.classList.remove('toc-active');
+    }
+  };
+
+  // 目录按钮触发
+  if (tocTrigger) {
+    tocTrigger.onclick = (e) => {
+      e.stopPropagation();
+      isTocOpen = !isTocOpen;
+      container.classList.toggle('toc-active', isTocOpen);
+      // 记录打开目录时的滚动位置
+      if (isTocOpen) {
+        scrollPosOnTocOpen = window.scrollY || document.documentElement.scrollTop;
+      }
+    };
+  }
+
+  // 关闭目录按钮
+  if (closeToc) {
+    closeToc.onclick = (e) => {
+      e.stopPropagation();
+      isTocOpen = false;
+      container.classList.remove('toc-active');
+    };
+  }
+
+tocLinks.forEach(link => {
+    link.onclick = (e) => {
+      e.preventDefault(); // 阻止默认的锚点跳转，以便使用平滑滚动
+      
+      // 点击即时反馈：移除所有高亮，给当前点击的项加上高亮
+      tocLinks.forEach(l => l.classList.remove('is-active'));
+      link.classList.add('is-active');
+
+      const targetId = link.getAttribute('href').substring(1);
+      const targetElement = document.getElementById(targetId);
+      
+      if (targetElement) {
+        // 考虑到可能有顶部导航栏，预留一点偏移量（可选，比如 60px）
+        const offset = 60; 
+        const bodyRect = document.body.getBoundingClientRect().top;
+        const elementRect = targetElement.getBoundingClientRect().top;
+        const elementPosition = elementRect - bodyRect;
+        const offsetPosition = elementPosition - offset;
+
+        window.scrollTo({
+          top: offsetPosition,
+          behavior: 'smooth'
+        });
+        
+        // 缩起目录面板
+        isTocOpen = false;
+        container.classList.remove('toc-active');
+      }
+    };
+  });
+
+  // 提取所有正文里的标题元素
+  const headingElements = Array.from(tocLinks)
+    .map(link => document.getElementById(link.getAttribute('href').substring(1)))
+    .filter(Boolean); // 过滤掉不存在的元素
+
+  if (headingElements.length > 0) {
+    // 设置观察器参数：当标题进入视窗顶部向下 10% 到 20% 的区域时触发
+    const observerOptions = {
+      root: null,
+      rootMargin: '-10% 0px -80% 0px', 
+      threshold: 0
+    };
+
+    const tocObserver = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          // 清除所有高亮
+          tocLinks.forEach(l => l.classList.remove('is-active'));
+          // 找到当前对应的目录链接并高亮
+          const activeId = entry.target.id;
+          const activeLink = document.querySelector(`.toc-link[href="#${activeId}"]`);
+          if (activeLink) {
+            activeLink.classList.add('is-active');
+            // activeLink.scrollIntoView({ block: 'nearest' });
+          }
+        }
+      });
+    }, observerOptions);
+
+    // 开始观察所有标题
+    headingElements.forEach(el => tocObserver.observe(el));
+  }
+
+  // 回到顶部
+  if (backTop) {
+    backTop.onclick = () => {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      container.classList.remove('is-active', 'toc-active');
+      isTocOpen = false;
+    };
+  }
+
+  // 回到底部
+  if (backBottom) {
+    backBottom.onclick = () => {
+      window.scrollTo({ top: document.documentElement.scrollHeight, behavior: 'smooth' });
+      container.classList.remove('is-active', 'toc-active');
+      isTocOpen = false;
+    };
+  }
+
+  // 回到评论区
+  if (backComment) {
+    backComment.onclick = () => {
+      const comments = document.getElementById('comments');
+      comments.scrollIntoView({ behavior: 'smooth' });
+      container.classList.remove('is-active', 'toc-active');
+      isTocOpen = false;
+    };
+  }
+
+  // 点击外部关闭所有展开项
+  document.addEventListener('click', (e) => {
+    if (!container.contains(e.target)) {
+      container.classList.remove('is-active', 'toc-active');
+      isTocOpen = false;
+    }
+  });
+
+  window.addEventListener('scroll', handleScroll, { passive: true });
+  handleScroll();
+}
+
+document.addEventListener('astro:page-load', initFabMenu);
+</script>
+
+<style is:global>
+  #progress-circle {
+    stroke: var(--text-color);
+    transition: stroke-dasharray 0.1s linear;
+  }
+  
+  .scrollbar-thin::-webkit-scrollbar {
+    width: 4px;
+  }
+  .scrollbar-thin::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  .scrollbar-thin::-webkit-scrollbar-thumb {
+    background: rgba(156, 163, 175, 0.5); 
+    border-radius: 20px;
+  }
+  .toc-link.is-active {
+    background-color: var(--button-hover-color) !important;
+    color: var(--link-color) !important;
+    font-weight: 600;
+  }
+</style>

@@ -9,19 +9,22 @@
 
 
 /* 颜色变量 */
+/* --bg-color               页面背景色
+ * --text-color             文字基本色，通过透明度来控制颜色深浅，分为两类
+ *     --text-color:        适用于标题、正文等需要突出显示的内容
+ *     --text-color-70      适用于次要信息、辅助文本等不需要过于突出显示的内容
+ * --link-color             彩色基本色，适用于链接、按钮等颜色突出的地方
+ * --button-hover-color     按钮鼠标悬停背景色
+ * --button-border-color    按钮边框色
+*/
 :root {
     --bg-color: #fbfbfb;
     --text-color: #000000;
+    --text-color-70: #4c4c4c;
     --shadow-color: rgba(0, 0, 0, 0.15);
-    --cover-subtitle-color: #999;
-    --footer-text-color: #999;
     --link-color: #003b6e;
-    --button-hover-color: #f5f5f5;
-    --button-border-color: #e5e5e5;
-    --postcard-bg-color: #fafafa;
-    
-    --image-shadow-color: rgba(0, 0, 0, 0.15);
-    --selection-color: #e5e5e5;
+    --button-hover-color: #eeeeee;
+    --button-border-color: #d6d6d6;
 
     --warning-text-color: #4d3800;
     --warning-bg-color: #fff7ed;
@@ -40,17 +43,11 @@
   [data-theme="dark"] {
     --bg-color: #0a0a0a;
     --text-color: #ffffff;
+    --text-color-70: #b5b5b5;
     --shadow-color: rgba(255, 255, 255, 0.15);
-    --cover-subtitle-color: #999;
-    --footer-text-color: #999;
     --link-color: #57ace7;
     --button-hover-color: #262626;
     --button-border-color: #3d3d3d;
-    --postcard-bg-color: #242526;
-    
-    
-    --image-shadow-color: rgba(59, 130, 246, 0.4);
-    --selection-color: #3b3b3b;
 
     --warning-text-color: #f2d680;
     --warning-bg-color: #332a00;

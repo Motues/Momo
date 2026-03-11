@@ -175,7 +175,8 @@
 }
 
 .markdown-content pre {
-  margin: 1.5rem 0;
+  margin-top: 0.5rem !important;
+  margin-bottom: 0.5rem !important;
   padding: 1rem;
   overflow: auto;
   background-color: rgba(0, 0, 0, 0.05);
@@ -234,7 +235,6 @@
   margin: 1rem auto;
   display: block;
   border-radius: 6px;
-  /* box-shadow: 0 2px 8px var(--image-shadow-color); */
 }
 
 .markdown-content hr {
@@ -355,7 +355,6 @@
     width: 100%;
     max-width: 400px;
     margin: 1.5rem auto;
-    /* background: var(--postcard-bg-color); */
     border-radius: 12px;
     /* box-shadow: 0 4px 12px var(--shadow-color); */
     text-decoration: none;
@@ -437,7 +436,7 @@
 }
 
 .music-artist {
-    color: var(--cover-subtitle-color);
+    color: var(--text-color-70);
     font-size: 0.9rem;
     white-space: nowrap;
     overflow: hidden;
@@ -468,7 +467,6 @@
 .card-github {
     display: block;
     padding: 16px;
-    /* background: var(--postcard-bg-color); */
     border-radius: 8px;
     /* box-shadow: 0 4px 12px var(--shadow-color); */
     text-decoration: none;
@@ -520,7 +518,7 @@
 
 .card-github .gc-divider {
     margin: 0 6px;
-    color: var(--cover-subtitle-color);
+    color: var(--text-color-70);
 }
 
 .card-github .gc-repo {
@@ -541,7 +539,7 @@
 }
 
 .card-github .gc-description {
-    color: var(--cover-subtitle-color);
+    color: var(--text-color-70);
     font-size: 0.9em;
     margin-bottom: 12px;
     line-height: 1.4;
@@ -551,7 +549,7 @@
     display: flex;
     gap: 16px;
     font-size: 0.85em;
-    color: var(--cover-subtitle-color);
+    color: var(--text-color-70);
 }
 
 

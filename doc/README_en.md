@@ -9,15 +9,15 @@
 
 ## ✨ Features
 
-* Minimalist design
-* Supports dark mode switching and automatically follows system settings
-* Supports article search functionality (pagefind)
-* Internationalization (i18n)
+Momo originates from Xiaohongshu📕, serving as the default nickname for every new user—symbolizing a fresh start. This philosophy guides our blog design, striking a balance between complex functionality and minimalist aesthetics.
 
-## 💻 Environment Requirements
-
-* Node.js (recommended version above 20.x)
-* pnpm (install using `npm install -g pnpm`)
+* **Minimalist Design**: Clean page layout with black and white as primary colors, accented by blue
+* **Dark Mode**: Supports manual switching or automatic system adaptation
+* **Article Search**: Implements localized search using [pagefind](https://pagefind.app/)
+* **Internationalization (i18n)**: Supports multilingual switching, currently available in Simplified Chinese and English
+* **Mobile Adaptation**: Components optimized for mobile devices, delivering the same experience as desktop browsers
+* **Commenting**: Supports local deployment and Cloudflare deployment. See [Backend](https://github.com/Motues/Momo-Backend) for details
+* Other core features: Article categories, directory, RSS subscription, text statistics, reading time
 
 ## 🚀 Quick Start
 
@@ -26,12 +26,16 @@
     git clone https://github.com/Motues/Momo.git
     cd Momo
     ```
-2. Run `pnpm install` to install dependencies
+2. Run `pnpm install` to install dependencies (use `npm install -g pnpm` to install `pnpm`)
 3. Run `pnpm dev` to start the development server
 
 ## 🔧 Configuration
 
-Refer to the [Configuration Guide](./config_en.md), detailed information can be found at [Momo](https://momo.motues.top/).
+Refer to the [Configuration Guide](./config_en.md). For detailed information, visit [Momo](https://momo.motues.top/en/intro/config) and read the corresponding articles.
+
+## 📚 Updating
+
+Refer to the [Update Guide](./release_en.md) for instructions on updating your project. Visit [Momo](https://momo.motues.top/en/intro/release) for detailed information.
 
 ## ⚡ Commands
 
@@ -44,21 +48,8 @@ All commands below can be executed in the root directory
 | `pnpm build` | Build release version to `./dist` directory |
 | `pnpm preview` | Preview built release version |
 | `pnpm astro ...` | Run `astro` commands, e.g., `astro add` |
-| `pnpm new <path> <lang>` | Create a new article, e.g., `pnpm new docs/test.md zh-cn`, the language can be omitted, defaulting to `zh-cn` |
+| `pnpm newpost <path> <lang>` | Create a new post, e.g., `pnpm newpost docs/test.md zh-cn`. Language can be omitted; defaults to `zh-cn` |
 
-## 📜 TODO
-
-- [x] Add friend links feature
-- [x] Add memo feature
-- [x] Add search functionality (using pagefind, requires handling Chinese matching)
-- [ ] Optimize Markdown styles, e.g., ~~formulas~~, code blocks, ~~special prompts~~
-- [x] Implement article pagination
-- [x] Add table of contents
-- [x] Add RSS feed
-- [x] Support categories
-- [ ] Other minor features, e.g., ~~back to top~~, ~~estimated reading time~~
-- [x] Support comment（serverless deployment, [Backend](https://github.com/Motues/Momo-Backend)）
-- [x] Internationalization (i18n)
 
 ## 📚 References
 

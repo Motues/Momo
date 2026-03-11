@@ -40,7 +40,7 @@ const fakeResult: SearchResult[] = [
   <div class="fixed inset-0 flex items-start justify-center p-4 pt-[25vh]">
     <div class="search-modal-content bg-[var(--bg-color)] rounded-xl shadow-xl w-full max-w-2xl border border-[var(--button-border-color)] overflow-hidden scale-80 transition-all duration-300 opacity-0 flex flex-col max-h-[40vh]">
       <div class="flex items-center p-4 border-b border-[var(--button-border-color)]">
-        <svg class="w-5 h-5 text-[var(--cover-subtitle-color)] mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+        <svg class="w-5 h-5 text-[var(--text-color-70)] mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
         </svg>
         <input 
@@ -50,14 +50,14 @@ const fakeResult: SearchResult[] = [
           class="w-full bg-transparent border-0 focus:ring-0 focus:outline-none  text-[var(--text-color)]"
           autofocus
         />
-        <button id="close-search" class="ml-2 p-2 text-[var(--cover-subtitle-color)] rounded-lg hover:bg-[var(--button-hover-color)]" aria-label="Close Search">
+        <button id="close-search" class="ml-2 p-2 text-[var(--text-color-70)] rounded-lg hover:bg-[var(--button-hover-color)] active:bg-[var(--button-hover-color)]" aria-label="Close Search">
           <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
           </svg>
         </button>
       </div>
       <div id="search-results" class="overflow-y-auto flex-grow">
-        <div class="p-8 text-center text-[var(--cover-subtitle-color)]">
+        <div class="p-8 text-center text-[var(--text-color-70)]">
           <p>{t("search.placeholder")}</p>
         </div>
       </div>
@@ -155,11 +155,11 @@ document.addEventListener('astro:after-swap', initSearchModal);
   }
   
   #search-input::-webkit-input-placeholder {
-    color: var(--cover-subtitle-color);
+    color: var(--text-color-70);
   }
   
   #search-input::-moz-placeholder {
-    color: var(--cover-subtitle-color);
+    color: var(--text-color-70);
   }
 </style>
 
@@ -186,7 +186,7 @@ function initPagefindSearch() {
       } else {
         // 清空或显示默认状态
         searchResults.innerHTML = `
-          <div class="p-8 text-center text-[var(--cover-subtitle-color)]">
+          <div class="p-8 text-center text-[var(--text-color-70)]">
             <p>${translations.placeholder}</p>
           </div>
         `;
@@ -230,7 +230,7 @@ async function performSearch(query) {
   } else {
     console.log('Pagefind is not available');
     searchResults.innerHTML = `
-      <div class="p-8 text-center text-[var(--cover-subtitle-color)]">
+      <div class="p-8 text-center text-[var(--text-color-70)]">
         <p>搜索功能暂时不可用</p>
       </div>
     `;
@@ -243,7 +243,7 @@ function displayResults(results) {
 
   if (results.length === 0) {
     searchResults.innerHTML = `
-      <div class="p-8 text-center text-[var(--cover-subtitle-color)]">
+      <div class="p-8 text-center text-[var(--text-color-70)]">
         <p>${translations.noresult}</p>
       </div>
     `;
@@ -254,7 +254,7 @@ function displayResults(results) {
     <div class="p-4 border-b border-[var(--button-border-color)] hover:bg-[var(--button-hover-color)]">
       <a href="${result.url}" class="block no-underline">
         <h3 class="text-lg font-semibold text-[var(--text-color)] mb-2">${result.meta.title}</h3>
-        <p class="text-[var(--cover-subtitle-color)] text-sm">${result.excerpt}</p>
+        <p class="text-[var(--text-color-70)] text-sm">${result.excerpt}</p>
       </a>
     </div>
   `).join('');

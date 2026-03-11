@@ -179,7 +179,7 @@
   });
 </script>
 
-<div class="mt-4 max-w-3xl mx-auto border-t border-[var(--button-border-color)]">
+<div class="mt-4 max-w-3xl mx-auto border-t border-[var(--button-border-color)]" id="comments">
   <!-- <div class="my-6 border border-[var(--text-color)]/70"></div> -->
   <!-- 评论输入 -->
   <div data-aos="fade-up" class="mt-4">
@@ -206,7 +206,7 @@
         <textarea placeholder={t('comments.welcome')}
           class="rounded w-full border text-[var(--text-color)] border-[var(--button-border-color)]  focus:outline-none focus:border-[var(--link-color)] text-sm p-3 min-h-[100px]"
           bind:value={content}></textarea>
-        <div class="text-right text-sm text-[var(--text-color)]/80 mt-1">
+        <div class="text-right text-sm text-[var(--text-color-70)] mt-1">
           <!-- {getWordCount(content).chars} {t('comments.characters')} / {getWordCount(content).words} {t('comments.words')} -->
           {#if !isContentWithinLimit(content)}
             <span class="text-red-500 ml-2">{t('comments.contentTooLong') || '内容超出限制'}</span>
@@ -224,7 +224,7 @@
   </div>
 
   <!-- 评论区 -->
-  <div class="">
+  <div class="" id="comments-content">
     {#if loading}
       <p data-aos="fade-up" class="text-[var(--text-color)] text-center">{t('comments.loading') || '正在加载评论...'}</p>
     {:else if error}

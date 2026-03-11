@@ -1,6 +1,7 @@
 ---
 import MainPageLayout from '@layouts/MainPageLayout.astro'
 import ArchivePanel from '@components/ArchivePanel.svelte'
+import FabMenu from '@components/control/FabMenu.astro'
 import { siteConfig } from '@/config'
 import { getBlogEntrySort } from '@utils/content-utils'
 import i18nit from '@i18n/translation'
@@ -29,4 +30,5 @@ const pageTitle = t("header.archive") + " - " + siteConfig.title;
         currentLang={currentLang}
         defaultLocale={i18n!.defaultLocale}
     />
+    <FabMenu showBackBottom={true} />
 </MainPageLayout>

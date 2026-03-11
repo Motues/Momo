@@ -1,15 +1,16 @@
 
+Momo originates from Xiaohongshu's 📕, serving as every new user's initial nickname, symbolizing a fresh start. The blog's design philosophy stems from this concept, beginning with simplicity to strike a balance between complex functionality and minimalist aesthetics.
+
 ## ✨ Features
 
-* Minimalist design
-* Supports dark mode switching and automatically follows system settings
-* Supports article search functionality (pagefind)
-* Internationalization (i18n)
+* **Minimalist Design**: Clean page layout with black and white as primary colors, accented by blue
+* **Dark Mode**: Supports manual switching or automatic system adaptation
+* **Article Search**: Implements localized search using [pagefind](https://pagefind.app/)
+* **Internationalization (i18n)**: Supports multilingual switching, currently available in Simplified Chinese and English
+* **Mobile Optimization**: Components optimized for mobile devices, delivering the same experience as desktop browsers
+* **Commenting System**: Supports local deployment and Cloudflare deployment. Details in [Backend](https://github.com/Motues/Momo-Backend)
+* Additional Core Features: Post categorization, directory, RSS subscription, text statistics, reading time
 
-## 💻 Environment Requirements
-
-* Node.js (recommended version above 20.x)
-* pnpm (install using `npm install -g pnpm`)
 
 ## 🚀 Quick Start
 
@@ -18,39 +19,17 @@
     git clone https://github.com/Motues/Momo.git
     cd Momo
     ```
-2. Run `pnpm install` to install dependencies
+2. Run `pnpm install` to install dependencies (use `npm install -g pnpm` to install `pnpm`)
 3. Run `pnpm dev` to start the development server
 
 ## 🔧 Configuration
 
-Refer to the [Configuration Guide](/en/blog/intro/config), detailed information can be found at [Momo](https://momo.motues.top/).
+Refer to the [Configuration Guide](/en/blog/intro/config) and read the corresponding articles for detailed information.
 
-## ⚡ Commands
+## 📚 Updates
 
-All commands below can be executed in the root directory
+Refer to the [Update Guide](/en/blog/intro/release) for instructions on updating the project.
 
-| Command | Function |
-| --- | --- |
-| `pnpm install` | Install dependencies |
-| `pnpm dev` | Start local server at `http://localhost:4321` |
-| `pnpm build` | Build release version to `./dist` directory |
-| `pnpm preview` | Preview built release version |
-| `pnpm astro ...` | Run `astro` commands, e.g., `astro add` |
-| `pnpm new <path> <lang>` | Create a new article, e.g., `pnpm new docs/test.md zh-cn`, the language can be omitted, defaulting to `zh-cn` |
-
-## 📜 TODO
-
-- [x] Add friend links feature
-- [x] Add memo feature
-- [x] Add search functionality (using pagefind, requires handling Chinese matching)
-- [ ] Optimize Markdown styles, e.g., ~~formulas~~, code blocks, ~~special prompts~~
-- [x] Implement article pagination
-- [x] Add table of contents
-- [x] Add RSS feed
-- [x] Support categories
-- [ ] Other minor features, e.g., ~~back to top~~, ~~estimated reading time~~
-- [x] Support comment（serverless deployment, [Backend](https://github.com/Motues/Momo-Backend)）
-- [x] Internationalization (i18n)
 
 ## 📚 References
 

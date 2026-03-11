@@ -1,14 +1,16 @@
+
+Momo 取自小红书📕，每个新用户最初的昵称，象征着初始新生。博客的设计理念也来自于此，从简约出发，在复杂功能与简约设计之间达到一种平衡。
+
 ## ✨ 特性
 
-* 极简设计
-* 支持深色模式切换，并自动跟随系统
-* 支持文章搜索功能（pagefind）
-* 国际化（i18n）
+* **极简设计**：页面设计简约，黑白为主色调，蓝色进行点缀
+* **深色模式**：支持手动切换或自动跟随系统
+* **文章搜索功能**：使用 [pagefind](https://pagefind.app/) 实现本地化搜索功能
+* **国际化（i18n）**：支持多语言切换，目前支撑简体中文、英文
+* **移动端适配**：组件针对移动端进行优化，拥有和电脑浏览器一样的使用体验
+* **评论功能**：支持本地部署和 Cloudflare 部署，具体参考 [Backend](https://github.com/Motues/Momo-Backend)
+* 其他基本功能：文章分类，目录，RSS订阅，文字统计，阅读时间
 
-## 💻 环境要求
-
-* Node.js （建议版本大于22.x）
-* pnpm （使用 `npm install -g pnpm` 安装）
 
 ## 🚀 快速开始
 
@@ -17,40 +19,17 @@
     git clone https://github.com/Motues/Momo.git
     cd Momo
     ```
-2. 运行 `pnpm install` 安装依赖
+2. 运行 `pnpm install` 安装依赖（使用 `npm install -g pnpm` 安装 `pnpm`）
 3. 运行 `pnpm dev` 启动开发服务器
 
 ## 🔧 配置
 
-参考[配置指南](/blog/intro/config)，详细信息可以访问[Momo](https://momo.motues.top/)，阅读对应文章获取详细信息。
+参考[配置指南](/blog/intro/config)，阅读对应文章获取详细信息。
 
-## ⚡ 指令
+## 📚 更新
 
-以下所有的指令可以在根目录下面执行
+参考[更新指南](/blog/intro/release)，介绍如何更新项目。
 
-| 指令 | 作用 |
-| --- | --- |
-| `pnpm instal` | 安装依赖 |
-| `pnpm dev` | 启动本地服务器，运行在 `http://localhost:4321` |
-| `pnpm build` | 构建发布版本到 `./dist` 目录下 |
-| `pnpm preview` | 预览构建后的发布版本 |
-| `pnpm astro ...` | 运行 `astro` 命令，例如 `astro add` |
-| `pnpm new <path> <lang>` | 创建新文章，例如 `pnpm new docs/test.md zh-cn`，语言可以省略，默认为`zh-cn` |
-
-
-## 📜 TODO
-
-- [x] 添加友链功能
-- [x] 添加备忘录功能
-- [x] 添加搜索功能（使用pagefind，还需要处理中文匹配问题）
-- [ ] 优化Markdown样式，如~~公式~~，代码块，~~特殊提示~~
-- [x] 设置文章分页
-- [x] 添加目录
-- [x] 添加RSS
-- [x] 支持文章分类
-- [ ] 其他小功能，比如~~回到顶部~~，~~预计阅读时间~~等
-- [x] 评论功能（支持零服务器部署，[Backend](https://github.com/Motues/Momo-Backend)）
-- [x] 国际化（i18n）
 
 ## 📚 参考
 
