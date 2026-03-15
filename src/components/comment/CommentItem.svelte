@@ -59,15 +59,21 @@
 <div data-aos="fade-up" class="flex gap-3 w-full max-w-full">
   {#if c.url}
   <a href={c.url} target="_blank" class="w-10 h-10">
-    <img src={avatarUrl} alt="avatar" class="w-10 h-10"/>
+    <img src={avatarUrl} alt="avatar" class="w-10 h-10 rounded-full object-cover"/>
   </a>
   {:else}
-  <img src={avatarUrl} alt="avatar" class="w-10 h-10"/>
+  <img src={avatarUrl} alt="avatar" class="w-10 h-10 rounded-full object-cover"/>
   {/if}
 
   <div class="flex-1 min-w-0">
     <div class="flex items-center gap-2">
+    {#if c.url}
+      <a href={c.url} target="_blank" class="font-semibold text-[var(--text-color)] hover:text-[var(--link-color)] transition-colors">
+        {c.author}
+      </a>
+    {:else}
       <span class="font-semibold text-[var(--text-color)]">{c.author}</span>
+    {/if}
       <span class="text-sm text-[var(--text-color-70)]">{formatFullDate(new Date(c.pubDate), language)}</span>
     </div>
 
@@ -174,7 +180,7 @@
     {/if}
 
 {#if c.replies && c.replies.length}
-  <div class="pl-6 mt-4 border-l border-[var(--text-color)]/50 space-y-4 w-full">
+  <div class="pl-4 mt-4 border-l border-[var(--text-color)]/50 space-y-4 w-full">
     {#each c.replies as reply}
       <div class="w-full max-w-full overflow-hidden">
         <CommentItem c={reply} {postSlug} {author} {email} {url} {language}
