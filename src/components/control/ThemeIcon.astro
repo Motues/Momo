@@ -6,17 +6,33 @@ import i18nit from '@i18n/translation'
 const currentLang = Astro.currentLocale || i18n!.defaultLocale;
 const t = i18nit(currentLang);
 
+const translations = {
+  light: t("themeInfo.light"),
+  dark: t("themeInfo.dark"),
+  system: t("themeInfo.system")
+};
+
 const className = Astro.props.class;
 ---
 
-<button id="themeToggle" title={t("button.switchDarkMode")} class={className}>
+<button 
+  id="themeToggle" title={t("button.switchDarkMode")} class={className}
+  data-t-light={translations.light}
+  data-t-dark={translations.dark}
+  data-t-system={translations.system}
+>
     <Icon name="material-symbols:dark-mode-outline-rounded" class="moon w-5 h-5"/>
     <Icon name="material-symbols:wb-sunny-outline-rounded" class="sun w-5 h-5"/>
     <Icon name="material-symbols:radio-button-partial-outline" class="system w-5 h-5"/>
 </button>
 
+
 <script is:inline>
+
 if (typeof window !== 'undefined') {
+  
+  let toastTimer = null;
+
   function initThemeToggle() {
     const htmlRoot = document.querySelector('html');
     const themeToggle = document.getElementById('themeToggle');
@@ -29,7 +45,32 @@ if (typeof window !== 'undefined') {
       return 'system';
     };
 
-    const setTheme = (themeSet) => { 
+    // 从 DOM 属性实时获取翻译
+    const translations = {
+      light: themeToggle.dataset.tLight,
+      dark: themeToggle.dataset.tDark,
+      system: themeToggle.dataset.tSystem
+    };
+
+    function showThemeToast(themeName) {
+      let toast = document.getElementById('theme-toast') || (() => {
+        const t = document.createElement('div');
+        t.id = 'theme-toast';
+        document.body.appendChild(t);
+        return t;
+      })();
+
+      toast.textContent = translations[themeName] || translations['system'];
+      
+      clearTimeout(toastTimer);
+      toast.classList.remove('show');
+      void toast.offsetWidth; 
+      toast.classList.add('show');
+
+      toastTimer = setTimeout(() => toast.classList.remove('show'), 3000);
+    }
+
+    const setTheme = (themeSet, isFirstLoad = false) => { 
       if (themeSet === 'dark') {
         htmlRoot.setAttribute('data-theme', 'dark');
         htmlRoot.classList.remove('system-theme');
@@ -45,6 +86,11 @@ if (typeof window !== 'undefined') {
         }
       }
       window.localStorage.setItem('theme', themeSet);
+
+      // --- 新增：如果不是页面初次加载，则显示弹窗 ---
+      if (!isFirstLoad) {
+        showThemeToast(themeSet);
+      }
     };
 
     // 系统主题变化监听器
@@ -68,13 +114,13 @@ if (typeof window !== 'undefined') {
       if (currentTheme === 'light') nextTheme = 'dark';
       else if (currentTheme === 'dark') nextTheme = 'system';
       else nextTheme = 'light';
-      setTheme(nextTheme);
+      setTheme(nextTheme, false);
     };
 
     themeToggle?.removeEventListener('click', handleToggleClick);
     themeToggle?.addEventListener('click', handleToggleClick);
 
-    setTheme(getTheme());
+    setTheme(getTheme(), true);
   }
 
   document.addEventListener('astro:page-load', initThemeToggle);
@@ -116,5 +162,49 @@ if (typeof window !== 'undefined') {
     html.system-theme #themeToggle .moon {
         display: none;
     }
+
+    /* 毛玻璃弹窗基础样式 */
+  :global(#theme-toast) {
+    position: fixed;
+    bottom: 10%;               /* 距离视野底部 32px */
+    left: 50%;
+    transform: translateX(-50%) translateY(20px);
+    
+    /* 核心毛玻璃设置 */
+    background-color: rgba(255, 255, 255, 0.7); /* 半透明白色 */
+    backdrop-filter: blur(10px);              /* 模糊程度 */
+    -webkit-backdrop-filter: blur(10px);      /* 兼容 Safari */
+    
+    color: #1a1a1a;
+    padding: 10px 20px;
+    border-radius: 12px;
+    border: 1px solid var(--button-border-color); /* 细微边框增加质感 */
+    font-size: 0.9rem;
+    font-weight: 500;
+    z-index: 10000;
+    
+    /* 动画 */
+    opacity: 0;
+    visibility: hidden;
+    transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+    white-space: nowrap;
+    pointer-events: none;
+  }
+
+  /* 显示状态 */
+  :global(#theme-toast.show) {
+    opacity: 1;
+    visibility: visible;
+    transform: translateX(-50%) translateY(0);
+  }
+
+  /* 暗色模式下的毛玻璃（深色半透明） */
+  :global(html[data-theme="dark"] #theme-toast) {
+    background-color: rgba(30, 30, 30, 0.7);
+    border: 1px solid var(--button-border-color);
+    color: #eeeeee;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+  }
     
 </style>

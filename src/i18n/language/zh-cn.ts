@@ -98,6 +98,11 @@ const translation: Translation = {
         backToPreview: "返回上一页",
         errorCode: "错误代码：404 - 虚无之境",
         notice: "或许你可以尝试："
+    },
+    themeInfo: {
+        light: "切换到 浅色 模式",
+        dark: "切换到 深色 模式",
+        system: "切换到 跟随系统 模式"
     }
 }
 

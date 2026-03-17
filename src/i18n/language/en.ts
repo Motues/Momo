@@ -98,6 +98,11 @@ const translation: Translation = {
         backToPreview: "Previous Page",
         errorCode: "Error Code: 404 - Void Realm",
         notice: "Perhaps you can try:"
+    },
+    themeInfo: {
+        light: "Switch to Light Mode",
+        dark: "Switch to Dark Mode",
+        system: "Switch to Syatem Mode"
     }
 }
 

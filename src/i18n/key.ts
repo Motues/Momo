@@ -96,5 +96,10 @@ export interface Translation {
         backToPreview: string;
         errorCode: string;
         notice: string;
+    },
+    themeInfo: {
+        light: string;
+        dark: string;
+        system: string;
     }
 }
