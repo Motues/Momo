@@ -184,18 +184,18 @@
   <!-- 评论输入 -->
   <div data-aos="fade-up" class="mt-4">
     <form on:submit|preventDefault={() => submitComment()} class="space-y-4">
-      <div class="grid grid-cols-3 gap-3">
-        <div>
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+        <div class="">
           <label for="author" class="block text-sm text-[var(--text-color)] mb-1">{t('comments.name')}<span class="text-red-500">*</span></label>
           <input id="author" type="text" placeholder={t('comments.required')} bind:value={author}
             class="rounded w-full text-[var(--text-color)] border border-[var(--button-border-color)]  focus:outline-none focus:border-[var(--link-color)] text-sm p-2" />
         </div>
-        <div>
+        <div class="">
           <label for="email" class="block text-sm text-[var(--text-color)] mb-1">{t('comments.email')}<span class="text-red-500">*</span></label>
           <input id="email" type="email" placeholder={t('comments.required')} bind:value={email}
             class="rounded w-full text-[var(--text-color)] border border-[var(--button-border-color)]  focus:outline-none focus:border-[var(--link-color)] text-sm p-2" />
         </div>
-        <div>
+        <div class="">
           <label for="url" class="block text-sm text-[var(--text-color)] mb-1">{t('comments.site')}</label>
           <input id="url" type="url" placeholder={t('comments.optional')} bind:value={url}
             class="rounded w-full text-[var(--text-color)] border border-[var(--button-border-color)]  focus:outline-none focus:border-[var(--link-color)] text-sm p-2" />

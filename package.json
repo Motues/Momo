@@ -1,7 +1,7 @@
 {
   "name": "momo",
   "type": "module",
-  "version": "26.3.11",
+  "version": "26.3.29",
   "scripts": {
     "dev": "astro dev",
     "build": "astro build && pagefind --site dist",

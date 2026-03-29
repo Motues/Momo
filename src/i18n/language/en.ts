@@ -81,7 +81,8 @@ const translation: Translation = {
         deleteError: "Failed to delete comment",
         characters: "characters",
         words: "words",
-        contentTooLong: "Comment content exceeds limit: no more than 2000 characters or 1000 words"
+        contentTooLong: "Comment content exceeds limit: no more than 2000 characters or 1000 words",
+        replyTo: "reply to"
     },
     langNote: {
         note: "Note: ",

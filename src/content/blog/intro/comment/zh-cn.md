@@ -29,7 +29,7 @@ Momo 支持添加评论功能，并提供两种部署方式，支持零服务器
 ```html
 <div id="momo-comment"></div>
 
-<script src="https://cdn.jsdelivr.net/npm/@motues/momo-comment/dist/momo-comment.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@motues/momo-comment@1.1.x/dist/momo-comment.min.js"></script>
 <script>
     momo.init({
         el: '#momo-comment', // 评论容器的 id
@@ -41,6 +41,28 @@ Momo 支持添加评论功能，并提供两种部署方式，支持零服务器
 </script>
 ```
 
+> 建议使用版本号锁定版本，避免版本更新导致冲突
+
 评论系统也提供后台管理界面，支持审核和删除评论。
+
+## 自定义样式
+
+目前可以修改评论组件的颜色，后续会推出自定义样式的功能。颜色通过设置全局变量来修改，并且支持黑暗模式。
+
+```css
+:root {
+    --momo-text-color: #d51111;            /* 文字颜色 */
+    --momo-button-border-color: #e5e5e5;   /* 按钮边框颜色 */
+    --momo-button-hover-bg-color: #f5f5f5; /* 按钮背景颜色（hover 状态）*/
+    --momo-link-color: #003b6e;            /* 链接颜色 */
+}
+/* 暗色模式 */
+[data-theme="dark"] { 
+    --momo-text-color: #3ad8d8;
+    --momo-button-border-color: #2e2e2e;
+    --momo-button-hover-bg-color: #3c3c3c;
+    --momo-link-color: #fff;
+}
+```
 
 

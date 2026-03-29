@@ -40,4 +40,26 @@ If you need to use the comment feature in other projects, you can directly impor
 </script>
 ```
 
+> We recommend using version numbers to lock the version to avoid conflicts caused by updates.
+
 The comment system also provides a backend management interface supporting comment moderation and deletion.
+
+## Custom Styles
+
+Currently, you can modify the colors of the comment component; custom style features will be released in the future. Colors are modified by setting global variables, and dark mode is supported.
+
+```css
+:root {
+    --momo-text-color: #d51111;            /* Text color */
+    --momo-button-border-color: #e5e5e5;   /* Button border color */
+    --momo-button-hover-bg-color: #f5f5f5; /* Button background color (hover state) */
+    --momo-link-color: #003b6e;            /* Link color */
+}
+/* Dark mode */
+[data-theme=“dark”] { 
+    - -momo-text-color: #3ad8d8;
+    --momo-button-border-color: #2e2e2e;
+    --momo-button-hover-bg-color: #3c3c3c;
+    --momo-link-color: #fff;
+}
+```

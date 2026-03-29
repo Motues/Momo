@@ -81,7 +81,8 @@ const translation: Translation = {
         deleteError: "删除评论失败",
         characters: "字符",
         words: "单词",
-        contentTooLong: "评论内容超出限制：不超过2000字或1000单词"
+        contentTooLong: "评论内容超出限制：不超过2000字或1000单词",
+        replyTo: "回复"
     },
     langNote: {
         note: "注意：",
