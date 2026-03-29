@@ -54,7 +54,49 @@
     };
 
     window.addEventListener('popstate', handlePopState);
-    return () => window.removeEventListener('popstate', handlePopState);
+
+    const syncAsideHeight = () => {
+      const mainContent = document.getElementById('archive-content');
+      const aside = document.getElementById('category-sidebar');
+      
+      if (mainContent && aside) {
+        const mainHeight = mainContent.offsetHeight;
+        aside.style.height = `${mainHeight}px`;
+        
+      }
+    };
+
+    // 使用 setTimeout 确保 DOM 已完全渲染（特别是异步加载内容时）
+    setTimeout(syncAsideHeight, 0);
+
+    let resizeTimer;
+    const handleResize = () => {
+      clearTimeout(resizeTimer);
+      resizeTimer = setTimeout(syncAsideHeight, 100);
+    };
+    window.addEventListener('resize', handleResize);
+
+    const mainContent = document.getElementById('archive-content');
+    let mutationObserver;
+    if (mainContent) {
+      mutationObserver = new MutationObserver(syncAsideHeight);
+      mutationObserver.observe(mainContent, {
+        childList: true,    // 监听子节点增删
+        subtree: true,      // 监听后代节点
+        attributes: false,  // 不需要监听属性变化（性能优化）
+        characterData: false
+      });
+    }
+
+    return () => {
+        window.removeEventListener('popstate', handlePopState);
+        window.removeEventListener('resize', handleResize);
+        clearTimeout(resizeTimer);
+        
+        if (mutationObserver) {
+            mutationObserver.disconnect();
+        }
+    }
   });
 
   // 筛选点击逻辑
@@ -89,7 +131,7 @@
         <p class="text-[var(--text-color-70)] font-bold">{t("cover.subTitle.archive", {count: filteredPosts.length})}</p>
     </div>
 
-    <div class="py-6 mx-auto text-[var(--text-color)]">
+    <div class="py-6 mx-auto text-[var(--text-color)]" id="archive-content">
         {#each years as year (year)}
             <div class="mb-8">
                 <h2 class="text-2xl font-bold my-4 text-[var(--text-color)] flex items-center gap-3">
@@ -129,7 +171,9 @@
     </div>
 </div>
 
-<aside class="hidden lg:block absolute left-[var(--toc-offset-left)] top-70 bottom-0 w-[var(--category-width)]">
+    <aside 
+        id="category-sidebar"
+        class="hidden lg:block absolute left-[var(--toc-offset-left)] top-70 bottom-0 w-[var(--category-width)]">
         <div class="sticky top-24">
             <div class="flex items-center gap-2 text-[var(--text-color)] font-bold mb-4 border-b border-[var(--button-border-color)] pb-2 uppercase tracking-wider">
                 <Icon icon="fa6-solid:hashtag" class="text-xs" />
