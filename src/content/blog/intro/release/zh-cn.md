@@ -3,7 +3,7 @@ title: 更新指南和版本记录
 pubDate: 2026-03-11
 description: 网站配置
 category: 指南
-image: ""
+image: "./images/banner.png"
 draft: false
 slugId: blog/intro/release
 ---

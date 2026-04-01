@@ -3,7 +3,7 @@ title: 念念不忘，必有回响
 pubDate: 2024-07-10
 description: 纪念逝去的......
 category: 随笔
-image: "./images/banner.png"
+image: ""
 draft: false
 slugId: momo/memory
 ---

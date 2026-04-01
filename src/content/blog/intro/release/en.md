@@ -3,7 +3,7 @@ title: Update Guide and Release
 pubDate: 2026-03-11
 description: Website Configuration
 category: Instruction
-image: ""
+image: "./images/banner.png"
 draft: false
 slugId: momo/intro/release
 ---
