@@ -17,6 +17,7 @@ Momo originates from Xiaohongshu📕, serving as the default nickname for every 
 * **Internationalization (i18n)**: Supports multilingual switching, currently available in Simplified Chinese and English
 * **Mobile Adaptation**: Components optimized for mobile devices, delivering the same experience as desktop browsers
 * **Commenting**: Supports local deployment and Cloudflare deployment. See [Backend](https://github.com/Motues/Momo-Backend) for details
+* **Extensive Markdown syntax**: Supports Katex, Typst, and Alert components, GitHub cards, custom syntax, and more
 * Other core features: Article categories, directory, RSS subscription, text statistics, reading time
 
 ## 🚀 Quick Start

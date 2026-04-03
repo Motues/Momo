@@ -176,10 +176,36 @@ const className = Astro.props.class
           const a = document.createElement('a');
           a.href = img.src;
           a.className = 'pswp-link';
-          a.setAttribute('data-pswp-width', img.getAttribute('width') || '1080');
-          a.setAttribute('data-pswp-height', img.getAttribute('height') || '1080');
           
-          // 把 a 标签插在 img 前面，然后把 img 塞进去
+          // 优先使用已有属性
+          const width = img.getAttribute('width');
+          const height = img.getAttribute('height');
+          
+          if (width && height) {
+            a.setAttribute('data-pswp-width', width);
+            a.setAttribute('data-pswp-height', height);
+          } else {
+            // 外部图片：尝试从自然尺寸获取
+            // 如果图片已加载，直接使用 naturalWidth/naturalHeight
+            if (img.complete && img.naturalWidth) {
+              a.setAttribute('data-pswp-width', img.naturalWidth.toString());
+              a.setAttribute('data-pswp-height', img.naturalHeight.toString());
+            } else {
+              // 图片未加载完成，监听 load 事件
+              img.addEventListener('load', () => {
+                if (img.naturalWidth) {
+                  a.setAttribute('data-pswp-width', img.naturalWidth.toString());
+                  a.setAttribute('data-pswp-height', img.naturalHeight.toString());
+                }
+              }, { once: true });
+              
+              // 设置一个合理的默认值，避免铺满屏幕
+              // 大多数博客图片宽度在 800-1200 之间
+              a.setAttribute('data-pswp-width', '1000');
+              a.setAttribute('data-pswp-height', '750');
+            }
+          }
+          
           figure.insertBefore(a, img);
           a.appendChild(img);
         });

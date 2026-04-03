@@ -23,6 +23,10 @@ export function blogCoverUrl(contentPath: string, blogName: string): string {
 
     if (!contentPath) return '';
     
+    if (contentPath.startsWith('http')) {
+        return contentPath;
+    }
+
     // 处理相对路径 ./ 开头的情况
     if (contentPath.startsWith('./')) {
         contentPath = contentPath.substring(2);
