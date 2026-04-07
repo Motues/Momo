@@ -5,7 +5,7 @@ description: 网站配置
 category: 指南
 image: "./images/banner.png"
 draft: false
-slugId: blog/intro/release
+slugId: momo/intro/release
 ---
 
 
@@ -35,6 +35,13 @@ slugId: blog/intro/release
 ## 版本信息
 
 > 版本号采用 `YY.MM.DD` 的格式
+
+### v26.4.7
+
+* 修改翻译错误
+* 修改选中文本的颜色
+* 修改 Mucis Card 的 API 地址
+* 本次更新对配置文件 `src/i18n/language/en.ts` 进行了修改，修改了`themeInfo.system` 字段，其余字段保持不变；更新时只需要修改变化的字段即可
 
 ### v26.3.29
 

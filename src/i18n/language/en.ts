@@ -103,7 +103,7 @@ const translation: Translation = {
     themeInfo: {
         light: "Switch to Light Mode",
         dark: "Switch to Dark Mode",
-        system: "Switch to Syatem Mode"
+        system: "Switch to System Mode"
     }
 }
 

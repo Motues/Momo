@@ -19,13 +19,13 @@
   
 
   ::selection {
-    background-color: var(--button-hover-color);
-    /* color: var(--text-color); */
+    background-color: var(--selection-bg-color);
+    color: var(--selection-text-color);
   }
   
   ::-moz-selection {
-    background-color: var(--button-hover-color);
-    /* color: var(--text-color); */
+    background-color: var(--selection-bg-color);
+    color: var(--selection-text-color);
   }
 
 }

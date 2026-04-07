@@ -35,6 +35,13 @@ Below are general modification suggestions.
 
 > Version numbers follow the `YY.MM.DD` format
 
+### v26.4.7
+
+* Fixed translation errors
+* Changed the color of selected text
+* Updated the Mucis Card API URL
+* This update modifies the configuration file `src/i18n/language/en.ts` by changing the `themeInfo.system` field; all other fields remain unchanged. When updating, you only need to modify the fields that have changed.
+
 ### v26.3.29
 
 * Updated the comment data structure to support the new version of the comment backend

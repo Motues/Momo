@@ -39,26 +39,33 @@ export function MusicCardComponent(properties, children) {
                 // 幂等性检查：如果卡片不存在，或已经标记为加载完成，则不再执行
                 if (!card || card.dataset.loaded === "true") return;
 
-                fetch('https://163api.qijieya.cn/song/detail?ids=${songId}', { referrerPolicy: "no-referrer" })
+                fetch('https://meting.motues.top/music?server=netease&type=details&id=${songId}', { referrerPolicy: "no-referrer" })
                     .then(response => response.json())
                     .then(data => {
-                        if (data && data.songs && data.songs.length > 0) {
-                            const song = data.songs[0];
-                            
+                        if (data && data.id) {
                             // 更新标题
                             const titleEl = document.getElementById('${cardUuid}-title');
-                            if (titleEl) titleEl.innerText = song.name || "未知曲目";
+                            if (titleEl) titleEl.innerText = data.name || "未知曲目";
                             
                             // 更新艺术家
                             const artistEl = document.getElementById('${cardUuid}-artist');
-                            const artistName = song.ar ? song.ar.map(a => a.name).join(', ') : '未知艺术家';
+                            const artistName = Array.isArray(data.artist) ? data.artist.join(', ') : (data.artist || '未知艺术家');
                             if (artistEl) artistEl.innerText = artistName;
                             
-                            // 更新封面
+                            // 更新封面 - 先获取封面 URL
                             const coverEl = document.getElementById('${cardUuid}-cover');
-                            if (coverEl && song.al && song.al.picUrl) {
-                                coverEl.style.backgroundImage = 'url(' + song.al.picUrl + ')';
-                                coverEl.style.backgroundColor = 'transparent';
+                            if (coverEl) {
+                                fetch('https://meting.motues.top/music?server=netease&type=cover&id=${songId}', { referrerPolicy: "no-referrer" })
+                                    .then(res => res.json())
+                                    .then(coverData => {
+                                        if (coverData && coverData.url) {
+                                            coverEl.style.backgroundImage = 'url(' + coverData.url + ')';
+                                            coverEl.style.backgroundColor = 'transparent';
+                                        }
+                                    })
+                                    .catch(err => {
+                                        console.warn("[MUSIC-CARD] Error loading cover:", err);
+                                    });
                             }
 
                             // 移除等待状态并加锁

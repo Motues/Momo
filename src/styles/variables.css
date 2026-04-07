@@ -38,6 +38,9 @@
     --scrollbar-thumb: #c1c1c1;
     --scrollbar-thumb-hover: #a8a8a8;
     --scrollbar-track: #e1e1e1;
+
+    --selection-bg-color: #0063ba;
+    --selection-text-color: #ffffff;
   }
 
   [data-theme="dark"] {
@@ -61,4 +64,7 @@
     --scrollbar-thumb: #4a5568;
     --scrollbar-thumb-hover: #2d3748;
     --scrollbar-track: #1a202c;
+
+    --selection-bg-color: #2f5f80;
+    --selection-text-color: #ffffff;
   }
