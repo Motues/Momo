@@ -4,6 +4,7 @@ export interface Translation {
         archive: string;
         about: string;
         friends: string;
+        memos: string;
     };
     cover: {
         title: {
@@ -11,12 +12,14 @@ export interface Translation {
             archive: string;
             about: string;
             friends: string;
+            memos: string;
         };
         subTitle: {
             home: string;
             archive: string;
             about: string;
             friends: string;
+            memos: string;
         };
     };
     toc:string;
@@ -102,5 +105,11 @@ export interface Translation {
         light: string;
         dark: string;
         system: string;
+    },
+    memoCard: {
+        words: string;
+        minutes: string;
+        expanded: string;
+        collapsed: string;
     }
 }

@@ -1,0 +1,41 @@
+---
+import MainPageLayout from '@layouts/MainPageLayout.astro'
+import FabMenu from '@components/control/FabMenu.astro'
+import Cover from '@components/Cover.astro';
+import MemoTimeline from '@components/memos/MemoTimeline.astro';
+import { siteConfig } from '@/config'
+import { getMemos } from '@utils/content-utils'
+import i18nit from '@i18n/translation'
+import { i18n } from "astro:config/client";
+
+
+
+const currentLang = Astro.currentLocale || i18n!.defaultLocale;
+const t = i18nit(currentLang);
+
+export async function getStaticPaths() {
+	return i18n?.locales.map(locale => ({ params: { locale: locale == i18n?.defaultLocale ? undefined : (locale as string) } }));
+}
+
+const memosPost = await getMemos();
+if (!memosPost) {
+    throw new Error('No memos post found');
+}
+// console.log(memosPost)
+const sortedMemos = memosPost.sort((a, b) => b.id.localeCompare(a.id));
+
+const pageTitle = t("header.memos") + " - " + siteConfig.title;
+---
+
+<MainPageLayout title={pageTitle} lang={currentLang}>
+    <div class="mx-auto w-full max-w-[var(--page-width)]">
+        <Cover title={t("cover.title.memos")} subTitle={t("cover.subTitle.memos")} />
+        
+        <div class="mt-8">
+            {sortedMemos.map((memo) => (
+                <MemoTimeline memo={memo} />
+            ))}
+        </div>
+    </div>
+    <FabMenu showBackBottom={true} />
+</MainPageLayout>

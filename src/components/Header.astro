@@ -36,6 +36,7 @@ const indexPage = getRelativeLocaleUrl(currentLang, "/");
 const archivesPage = getRelativeLocaleUrl(currentLang, "/archives/");
 const friendsPage = getRelativeLocaleUrl(currentLang, "/friends/");
 const aboutPage = getRelativeLocaleUrl(currentLang, "/about/");
+const memosPage = getRelativeLocaleUrl(currentLang, "/memos/");
 
 let introPage : string;
 
@@ -138,6 +139,14 @@ if (profileConfig.indexPage) {
               }`}>
               {t("header.friends")}
           </a>
+          <!-- 碎碎恋链接 -->
+          <a href={ memosPage } class={`transition-colors rounded-lg px-3 py-1 mx-1 hover:text-current ${
+              Astro.url.pathname === memosPage 
+                  ? 'bg-[var(--button-hover-color)]' 
+                  : 'hover:bg-[var(--button-hover-color)]'
+              }`}>
+              {t("header.memos")}
+          </a>
         </div>
     </div>
 <!-- Mobile Menu -->
@@ -169,6 +178,10 @@ if (profileConfig.indexPage) {
             <a href={ friendsPage } class="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-[var(--button-hover-color)] hover:text-[var(--link-color)] transition-colors active:bg-[var(--button-hover-color)] active:text-[var(--link-color)]">
                 <Icon name="fa6-solid:link" class="w-4 h-4 opacity-70" />
                 <span>{t("header.friends")}</span>
+            </a>
+            <a href={ memosPage } class="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-[var(--button-hover-color)] hover:text-[var(--link-color)] transition-colors active:bg-[var(--button-hover-color)] active:text-[var(--link-color)]">
+                <Icon name="fa6-solid:book" class="w-4 h-4 opacity-70" />
+                <span>{t("header.memos")}</span>
             </a>
         </nav>
 

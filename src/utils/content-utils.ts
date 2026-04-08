@@ -85,3 +85,8 @@ export async function getSpec(
     if(!collection) collection = await getEntry('spec', `${spec}/${defaultLanguage}`);
     return collection;
 }
+
+export async function getMemos() {
+  const collection = await getCollection('memos');
+  return collection;
+}

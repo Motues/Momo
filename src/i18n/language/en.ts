@@ -6,6 +6,7 @@ const translation: Translation = {
         archive: "Archive",
         about: "About",
         friends: "Friends",
+        memos: "Memos"
     },
     cover: {
         title: {
@@ -13,12 +14,14 @@ const translation: Translation = {
             archive: "Archive",
             about: "About",
             friends: "Friends",
+            memos: "Memos"
         },
         subTitle: {
             home: "Life is colorful!",
             archive: "Total of {count} articles",
             about: "A minimalist blog template",
             friends: "Interesting Souls",
+            memos: "Capturing the little moments of life"
         }
     },
     toc: "Contents",
@@ -104,6 +107,12 @@ const translation: Translation = {
         light: "Switch to Light Mode",
         dark: "Switch to Dark Mode",
         system: "Switch to System Mode"
+    },
+    memoCard: {
+        words: "words",
+        minutes: "min read",
+        expanded: "Read more",
+        collapsed: "Collapse"
     }
 }
 

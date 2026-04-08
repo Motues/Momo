@@ -1,0 +1,31 @@
+---
+import { render } from 'astro:content'
+import { formatFullDate } from '@/utils/time'
+import { i18n } from "astro:config/client";
+import i18nit from '@i18n/translation'
+
+import MemoCardSvelte from './MemoCard.svelte'
+import Markdown from '@components/misc/Markdown.astro'
+
+const { memo } = Astro.props;
+
+const currentLang = Astro.currentLocale || i18n!.defaultLocale;
+const t = i18nit(currentLang);
+
+const dateStr = memo.id; 
+const { Content } = await render(memo);
+
+const dateFormatted = formatFullDate(new Date(dateStr), currentLang);
+---
+
+<MemoCardSvelte 
+  client:visible 
+  dateFormatted={dateFormatted} 
+  words={memo.data.words} 
+  minutes={memo.data.minutes}
+  language={currentLang}
+>
+    <Markdown class="markdown-content onload-animation">
+        <Content />
+    </Markdown>
+</MemoCardSvelte>
