@@ -10,8 +10,8 @@
     "newpost": "node script/newpost.js"
   },
   "dependencies": {
-    "@astrojs/rss": "^4.0.12",
-    "@astrojs/svelte": "^7.2.4",
+    "@astrojs/rss": "^4.0.18",
+    "@astrojs/svelte": "^8.0.4",
     "@chinese-fonts/lxgwwenkaibright": "^2.0.0",
     "@fontsource-variable/jetbrains-mono": "^5.2.8",
     "@iconify/svelte": "^5.2.1",
@@ -19,7 +19,7 @@
     "@myriaddreamin/typst.ts": "0.7.0-rc2",
     "@tailwindcss/vite": "^4.1.13",
     "aos": "^2.3.4",
-    "astro": "^5.13.7",
+    "astro": "^6.1.4",
     "astro-icon": "^1.1.5",
     "hastscript": "^9.0.1",
     "katex": "^0.16.22",
