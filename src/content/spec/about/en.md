@@ -9,6 +9,7 @@ Momo originates from Xiaohongshu's 📕, serving as every new user's initial nic
 * **Internationalization (i18n)**: Supports multilingual switching, currently available in Simplified Chinese and English
 * **Mobile Optimization**: Components optimized for mobile devices, delivering the same experience as desktop browsers
 * **Commenting System**: Supports local deployment and Cloudflare deployment. Details in [Backend](https://github.com/Motues/Momo-Backend)
+* **Extensive Markdown syntax**: Supports Katex, Typst, and Alert components, GitHub cards, custom syntax, and more
 * Additional Core Features: Post categorization, directory, RSS subscription, text statistics, reading time
 
 
