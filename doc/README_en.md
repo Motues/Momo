@@ -38,6 +38,13 @@ Refer to the [Configuration Guide](./config_en.md). For detailed information, vi
 
 Refer to the [Update Guide](./release_en.md) for instructions on updating your project. Visit [Momo](https://momo.motues.top/en/intro/release) for detailed information.
 
+## 🍃 Branch
+
+Below are some branches that are maintained on an irregular basis; we cannot guarantee that they will remain in sync with the `main` branch.
+
+* `memos`: Implements the Memos card feature
+* `v6`: Upgrades dependencies to Astro v6
+
 ## ⚡ Commands
 
 All commands below can be executed in the root directory
