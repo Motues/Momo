@@ -106,7 +106,7 @@ if (profileConfig.indexPage) {
 
     <!-- nav_bar -->
     <div id="nav-bar" class="hidden md:flex absolute left-1/2 top-0 transform -translate-x-1/2  justify-center items-center text-lg font-bold my-5 z-100">
-        <div id="nav-bar-list" class="transition relative z-10 flex max-w-max flex-1 items-center justify-center rounded-outer p-2 backdrop-blur rounded-xl bg-[color:var(--bg-color)]/20">
+        <div id="nav-bar-list" class="transition relative z-10 flex max-w-max flex-1 items-center justify-center rounded-outer p-2 backdrop-blur rounded-xl bg-[color:var(--bg-color)]/20 border border-[var(--bg-color)]">
           <!-- 首页链接 -->
           <a href={ indexPage } class={`transition-colors rounded-lg px-3 py-1 mx-1 hover:text-current ${
               Astro.url.pathname === indexPage 
@@ -261,16 +261,16 @@ function initMobileNav() {
   window.addEventListener('scroll', () => {
     if (window.scrollY > 0 && !isFixed && navBar && navBarList) {
       navBar.classList.add('fixed');
+      navBar.classList.remove('border-[var(--bg-color)]');
       navBarList.classList.add(
-        'border',
         'border-[var(--button-border-color)]',
         'shadow-[0_4px_12px_var(--shadow-color)]'
       );
       isFixed = true;
     } else if (window.scrollY === 0 && isFixed && navBar && navBarList) {
       navBar.classList.remove('fixed');
+      navBar.classList.add('border-[var(--bg-color)]');
       navBarList.classList.remove(
-        'border',
         'border-[var(--button-border-color)]',
         'shadow-[0_4px_12px_var(--shadow-color)]'
       );

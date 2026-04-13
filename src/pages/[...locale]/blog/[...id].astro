@@ -143,5 +143,5 @@ const { remarkPluginFrontmatter } = await render(entry);
         siteConfig.toc.enable &&
         <TOC headings={headings} language={currentLang} client:load/>
     }
-    <FabMenu headings={headings} showComment={true}/>
+    <FabMenu headings={headings} showComment={siteConfig.comments.enable} showBackBottom={!siteConfig.comments.enable}/>
 </MainPageLayout>

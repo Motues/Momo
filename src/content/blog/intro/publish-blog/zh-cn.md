@@ -15,7 +15,7 @@ slugId: momo/intro/publish
 
 例如，创建一篇名为 `src/content/blog/my-first-post/` 的文件夹，或在子目录中创建`src/content/blog/posts/my-first-post/`；编写的文章最后会根据文件的相对路径（相对于 `src/content/`）发布到对应的路由上，比如`/blog/my-first-post`。
 
-为了使用国际化，对于不同语言的文章，请使用 `<language>.md` 问价进行区分，比如`src/content/blog/my-first-post/zh-cn.md`和`src/content/blog/my-first-post/en.md`，分别表示一篇文章的中文和英文版本。
+为了使用国际化，对于不同语言的文章，请使用 `<language>.md` 文件进行区分，比如`src/content/blog/my-first-post/zh-cn.md`和`src/content/blog/my-first-post/en.md`，分别表示一篇文章的中文和英文版本。
 
 :::important
 * 一定要存在默认的语言版本，在生成页面时，如果当前文章缺少对于语言版本，则使用默认语言版本作为文章内容。
