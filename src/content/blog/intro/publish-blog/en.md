@@ -34,6 +34,7 @@ category: Category
 image: ""
 draft: false
 slugId: intro/publish
+pinTop: 2
 ---
 ```
 
@@ -46,6 +47,7 @@ slugId: intro/publish
 | `image` | Cover image, using relative paths relative to the current file, e.g., `./images/cover.png` |
 | `draft` | Draft status; articles in draft mode won't appear on the blog homepage when published |
 | `slugId` | Article ID, used for generating routes. Each article must be unique. It is recommended to use article paths, such as `intro/publish`. |
+| `pinTop` | Whether to pin to the top; leaving this unset or setting it to a number less than 1 means not to pin; the higher the number, the higher the item appears in the layout |
 
 ## Writing Article Content
 
