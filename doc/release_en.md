@@ -27,6 +27,12 @@ Below are general modification suggestions.
 
 > Version numbers follow the `YY.MM.DD` format
 
+### v26.4.21
+
+* Added AOS animation toggle configuration
+* The comment system now supports Twikoo
+* This update modifies the `config.ts` configuration file by adding the `theme.AOS` and `comments.platform` fields; these new fields must be added when updating
+
 ### v26.4.15
 
 * Added the function for pined posts
