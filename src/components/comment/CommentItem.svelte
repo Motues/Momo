@@ -5,6 +5,7 @@
   // 👇 自引用，递归必须这样导入
   import CommentItem from './CommentItem.svelte';
   import i18nit from '../../i18n/translation.ts';
+  import { parseMarkdown, validateMarkdown } from '@utils/markdown';
   import { siteConfig } from '@/config.ts';
   import { formatFullDate } from '@/utils/time';
 
@@ -50,6 +51,17 @@
   
   // 防止重复提交 - 每个回复表单独立的状态
   let replySubmitting = false;
+  let replyShowPreview = false;
+  let replyPreviewHtml = '';
+  let replyMarkdownWarnings: string[] = [];
+
+  function toggleReplyPreview() {
+    if (!replyShowPreview) {
+      replyPreviewHtml = parseMarkdown(replyContent);
+      replyMarkdownWarnings = validateMarkdown(replyContent);
+    }
+    replyShowPreview = !replyShowPreview;
+  }
   
   const dispatch = createEventDispatcher();
   
@@ -233,10 +245,27 @@
           </div>
 
           <div>
-            <textarea placeholder={t('comments.replyPlaceholder') || "写下你的回复..."} 
-              class="rounded w-full border text-[var(--text-color)] border-[var(--button-border-color)] focus:outline-none focus:border-[var(--link-color)] text-sm p-2 min-h-[80px]"
-              bind:value={replyContent}></textarea>
-            <div class="text-right text-xs text-[var(--text-color-70)] mt-1">
+            {#if replyShowPreview}
+              <div class="rounded border text-[var(--text-color)] border-[var(--button-border-color)] p-2 min-h-[80px] text-sm leading-relaxed comment-markdown">
+                {#if replyContent.trim() === ''}
+                  <p>{t('comments.preview') || '预览'}</p>
+                {:else}
+                  <div>{@html replyPreviewHtml}</div>
+                {/if}
+              </div>
+              {#if replyMarkdownWarnings.length > 0}
+                <div class="mt-1 text-xs text-amber-500">
+                  {#each replyMarkdownWarnings as warning}
+                    <p>{warning === 'codeFence' ? (t('comments.codeFence') || '代码块标记 ``` 未闭合') : (t('comments.inlineCode') || '行内代码标记 ` 未闭合')}</p>
+                  {/each}
+                </div>
+              {/if}
+            {:else}
+              <textarea placeholder={t('comments.replyPlaceholder') || "写下你的回复..."}
+                class="rounded w-full border text-[var(--text-color)] border-[var(--button-border-color)] focus:outline-none focus:border-[var(--link-color)] text-sm p-2 min-h-[80px]"
+                bind:value={replyContent}></textarea>
+            {/if}
+            <div class="text-right text-xs text-[var(--text-color)]/70 mt-1">
               {#if !isContentWithinLimit(replyContent)}
                 <span class="text-red-500 ml-2">{t('comments.contentTooLong') || '内容超出限制'}</span>
               {/if}
@@ -244,6 +273,10 @@
           </div>
 
           <div class="flex justify-end gap-2">
+            <button type="button" on:click={toggleReplyPreview}
+              class="rounded px-3 py-1 text-sm text-[var(--text-color)] border border-[var(--button-border-color)] hover:bg-[var(--button-hover-bg-color)]">
+              {replyShowPreview ? (t('comments.write') || '撰写') : (t('comments.preview') || '预览')}
+            </button>
             <button type="button" on:click={() => {
               dispatch('cancel');
               replySubmitting = false;
