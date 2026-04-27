@@ -34,7 +34,7 @@ export const profileConfig: ProfileConfig = {
     avatar: "assets/Motues.jpg", // Relative to the /src directory. Relative to the /public directory if it starts with '/'
     name: "Motues",
     description: "Life is colorful!",
-    indexPage: "https://motues.top",
+    indexPage: "https://www.motues.top",
     startYear: 2024,
 }
 
@@ -47,8 +47,8 @@ export const licenseConfig: LicenseConfig = {
 export const friendLinkConfig: FriendLink[] = [
     {
         name: 'Motues',
-        avatar: 'https://avatars.githubusercontent.com/u/164032838',
-        url: 'https://motues.top',
+        avatar: 'https://www.motues.top/avatar.jpg',
+        url: 'https://www.motues.top',
         description: 'Like River!'
     },
     {

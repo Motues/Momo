@@ -27,6 +27,11 @@ Below are general modification suggestions.
 
 > Version numbers follow the `YY.MM.DD` format
 
+### v26.4.27
+
+* The comment system now supports Markdown syntax
+* This update modifies the configuration file `src/i18n/`, adding fields such as `comments.write`; all other fields remain unchanged. When making modifications, simply add the new fields
+
 ### v26.4.21
 
 * Added AOS animation toggle configuration

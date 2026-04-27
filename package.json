@@ -1,7 +1,7 @@
 {
   "name": "momo",
   "type": "module",
-  "version": "26.4.21",
+  "version": "26.4.27",
   "scripts": {
     "dev": "astro dev",
     "build": "astro build && pagefind --site dist",
@@ -25,6 +25,7 @@
     "astro-icon": "^1.1.5",
     "hastscript": "^9.0.1",
     "katex": "^0.16.22",
+    "marked": "^18.0.2",
     "mdast-util-to-string": "^4.0.0",
     "pagefind": "^1.4.0",
     "photoswipe": "^5.4.4",
