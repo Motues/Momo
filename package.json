@@ -1,7 +1,7 @@
 {
   "name": "momo",
   "type": "module",
-  "version": "26.4.7",
+  "version": "26.4.27",
   "scripts": {
     "dev": "astro dev",
     "build": "astro build && pagefind --site dist",
@@ -14,6 +14,8 @@
     "@astrojs/svelte": "^7.2.4",
     "@chinese-fonts/lxgwwenkaibright": "^2.0.0",
     "@fontsource-variable/jetbrains-mono": "^5.2.8",
+    "@fontsource/eb-garamond": "^5.2.7",
+    "@fontsource/noto-serif-sc": "^5.2.9",
     "@iconify/svelte": "^5.2.1",
     "@myriaddreamin/typst-ts-node-compiler": "0.7.0-rc2",
     "@myriaddreamin/typst.ts": "0.7.0-rc2",
@@ -23,8 +25,8 @@
     "astro-icon": "^1.1.5",
     "hastscript": "^9.0.1",
     "katex": "^0.16.22",
+    "marked": "^18.0.2",
     "mdast-util-to-string": "^4.0.0",
-    "overlayscrollbars": "^2.12.0",
     "pagefind": "^1.4.0",
     "photoswipe": "^5.4.4",
     "reading-time": "^1.5.0",
@@ -41,6 +43,7 @@
   "devDependencies": {
     "@iconify-json/fa6-brands": "^1.2.6",
     "@iconify-json/fa6-solid": "^1.2.4",
+    "@iconify-json/fluent": "^1.2.45",
     "@iconify-json/material-symbols": "^1.2.35",
     "@iconify-json/simple-icons": "^1.2.48",
     "@iconify-json/vscode-icons": "^1.2.29"

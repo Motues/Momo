@@ -11,6 +11,7 @@ const blogCollection = defineCollection({
         image: z.string().optional().default(''),
         slugId: z.string(),
         category: z.string().optional(),
+        pinTop: z.number().optional().default(0),
     }),
 })
 

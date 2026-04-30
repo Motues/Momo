@@ -35,6 +35,7 @@ category: 分类
 image: ""
 draft: false
 slugId: intro/publish
+pinTop: 2
 ---
 ```
 
@@ -47,6 +48,7 @@ slugId: intro/publish
 | `image` | 封面图片，支持本地图片和外部图片；如果是本地图片，请使用对路径，相对于当前文件，比如`./images/cover.png` |
 | `draft` | 是否草稿，当文章处于草稿状态，发布的时候将不会显示在博客主页 |
 | `slugId` | 文章的ID，用于生成路由，每篇文章必须是唯一的，建议使用文章路径，比如`intro/publish` |
+| `pinTop` | 是否置顶，不设置或数字小于1表示不置顶，数字越大越排版越靠前 |
 
 ## 编写文章内容
 

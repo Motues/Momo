@@ -37,7 +37,8 @@ export default defineConfig({
       "fa6-solid": ["*"],
       "simple-icons": ["*"],
       "vscode-icons": ["*"],
-      "material-symbols": ["*"]
+      "material-symbols": ["*"],
+      "flue": ["*"],
     }
   }), svelte()],
   markdown: {

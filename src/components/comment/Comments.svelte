@@ -3,6 +3,8 @@
   import { siteConfig } from '@/config.ts';
   import CommentItem from './CommentItem.svelte';
   import i18nit from '../../i18n/translation.ts';
+  import { parseMarkdown, validateMarkdown } from '@utils/markdown';
+
 
   export let postSlug: string;
   export let language: string = 'zh-cn';
@@ -31,8 +33,22 @@
   // 当前正在回复的评论ID
   let replyingToId: number | null = null;
 
+  let showPreview = false;
+  let previewHtml = '';
+  let markdownWarnings: string[] = [];
+
+  function togglePreview() {
+    if (!showPreview) {
+      previewHtml = parseMarkdown(content);
+      markdownWarnings = validateMarkdown(content);
+    }
+    showPreview = !showPreview;
+  }
+
   // 本地存储键名
   const STORAGE_KEY = 'comment_user_info';
+  const STORAGE_KEY_DRAFT = 'momo_comment_draft';
+  let loaded = false;
 
   // 从本地存储加载用户信息
   function loadUserInfoFromStorage() {
@@ -56,6 +72,16 @@
       localStorage.setItem(STORAGE_KEY, JSON.stringify(userInfo));
     } catch (e) {
       console.warn('Failed to save user info to localStorage:', e);
+    }
+  }
+
+  // Auto-save user info and content draft on every change
+  $: if (loaded) {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({ author, email, url }));
+    if (content) {
+      localStorage.setItem(STORAGE_KEY_DRAFT, content);
+    } else {
+      localStorage.removeItem(STORAGE_KEY_DRAFT);
     }
   }
 
@@ -147,6 +173,7 @@
       if (!replyData) {
         content = '';
         // 保存用户信息到本地存储
+        localStorage.removeItem(STORAGE_KEY_DRAFT);
         saveUserInfoToStorage();
       }
       replyingToId = null;
@@ -175,6 +202,9 @@
 
   onMount(() => {
     loadUserInfoFromStorage();
+    const draft = localStorage.getItem(STORAGE_KEY_DRAFT);
+    if (draft) content = draft;
+    loaded = true;
     loadComments();
   });
 </script>
@@ -202,12 +232,29 @@
         </div>
       </div>
 
-      <div>
-        <textarea placeholder={t('comments.welcome')}
-          class="rounded w-full border text-[var(--text-color)] border-[var(--button-border-color)]  focus:outline-none focus:border-[var(--link-color)] text-sm p-3 min-h-[100px]"
-          bind:value={content}></textarea>
-        <div class="text-right text-sm text-[var(--text-color-70)] mt-1">
-          <!-- {getWordCount(content).chars} {t('comments.characters')} / {getWordCount(content).words} {t('comments.words')} -->
+       <div>
+        {#if showPreview}
+          <div class="rounded border text-[var(--text-color)] border-[var(--button-border-color)] p-3 min-h-[100px] text-sm leading-relaxed comment-preview">
+            {#if content.trim() === ''}
+              <p>{t('comments.preview') || '预览'}</p>
+            {:else}
+              <div>{@html previewHtml}</div>
+            {/if}
+          </div>
+          {#if markdownWarnings.length > 0}
+            <div class="mt-1 text-xs text-amber-500">
+              {#each markdownWarnings as warning}
+                <p>{warning === 'codeFence' ? (t('comments.codeFence') || '代码块标记 ``` 未闭合') : (t('comments.inlineCode') || '行内代码标记 ` 未闭合')}</p>
+              {/each}
+            </div>
+          {/if}
+        {:else}
+          <textarea placeholder={t('comments.welcome')}
+            class="rounded w-full border text-[var(--text-color)] border-[var(--button-border-color)] focus:outline-none focus:border-[var(--link-color)] text-sm p-3 min-h-[100px]"
+            bind:value={content}></textarea>
+        {/if}
+
+        <div class="text-right text-sm text-[var(--text-color)]/70 mt-1">
           {#if !isContentWithinLimit(content)}
             <span class="text-red-500 ml-2">{t('comments.contentTooLong') || '内容超出限制'}</span>
           {/if}
@@ -215,6 +262,10 @@
       </div>
 
       <div class="flex justify-end gap-3">
+      <button type="button" on:click={togglePreview}
+          class="rounded px-4 py-2 text-sm font-medium text-[var(--text-color)] border border-[var(--button-border-color)] hover:bg-[var(--button-hover-bg-color)]">
+          {showPreview ? t('comments.write') : t('comments.preview')}
+        </button>
         <button type="submit" disabled={submitting || !isContentWithinLimit(content)}
           class="rounded px-4 py-2 text-sm font-medium text-[var(--text-color)] border border-[var(--button-border-color)] hover:bg-[var(--button-hover-color)] disabled:opacity-50">
           {submitting ? t('comments.sending') : t('comments.send')}
@@ -241,7 +292,12 @@
               await submitComment(e.detail.parentId, e.detail);
             }}
             on:delete={handleCommentDelete}
-            replyingToId={replyingToId} />
+            replyingToId={replyingToId}
+            on:userInfoChange={(e) => {
+              author = e.detail.author;
+              email = e.detail.email;
+              url = e.detail.url;
+            }} />
         {/each}
       </div>
 
@@ -254,3 +310,88 @@
     {/if}
   </div>
 </div>
+
+<style>
+  .comment-preview :global(h1),
+  .comment-preview :global(h2),
+  .comment-preview :global(h3),
+  .comment-preview :global(h4) {
+    margin-top: 1rem;
+    margin-bottom: 0.5rem;
+    font-weight: 600;
+    line-height: 1.3;
+  }
+  .comment-preview :global(h1) { font-size: 1.5rem; }
+  .comment-preview :global(h2) { font-size: 1.25rem; }
+  .comment-preview :global(h3) { font-size: 1.1rem; }
+  .comment-preview :global(p) { margin-bottom: 0.5rem; }
+  .comment-preview :global(ul),
+  .comment-preview :global(ol) {
+    margin-bottom: 0.5rem;
+    padding-left: 1.5rem;
+  }
+  .comment-preview :global(ul) { list-style-type: disc; }
+  .comment-preview :global(ol) { list-style-type: decimal; }
+  .comment-preview :global(li) { margin-bottom: 0.25rem; }
+  .comment-preview :global(blockquote) {
+    border-left: 3px solid var(--link-color, #6366f1);
+    padding-left: 0.75rem;
+    margin: 0.5rem 0;
+    opacity: 0.85;
+  }
+  .comment-preview :global(pre) {
+    background: rgba(0,0,0,0.08);
+    border-radius: 4px;
+    padding: 0.75rem;
+    overflow-x: auto;
+    margin: 0.5rem 0;
+    font-size: 0.85rem;
+  }
+  .comment-preview :global(code) {
+    background: rgba(0,0,0,0.06);
+    border-radius: 3px;
+    padding: 0.15rem 0.3rem;
+    font-size: 0.85rem;
+    font-family: monospace;
+  }
+  .comment-preview :global(pre code) {
+    background: none;
+    padding: 0;
+    border-radius: 0;
+  }
+  .comment-preview :global(a) {
+    color: var(--link-color, #6366f1);
+    text-decoration: underline;
+  }
+  .comment-preview :global(img) {
+    max-width: 100%;
+    height: auto;
+    border-radius: 4px;
+    margin: 0.5rem 0;
+  }
+  .comment-preview :global(hr) {
+    border: none;
+    border-top: 1px solid var(--button-border-color, #ddd);
+    margin: 1rem 0;
+  }
+  .comment-preview :global(table) {
+    border-collapse: collapse;
+    width: 100%;
+    margin: 0.5rem 0;
+    font-size: 0.9rem;
+  }
+  .comment-preview :global(th),
+  .comment-preview :global(td) {
+    border: 1px solid var(--button-border-color, #ddd);
+    padding: 0.4rem 0.6rem;
+    text-align: left;
+  }
+  .comment-preview :global(th) {
+    font-weight: 600;
+    background: rgba(0,0,0,0.04);
+  }
+  .comment-preview :global(del) {
+    text-decoration: line-through;
+    opacity: 0.7;
+  }
+</style>

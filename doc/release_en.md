@@ -27,7 +27,47 @@ Below are general modification suggestions.
 
 > Version numbers follow the `YY.MM.DD` format
 
-## v26.3.11
+### v26.4.27
+
+* The comment system now supports Markdown syntax
+* This update modifies the configuration file `src/i18n/`, adding fields such as `comments.write`; all other fields remain unchanged. When making modifications, simply add the new fields
+
+### v26.4.21
+
+* Added AOS animation toggle configuration
+* The comment system now supports Twikoo
+* This update modifies the `config.ts` configuration file by adding the `theme.AOS` and `comments.platform` fields; these new fields must be added when updating
+
+### v26.4.15
+
+* Added the function for pined posts
+* Updated the Music Card API URL
+* Fixed some styling issues
+* This update modifies the `astro.config.mjs` configuration file and adds a new dependency, `@iconify-json/fluent`. You must add the corresponding fields and run `pnpm install`.
+
+### v26.4.7
+
+* Fixed translation errors
+* Changed the color of selected text
+* Updated the Mucis Card API URL
+* This update modifies the configuration file `src/i18n/language/en.ts` by changing the `themeInfo.system` field; all other fields remain unchanged. When updating, you only need to modify the fields that have changed.
+
+### v26.3.29
+
+* Updated the comment data structure to support the new version of the comment backend
+* Optimized the styling of comments on mobile devices
+* Fixed an issue where the category menu on the archive page was misaligned
+* This update modifies the configuration file `src/i18n/` by adding the `comments.replyTo` field; all other fields remain unchanged. To apply the changes, simply add the new field
+
+### v26.3.17
+
+* Changed the style of comment avatars to circular
+* Adjusted the margins of some components
+* This update modifies the configuration file `src/i18n/` by adding the `themeInfo` field; all other fields remain unchanged. To apply the changes, simply add the new field
+
+Translated with DeepL.com (free version)
+
+### v26.3.11
 
 * Initial release version `v26.3.11`
 * Multiple project improvements, including: optimized mobile experience, unified website color scheme

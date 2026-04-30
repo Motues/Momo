@@ -2,7 +2,9 @@
 import { siteConfig, profileConfig } from '@/config';
 import "@styles/global.css"
 import 'katex/dist/katex.min.css';
-import 'aos/dist/aos.css';
+import '@fontsource/eb-garamond';
+import '@fontsource/noto-serif-sc/400.css';
+import '@fontsource/noto-serif-sc/700.css';
 import 'photoswipe/style.css'
 import { i18n } from "astro:config/client";
 import { ClientRouter } from "astro:transitions";
@@ -47,8 +49,6 @@ const pageLang = lang || i18n?.defaultLocale || "zh-cn";
     <meta name="author" content={profileConfig.name}>
     <link rel="alternate" type="application/rss+xml" title={siteConfig.title} href={new URL("rss.xml", Astro.site)} >
     <link rel="icon" href={siteConfig.favicon} type="image/x-icon">
-    <link rel="stylesheet" href="https://fonts.font.im/css2?family=Noto+Serif+SC:wght@400;700&display=swap">
-    <link rel="stylesheet" href="https://fonts.font.im/css2?family=EB+Garamond&display=swap">
     <script defer src="https://umami.motues.top/script.js" data-hash is:inline></script>
     <title>{pageTitle}</title>
     <ClientRouter />
@@ -127,8 +127,11 @@ const pageLang = lang || i18n?.defaultLocale || "zh-cn";
   }
 </style>
 
+{ siteConfig.theme.AOS &&
 <script>
   import AOS from 'aos';
+  import 'aos/dist/aos.css';
+
 
   function initApp() {
     // 1. 先处理 Markdown 的动态注入 (如果有)
@@ -155,3 +158,4 @@ const pageLang = lang || i18n?.defaultLocale || "zh-cn";
   // document.addEventListener('astro:after-swap', initApp);
 
 </script>
+}

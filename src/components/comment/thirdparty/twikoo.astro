@@ -1,0 +1,35 @@
+---
+interface Props {
+  envId: string; 
+  language?: string | 'zh-CN';
+  postSlug: string;
+}
+
+const { envId, postSlug, language } = Astro.props;
+---
+
+<div id="twikoo-comment"></div>
+
+<script is:inline define:vars={{ envId, postSlug, language }}>
+  function initTwikoo() {
+    const script = document.createElement('script');
+    script.src = 'https://cdn.jsdelivr.net/npm/twikoo@1.7.7/dist/twikoo.min.js';
+    script.async = true;
+    script.onload = () => {
+      window.twikoo.init({
+        envId: envId,
+        el: '#twikoo-comment',
+        path: postSlug,
+        lang: language
+      });
+    };
+    document.head.appendChild(script);
+  }
+  initTwikoo();
+
+  document.addEventListener('astro:page-load', initTwikoo);
+</script>
+
+<style>
+
+</style>

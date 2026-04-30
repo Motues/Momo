@@ -1,11 +1,12 @@
 ---
 title: 更新指南和版本记录
-pubDate: 2026-03-11
+pubDate: 2026-01-01
 description: 网站配置
 category: 指南
 image: "./images/banner.png"
 draft: false
 slugId: momo/intro/release
+pinTop: 1
 ---
 
 
@@ -35,6 +36,24 @@ slugId: momo/intro/release
 ## 版本信息
 
 > 版本号采用 `YY.MM.DD` 的格式
+
+### v26.4.27
+
+* 评论系统支持 Markdown 语法
+* 本次更新对配置文件 `src/i18n/` 进行了修改，增加了`comments.write` 等字段，其余字段保持不变；修改时只需要添加新的字段即可
+
+### v26.4.21
+
+* 添加 AOS 动效开关配置
+* 评论系统支持 Twikoo
+* 本次更新对配置文件 `config.ts` 进行了修改，添加了 `theme.AOS` 和 `comments.platform` 字段，更新时需要添加新的字段
+
+### v26.4.15
+
+* 添加文章置顶功能
+* 更新音乐卡片 API 地址
+* 修复部分样式问题
+* 本次更新对配置文件 `astro.config.mjs` 进行了修改，添加了新的依赖 `@iconify-json/fluent`，需要添加对应字段，并运行 `pnpm install`
 
 ### v26.4.7
 

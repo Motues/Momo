@@ -5,6 +5,7 @@
   // 👇 自引用，递归必须这样导入
   import CommentItem from './CommentItem.svelte';
   import i18nit from '../../i18n/translation.ts';
+  import { parseMarkdown, validateMarkdown } from '@utils/markdown';
   import { siteConfig } from '@/config.ts';
   import { formatFullDate } from '@/utils/time';
 
@@ -50,6 +51,17 @@
   
   // 防止重复提交 - 每个回复表单独立的状态
   let replySubmitting = false;
+  let replyShowPreview = false;
+  let replyPreviewHtml = '';
+  let replyMarkdownWarnings: string[] = [];
+
+  function toggleReplyPreview() {
+    if (!replyShowPreview) {
+      replyPreviewHtml = parseMarkdown(replyContent);
+      replyMarkdownWarnings = validateMarkdown(replyContent);
+    }
+    replyShowPreview = !replyShowPreview;
+  }
   
   const dispatch = createEventDispatcher();
   
@@ -70,10 +82,18 @@
 
   const apiUrl = siteConfig.comments.backendUrl;
 
-  function isValidHtml(str: string): boolean {
-    if (!str.includes('<') || !str.includes('>')) return false;
-    const tagRegex = /<([a-z][a-z0-9]*)\b[^>]*>(.*?)<\/\1>/i;
-    return tagRegex.test(str);
+   function isValidHtml(str: string): boolean {
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(str, 'text/html');
+    
+    // 检查解析过程中是否产生了 parsererror 节点
+    // 或者检查 body 中是否有子节点
+    const errorNode = doc.querySelector('parsererror');
+    if (errorNode) return false;
+
+    // 只要 body 里面有元素，说明解析出了 HTML 结构
+    // console.log('result', doc.body.childNodes);
+    return doc.body.childNodes.length > 0;
   }
 
   // --- 新增：将嵌套的回复树拍平为一维数组，用于移动端展示 ---
@@ -146,9 +166,9 @@
       <span class="text-sm text-[var(--text-color-70)]">{formatFullDate(new Date(c.pubDate), language)}</span>
     </div>
 
-    <div class="text-[var(--text-color)] mt-1 leading-relaxed w-full max-w-full min-w-0 text-sm">
+    <div class="text-[var(--text-color)] mt-1 leading-relaxed w-full max-w-full min-w-0 text-sm comment-markdown">
       {#if c.contentHtml && typeof c.contentHtml === 'string' && isValidHtml(c.contentHtml)}
-        <div innerHTML={c.contentHtml} class="break-words w-full max-w-full"></div>
+        <div class="break-words w-full max-w-full">{@html c.contentHtml}</div>
       {:else if c.contentText && typeof c.contentText === 'string' && c.contentText.trim() !== ''}
         <p class="break-words whitespace-pre-wrap overflow-hidden w-full max-w-full min-w-0">
           {c.contentText}
@@ -207,25 +227,45 @@
             <div>
               <label for="reply-author-{c.id}" class="block text-xs text-[var(--text-color)] mb-1">{t('comments.name')}<span class="text-red-500">*</span></label>
               <input id="reply-author-{c.id}" type="text" placeholder={t('comments.required')} bind:value={replyAuthor}
+                on:input={() => dispatch('userInfoChange', { author: replyAuthor, email: replyEmail, url: replyUrl })}
                 class="rounded w-full text-[var(--text-color)] border border-[var(--button-border-color)] focus:outline-none focus:border-[var(--link-color)] text-sm py-1 px-2" />
             </div>
             <div>
               <label for="reply-email-{c.id}" class="block text-xs text-[var(--text-color)] mb-1">{t('comments.email')}<span class="text-red-500">*</span></label>
               <input id="reply-email-{c.id}" type="email" placeholder={t('comments.required')} bind:value={replyEmail}
+                on:input={() => dispatch('userInfoChange', { author: replyAuthor, email: replyEmail, url: replyUrl })}
                 class="rounded w-full text-[var(--text-color)] border border-[var(--button-border-color)] focus:outline-none focus:border-[var(--link-color)] text-sm py-1 px-2" />
             </div>
             <div>
               <label for="reply-url-{c.id}" class="block text-xs text-[var(--text-color)] mb-1">{t('comments.site')}</label>
               <input id="reply-url-{c.id}" type="url" placeholder={t('comments.optional')} bind:value={replyUrl}
+                on:input={() => dispatch('userInfoChange', { author: replyAuthor, email: replyEmail, url: replyUrl })}
                 class="rounded w-full text-[var(--text-color)] border border-[var(--button-border-color)] focus:outline-none focus:border-[var(--link-color)] text-sm py-1 px-2" />
             </div>
           </div>
 
           <div>
-            <textarea placeholder={t('comments.replyPlaceholder') || "写下你的回复..."} 
-              class="rounded w-full border text-[var(--text-color)] border-[var(--button-border-color)] focus:outline-none focus:border-[var(--link-color)] text-sm p-2 min-h-[80px]"
-              bind:value={replyContent}></textarea>
-            <div class="text-right text-xs text-[var(--text-color-70)] mt-1">
+            {#if replyShowPreview}
+              <div class="rounded border text-[var(--text-color)] border-[var(--button-border-color)] p-2 min-h-[80px] text-sm leading-relaxed comment-markdown">
+                {#if replyContent.trim() === ''}
+                  <p>{t('comments.preview') || '预览'}</p>
+                {:else}
+                  <div>{@html replyPreviewHtml}</div>
+                {/if}
+              </div>
+              {#if replyMarkdownWarnings.length > 0}
+                <div class="mt-1 text-xs text-amber-500">
+                  {#each replyMarkdownWarnings as warning}
+                    <p>{warning === 'codeFence' ? (t('comments.codeFence') || '代码块标记 ``` 未闭合') : (t('comments.inlineCode') || '行内代码标记 ` 未闭合')}</p>
+                  {/each}
+                </div>
+              {/if}
+            {:else}
+              <textarea placeholder={t('comments.replyPlaceholder') || "写下你的回复..."}
+                class="rounded w-full border text-[var(--text-color)] border-[var(--button-border-color)] focus:outline-none focus:border-[var(--link-color)] text-sm p-2 min-h-[80px]"
+                bind:value={replyContent}></textarea>
+            {/if}
+            <div class="text-right text-xs text-[var(--text-color)]/70 mt-1">
               {#if !isContentWithinLimit(replyContent)}
                 <span class="text-red-500 ml-2">{t('comments.contentTooLong') || '内容超出限制'}</span>
               {/if}
@@ -233,6 +273,10 @@
           </div>
 
           <div class="flex justify-end gap-2">
+            <button type="button" on:click={toggleReplyPreview}
+              class="rounded px-3 py-1 text-sm text-[var(--text-color)] border border-[var(--button-border-color)] hover:bg-[var(--button-hover-bg-color)]">
+              {replyShowPreview ? (t('comments.write') || '撰写') : (t('comments.preview') || '预览')}
+            </button>
             <button type="button" on:click={() => {
               dispatch('cancel');
               replySubmitting = false;
@@ -264,7 +308,8 @@
               on:reply={(e) => dispatch('reply', e.detail)} 
               on:submit={(e) => dispatch('submit', e.detail)}
               on:cancel={() => dispatch('cancel')}
-              replyingToId={replyingToId} 
+              replyingToId={replyingToId}
+              on:userInfoChange={(e) => dispatch('userInfoChange', e.detail)} 
             />
           </div>
         {/each}
@@ -287,7 +332,7 @@
               on:reply={(e) => dispatch('reply', e.detail)} 
               on:submit={(e) => dispatch('submit', e.detail)}
               on:cancel={() => dispatch('cancel')}
-              replyingToId={replyingToId} 
+              replyingToId={replyingToId} on:userInfoChange={(e) => dispatch('userInfoChange', e.detail)}
             />
           </div>
         {/each}
@@ -297,3 +342,88 @@
 
   </div>
 </div>
+
+<style>
+  .comment-markdown :global(h1),
+  .comment-markdown :global(h2),
+  .comment-markdown :global(h3),
+  .comment-markdown :global(h4) {
+    margin-top: 1rem;
+    margin-bottom: 0.5rem;
+    font-weight: 600;
+    line-height: 1.3;
+  }
+  .comment-markdown :global(h1) { font-size: 1.5rem; }
+  .comment-markdown :global(h2) { font-size: 1.25rem; }
+  .comment-markdown :global(h3) { font-size: 1.1rem; }
+  .comment-markdown :global(p) { margin-bottom: 0.5rem; }
+  .comment-markdown :global(ul),
+  .comment-markdown :global(ol) {
+    margin-bottom: 0.5rem;
+    padding-left: 1.5rem;
+  }
+  .comment-markdown :global(ul) { list-style-type: disc; }
+  .comment-markdown :global(ol) { list-style-type: decimal; }
+  .comment-markdown :global(li) { margin-bottom: 0.25rem; }
+  .comment-markdown :global(blockquote) {
+    border-left: 3px solid var(--link-color, #6366f1);
+    padding-left: 0.75rem;
+    margin: 0.5rem 0;
+    opacity: 0.85;
+  }
+  .comment-markdown :global(pre) {
+    background: rgba(0,0,0,0.08);
+    border-radius: 4px;
+    padding: 0.75rem;
+    overflow-x: auto;
+    margin: 0.5rem 0;
+    font-size: 0.85rem;
+  }
+  .comment-markdown :global(code) {
+    background: rgba(0,0,0,0.06);
+    border-radius: 3px;
+    padding: 0.15rem 0.3rem;
+    font-size: 0.85rem;
+    font-family: monospace;
+  }
+  .comment-markdown :global(pre code) {
+    background: none;
+    padding: 0;
+    border-radius: 0;
+  }
+  .comment-markdown :global(a) {
+    color: var(--link-color, #6366f1);
+    text-decoration: underline;
+  }
+  .comment-markdown :global(img) {
+    max-width: 100%;
+    height: auto;
+    border-radius: 4px;
+    margin: 0.5rem 0;
+  }
+  .comment-markdown :global(hr) {
+    border: none;
+    border-top: 1px solid var(--button-border-color, #ddd);
+    margin: 1rem 0;
+  }
+  .comment-markdown :global(table) {
+    border-collapse: collapse;
+    width: 100%;
+    margin: 0.5rem 0;
+    font-size: 0.9rem;
+  }
+  .comment-markdown :global(th),
+  .comment-markdown :global(td) {
+    border: 1px solid var(--button-border-color, #ddd);
+    padding: 0.4rem 0.6rem;
+    text-align: left;
+  }
+  .comment-markdown :global(th) {
+    font-weight: 600;
+    background: rgba(0,0,0,0.04);
+  }
+  .comment-markdown :global(del) {
+    text-decoration: line-through;
+    opacity: 0.7;
+  }
+</style>

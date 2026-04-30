@@ -11,10 +11,14 @@ export type SiteConfig = {
     };
     blogNavi: {
         enable: boolean;
-    }
+    };
     comments: {
         enable: boolean;
+        platform: string;
         backendUrl: string;
+    };
+    theme: {
+        AOS: boolean;
     }
 }
 
