@@ -23,6 +23,7 @@
     "aos": "^2.3.4",
     "astro": "^5.13.7",
     "astro-icon": "^1.1.5",
+    "dompurify": "^3.4.2",
     "hastscript": "^9.0.1",
     "katex": "^0.16.22",
     "marked": "^18.0.2",
