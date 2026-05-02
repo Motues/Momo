@@ -19,6 +19,17 @@ import { remarkReadingTime } from './src/plugins/remark-reading-time.mjs';
 
 import svelte from "@astrojs/svelte";
 
+/**
+ * @typedef {Parameters<typeof AdmonitionComponent>[0]} AdmonitionProperties
+ * @typedef {Parameters<typeof AdmonitionComponent>[1]} AdmonitionChildren
+ * @typedef {Parameters<typeof AdmonitionComponent>[2]} AdmonitionType
+ */
+
+/**
+ * @type {(type: AdmonitionType) => (properties: AdmonitionProperties, children: AdmonitionChildren) => ReturnType<typeof AdmonitionComponent>}
+ */
+const admonition = (type) => (properties, children) => AdmonitionComponent(properties, children, type);
+
 
 // https://astro.build/config
 export default defineConfig({
@@ -65,11 +76,11 @@ export default defineConfig({
             github: GithubCardComponent,
             music: MusicCardComponent,
             quote: QuoteComponent,
-            note: (x, y) => AdmonitionComponent(x, y, "note"),
-            tip: (x, y) => AdmonitionComponent(x, y, "tip"),
-            important: (x, y) => AdmonitionComponent(x, y, "important"),
-            caution: (x, y) => AdmonitionComponent(x, y, "caution"),
-            warning: (x, y) => AdmonitionComponent(x, y, "warning"),
+            note: admonition("note"),
+            tip: admonition("tip"),
+            important: admonition("important"),
+            caution: admonition("caution"),
+            warning: admonition("warning"),
           },
         },
       ],
