@@ -27,6 +27,13 @@ Below are general modification suggestions.
 
 > Version numbers follow the `YY.MM.DD` format
 
+### v26.5.3
+
+* Added a preview feature for comment replies
+* Enhanced comment content security
+* Fixed a type error in `astro.config.mjs`
+* This update modifies the configuration file `astro.config.mjs` by changing how `AdmonitionComponent` is imported; corresponding changes must be made
+
 ### v26.4.27
 
 * The comment system now supports Markdown syntax

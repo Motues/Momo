@@ -27,6 +27,13 @@
 
 > 版本号采用 `YY.MM.DD` 的格式
 
+### v26.5.3
+
+* 添加评论回复预览功能
+* 增强评论内容安全性
+* 修复 `astro.config.mjs` 类型错误
+* 本次更新对配置文件 `astro.config.mjs` 进行了修改，修改 `AdmonitionComponent` 导入方式，需要修改对应改动
+
 ### v26.4.27
 
 * 评论系统支持 Markdown 语法
