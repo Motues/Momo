@@ -7,7 +7,7 @@ import rehypeKatex from 'rehype-katex';
 import remarkDirective from 'remark-directive';
 import rehypeComponents from "rehype-components";
 
-import { AdmonitionComponent } from "./src/plugins/rehype-component-admonition.mjs";
+import { admonition } from "./src/plugins/rehype-component-admonition.mjs";
 import { parseDirectiveNode } from "./src/plugins/remark-directive-rehype.js";
 import { MusicCardComponent } from "./src/plugins/rehype-component-music-card.mjs";
 import { GithubCardComponent } from './src/plugins/rehype-component-github-card.mjs';
@@ -18,18 +18,6 @@ import { remarkTypst } from './src/plugins/remark-typst.mjs';
 import { remarkReadingTime } from './src/plugins/remark-reading-time.mjs';
 
 import svelte from "@astrojs/svelte";
-
-/**
- * @typedef {Parameters<typeof AdmonitionComponent>[0]} AdmonitionProperties
- * @typedef {Parameters<typeof AdmonitionComponent>[1]} AdmonitionChildren
- * @typedef {Parameters<typeof AdmonitionComponent>[2]} AdmonitionType
- */
-
-/**
- * @type {(type: AdmonitionType) => (properties: AdmonitionProperties, children: AdmonitionChildren) => ReturnType<typeof AdmonitionComponent>}
- */
-const admonition = (type) => (properties, children) => AdmonitionComponent(properties, children, type);
-
 
 // https://astro.build/config
 export default defineConfig({

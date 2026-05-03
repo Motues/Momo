@@ -31,3 +31,14 @@ export function AdmonitionComponent(properties, children, type) {
 		...children,
 	]);
 }
+
+/**
+ * @typedef {Parameters<typeof AdmonitionComponent>[0]} AdmonitionProperties
+ * @typedef {Parameters<typeof AdmonitionComponent>[1]} AdmonitionChildren
+ * @typedef {Parameters<typeof AdmonitionComponent>[2]} AdmonitionType
+ */
+
+/**
+ * @type {(type: AdmonitionType) => (properties: AdmonitionProperties, children: AdmonitionChildren) => ReturnType<typeof AdmonitionComponent>}
+ */
+export const admonition = (type) => (properties, children) => AdmonitionComponent(properties, children, type);
