@@ -7,7 +7,7 @@ import rehypeKatex from 'rehype-katex';
 import remarkDirective from 'remark-directive';
 import rehypeComponents from "rehype-components";
 
-import { AdmonitionComponent } from "./src/plugins/rehype-component-admonition.mjs";
+import { admonition } from "./src/plugins/rehype-component-admonition.mjs";
 import { parseDirectiveNode } from "./src/plugins/remark-directive-rehype.js";
 import { MusicCardComponent } from "./src/plugins/rehype-component-music-card.mjs";
 import { GithubCardComponent } from './src/plugins/rehype-component-github-card.mjs';
@@ -18,7 +18,6 @@ import { remarkTypst } from './src/plugins/remark-typst.mjs';
 import { remarkReadingTime } from './src/plugins/remark-reading-time.mjs';
 
 import svelte from "@astrojs/svelte";
-
 
 // https://astro.build/config
 export default defineConfig({
@@ -65,11 +64,11 @@ export default defineConfig({
             github: GithubCardComponent,
             music: MusicCardComponent,
             quote: QuoteComponent,
-            note: (x, y) => AdmonitionComponent(x, y, "note"),
-            tip: (x, y) => AdmonitionComponent(x, y, "tip"),
-            important: (x, y) => AdmonitionComponent(x, y, "important"),
-            caution: (x, y) => AdmonitionComponent(x, y, "caution"),
-            warning: (x, y) => AdmonitionComponent(x, y, "warning"),
+            note: admonition("note"),
+            tip: admonition("tip"),
+            important: admonition("important"),
+            caution: admonition("caution"),
+            warning: admonition("warning"),
           },
         },
       ],
