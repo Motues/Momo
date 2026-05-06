@@ -32,9 +32,14 @@ The primary configuration files for the website are `astro.config.mjs` and `src/
 * `toc`
     * `enable`: Enable table of contents
     * `depth`: Table of contents depth
+* `blogNavi`
+    * `enable`: Enable page navigation at the bottom of the blog
 * `comments`
     * `enable`: Enable comment feature
+    * `platform`: Comment platform
     * `backendUrl`： Url of the backend
+* `theme`
+    * `AOS`: Enable AOS animations
 
 :::tip
 For the backend project, refer to [Momo-backend](https://github.com/Motues/Momo-Backend). Ensure all configurations are completed as specified, particularly for cross-domain domains.

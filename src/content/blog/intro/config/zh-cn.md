@@ -32,9 +32,14 @@ slugId: momo/intro/config
 * `toc`
     * `enable`: 是否启用目录
     * `depth`: 目录的深度
+* `blogNavi`
+    * `enable`: 是否启用博客底部的页面导航 
 * `comments`
     * `enable`: 是否启用评论功能
+    * `platform`: 评论平台
     * `backendUrl`： 后端的地址
+* `theme`
+    * `AOS`: 是否启用AOS动画
 
 :::tip
 后端项目参考[Momo-backend](https://github.com/Motues/Momo-Backend)进行部署，一定需要按照要求进行配置，尤其是跨域的域名认证

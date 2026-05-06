@@ -743,3 +743,18 @@ rt {
   color: #666;
   font-family: 'Times New Roman', Times, serif;
 }
+
+.underline-text {
+  text-decoration: underline;
+  text-decoration-color: var(--link-color);
+  text-underline-offset: 4px;
+  text-decoration-thickness: 2px;
+}
+
+.lqip-markdown-img {
+  background: var(--lqip);
+  background-size: cover;
+  transition: filter 0.6s ease, opacity 0.6s ease;
+  display: block;
+  width: 100%;
+}

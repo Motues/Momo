@@ -28,7 +28,7 @@ If you need to use the comment feature in other projects, you can directly impor
 
 ```html
 <div id="momo-comment"></div>
-<script src="https://cdn.jsdelivr.net/npm/@motues/momo-comment/dist/momo-comment.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@motues/momo-comment@1.3.x/dist/momo-comment.min.js"></script>
 <script>
     momo.init({
         el: '#momo-comment', // Comment container ID

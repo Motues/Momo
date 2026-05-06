@@ -16,8 +16,11 @@ import { customFigurePlugin } from "./src/plugins/rehype-figure-plugin.mjs";
 import { remarkCombined } from './src/plugins/remark-combined.mjs';
 import { remarkTypst } from './src/plugins/remark-typst.mjs';
 import { remarkReadingTime } from './src/plugins/remark-reading-time.mjs';
+import { remarkLqip } from './src/plugins/remark-lqip.js';
 
 import svelte from "@astrojs/svelte";
+
+import { siteConfig } from './src/config';
 
 // https://astro.build/config
 export default defineConfig({
@@ -52,7 +55,8 @@ export default defineConfig({
       remarkDirective,
       remarkTypst,
       parseDirectiveNode,
-      remarkCombined
+      remarkCombined,
+      [remarkLqip, { enable: siteConfig.theme.LQIP }],
     ],
     rehypePlugins: [
       rehypeKatex,

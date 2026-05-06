@@ -19,6 +19,7 @@ export type SiteConfig = {
     };
     theme: {
         AOS: boolean;
+        LQIP: boolean;
     }
 }
 
