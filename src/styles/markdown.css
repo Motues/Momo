@@ -758,3 +758,7 @@ rt {
   display: block;
   width: 100%;
 }
+
+.lqip-markdown-img.lqip-loaded {
+  background: transparent;
+}

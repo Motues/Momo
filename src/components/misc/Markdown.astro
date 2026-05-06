@@ -153,6 +153,28 @@ const className = Astro.props.class
   document.addEventListener("astro:page-load", createCopyButtons);
 </script>
 
+{ siteConfig.theme.LQIP &&
+<script>
+  function handleLqipImages() {
+    const lqipImages = document.querySelectorAll('.lqip-markdown-img');
+    lqipImages.forEach(img => {
+      if (img.complete) {
+        img.classList.add('lqip-loaded');
+      } else {
+        img.addEventListener('load', () => {
+          img.classList.add('lqip-loaded');
+        });
+        img.addEventListener('error', () => {
+          img.classList.add('lqip-loaded');
+        });
+      }
+    });
+  }
+          
+  document.addEventListener('astro:page-load', handleLqipImages);
+</script>
+}
+
 { siteConfig.theme.PhotoSwipe &&
 <script>
     import 'photoswipe/style.css'

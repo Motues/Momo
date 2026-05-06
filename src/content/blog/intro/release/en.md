@@ -36,6 +36,14 @@ Below are general modification suggestions.
 
 > Version numbers follow the `YY.MM.DD` format
 
+### v26.5.6
+
+* Added the `LQIP` low-quality image placeholder feature
+* Added support for a new Markdown style: ++the underscore syntax++
+* Added style configuration options
+* This update modifies the `astro.config.mjs` configuration file to include the `remarkLqip` plugin; it also modifies the `config.ts` configuration file by adding fields such as `theme.LQIP`. When updating, you must add these new fields.
+
+
 ### v26.5.3
 
 * Added a preview feature for comment replies
