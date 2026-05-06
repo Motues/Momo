@@ -28,6 +28,7 @@ export const siteConfig: SiteConfig = {
     theme: {
         AOS: true, // Whether to enable AOS (Animate On Scroll) for animations
         LQIP: true, // Whether to enable LQIP (Low-Quality Image Placeholder) for image placeholders
+        PhotoSwipe: true // Whether to enable PhotoSwipe for image viewer
     }
 }
 

@@ -32,6 +32,8 @@ The primary configuration files for the website are `astro.config.mjs` and `src/
     * `backendUrl`： Url of the backend
 * `theme`
     * `AOS`: Enable AOS animations
+    * `LQIP`: Enable LQIP
+    * `PohotSwipe`: Enable PhotoSwipe
 
 :::tip
 For the backend project, refer to [Momo-backend](https://github.com/Motues/Momo-Backend). Ensure all configurations are completed as specified, particularly for cross-domain domains.

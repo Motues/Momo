@@ -32,6 +32,8 @@
     * `backendUrl`： 后端的地址
 * `theme`
     * `AOS`: 是否启用AOS动画
+    * `LQIP`: 是否启用LQIP
+    * `PohotSwipe`: 是否启用图片灯箱模式
 
 > 后端项目参考[Momo-backend](https://github.com/Motues/Momo-Backend)进行部署，一定需要按照要求进行配置，尤其是跨域的域名认证
 
