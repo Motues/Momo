@@ -21,6 +21,22 @@
   let limit = 20;
   let hasMore = false;
 
+  let bloggerBadgeEnabled = false;
+  let bloggerBadgeText = '';
+  let placeholderName = '';
+  let placeholderEmail = '';
+  let placeholderContent = '';
+  let placeholderUrl = '';
+  let adminCommentKeyConfigured = false;
+  let adminEmailHash = '';
+  let adminKey = '';
+  let isAdminEmail = false;
+
+  $: if (email && adminEmailHash) {
+    sha256(email).then(hash => { isAdminEmail = hash === adminEmailHash; });
+  } else {
+    isAdminEmail = false;
+  }
   // 顶层评论表单数据
   let author = '';
   let email = '';
@@ -43,6 +59,13 @@
       markdownWarnings = validateMarkdown(content);
     }
     showPreview = !showPreview;
+  }
+
+  async function sha256(str: string): Promise<string> {
+    const encoder = new TextEncoder();
+    const data = encoder.encode(str.toLowerCase().trim());
+    const hash = await crypto.subtle.digest('SHA-256', data);
+    return Array.from(new Uint8Array(hash)).map(b => b.toString(16).padStart(2, '0')).join('');
   }
 
   // 本地存储键名
@@ -108,6 +131,15 @@
       const data = await res.json();
       comments = data.data.comments;
       hasMore = data.data.pagination.totalPage > page;
+      bloggerBadgeEnabled = data.data.blogger_badge_enabled === 'true';
+      bloggerBadgeText = data.data.blogger_badge_text || '';
+      placeholderName = data.data.placeholder_name || '';
+      placeholderEmail = data.data.placeholder_email || '';
+      placeholderContent = data.data.placeholder_content || '';
+      placeholderUrl = data.data.placeholder_url || '';
+      adminCommentKeyConfigured = data.data.admin_comment_key_configured === 'true';
+      adminEmailHash = data.data.admin_email_hash || '';
+      if (!adminCommentKeyConfigured) adminKey = '';
     } catch (err: any) {
       error = err.message;
     } finally {
@@ -164,6 +196,7 @@
           parent_id: parentId,
           post_url: window.location.href, // 添加当前页面的URL
           post_title: postTitle,
+          admin_key: adminKey || undefined,
         }),
       });
       const data = await res.json();
@@ -217,19 +250,27 @@
       <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
         <div class="">
           <label for="author" class="block text-sm text-[var(--text-color)] mb-1">{t('comments.name')}<span class="text-red-500">*</span></label>
-          <input id="author" type="text" placeholder={t('comments.required')} bind:value={author}
+          <input id="author" type="text" placeholder={placeholderName || t('comments.required')} bind:value={author}
             class="rounded w-full text-[var(--text-color)] border border-[var(--button-border-color)]  focus:outline-none focus:border-[var(--link-color)] text-sm p-2" />
         </div>
         <div class="">
           <label for="email" class="block text-sm text-[var(--text-color)] mb-1">{t('comments.email')}<span class="text-red-500">*</span></label>
-          <input id="email" type="email" placeholder={t('comments.required')} bind:value={email}
+          <input id="email" type="email" placeholder={placeholderEmail || t('comments.required')} bind:value={email}
             class="rounded w-full text-[var(--text-color)] border border-[var(--button-border-color)]  focus:outline-none focus:border-[var(--link-color)] text-sm p-2" />
         </div>
         <div class="">
           <label for="url" class="block text-sm text-[var(--text-color)] mb-1">{t('comments.site')}</label>
-          <input id="url" type="url" placeholder={t('comments.optional')} bind:value={url}
+          <input id="url" type="url" placeholder={placeholderUrl || t('comments.optional')} bind:value={url}
             class="rounded w-full text-[var(--text-color)] border border-[var(--button-border-color)]  focus:outline-none focus:border-[var(--link-color)] text-sm p-2" />
         </div>
+
+        {#if adminCommentKeyConfigured && isAdminEmail}
+          <div>
+            <label for="admin-key" class="block text-sm text-[var(--text-color)] mb-1">管理员验证密钥<span class="text-red-500">*</span></label>
+            <input id="admin-key" type="password" placeholder="请输入管理员评论密钥" bind:value={adminKey}
+              class="rounded w-full text-[var(--text-color)] border border-[var(--button-border-color)] focus:outline-none focus:border-[var(--link-color)] text-sm p-2" />
+          </div>
+        {/if}
       </div>
 
        <div>
@@ -249,7 +290,7 @@
             </div>
           {/if}
         {:else}
-          <textarea placeholder={t('comments.welcome')}
+          <textarea placeholder={placeholderContent || t('comments.welcome')}
             class="rounded w-full border text-[var(--text-color)] border-[var(--button-border-color)] focus:outline-none focus:border-[var(--link-color)] text-sm p-3 min-h-[100px]"
             bind:value={content}></textarea>
         {/if}
@@ -286,6 +327,7 @@
       <div class="space-y-6">
         {#each comments as c}
           <CommentItem {c} {postSlug} {author} {email} {url} {language}
+            {bloggerBadgeEnabled} {bloggerBadgeText}
             on:reply={(e) => setReplyingTo(e.detail)} 
             on:cancel={() => setReplyingTo(null)}
             on:submit={async (e) => {
