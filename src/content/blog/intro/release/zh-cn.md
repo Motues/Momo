@@ -37,6 +37,20 @@ pinTop: 1
 
 > 版本号采用 `YY.MM.DD` 的格式
 
+### v26.5.6
+
+* 添加 `LQIP` 低质量图像占位符功能
+* 增加新的 Markdown 样式支持：++下划线语法++
+* 添加样式配置选项
+* 本次更新对配置文件 `astro.config.mjs` 进行了修改，引入 `remarkLqip` 插件；对配置文件 `config.ts` 进行了修改，添加了 `theme.LQIP` 等字段，更新时需要添加新的字段
+
+### v26.5.3
+
+* 添加评论回复预览功能
+* 增强评论内容安全性
+* 修复 `astro.config.mjs` 类型错误
+* 本次更新对配置文件 `astro.config.mjs` 进行了修改，修改 `AdmonitionComponent` 导入方式，需要修改对应改动
+
 ### v26.4.27
 
 * 评论系统支持 Markdown 语法

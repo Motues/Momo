@@ -2,6 +2,7 @@
   import { createEventDispatcher } from 'svelte';
   import { onMount } from 'svelte';
   import { slide } from 'svelte/transition';
+  import DOMPurify from 'dompurify';
   // 👇 自引用，递归必须这样导入
   import CommentItem from './CommentItem.svelte';
   import i18nit from '../../i18n/translation.ts';
@@ -16,6 +17,10 @@
   export let email: string = '';
   export let url: string = '';
   export let language: string = 'zh-cn';
+  export let bloggerBadgeEnabled: boolean = false;
+  export let bloggerBadgeText: string = '博主';
+  export let adminCommentKeyConfigured: boolean = false;
+  export let adminEmailHash: string = '';
 
   export let depth: number = 0; // 记录评论的层级，顶层为 0
   export let isFlattened: boolean = false; // 是否处于移动端被“拍平”的状态
@@ -48,12 +53,27 @@
   let replyEmail = '';
   let replyUrl = '';
   let replyContent = '';
+  let replyAdminKey = '';
   
   // 防止重复提交 - 每个回复表单独立的状态
   let replySubmitting = false;
   let replyShowPreview = false;
   let replyPreviewHtml = '';
   let replyMarkdownWarnings: string[] = [];
+
+  $: isAdminEmail = false;
+  $: if (email && adminEmailHash) {
+    sha256(email).then(hash => { isAdminEmail = hash === adminEmailHash; });
+  } else {
+    isAdminEmail = false;
+  }
+
+  async function sha256(str: string): Promise<string> {
+    const encoder = new TextEncoder();
+    const data = encoder.encode(str.toLowerCase().trim());
+    const hash = await crypto.subtle.digest('SHA-256', data);
+    return Array.from(new Uint8Array(hash)).map(b => b.toString(16).padStart(2, '0')).join('');
+  }
 
   function toggleReplyPreview() {
     if (!replyShowPreview) {
@@ -124,7 +144,7 @@
 
 <div id="comment-{c.id}" data-aos="fade-up" class="flex gap-2 md:gap-3 w-full max-w-full">
   {#if c.url}
-  <a href={c.url} target="_blank" class="w-10 h-10 shrink-0">
+  <a href={c.url} target="_blank" rel="noopener noreferrer" class="w-10 h-10 shrink-0">
     <img src={avatarUrl} alt="avatar" class="w-10 h-10 rounded-full object-cover"/>
   </a>
   {:else}
@@ -134,11 +154,19 @@
   <div class="flex-1 min-w-0">
     <div class="flex items-center flex-wrap gap-x-2 gap-y-1">
       {#if c.url}
-        <a href={c.url} target="_blank" class="font-semibold text-[var(--text-color)] hover:text-[var(--link-color)] transition-colors">
+        <a href={c.url} target="_blank" rel="noopener noreferrer" class="font-semibold text-[var(--text-color)] hover:text-[var(--link-color)] transition-colors">
           {c.author}
         </a>
       {:else}
         <span class="font-semibold text-[var(--text-color)]">{c.author}</span>
+      {/if}
+
+      {#if c.isBlogger && bloggerBadgeEnabled}
+        {#if bloggerBadgeText}
+          <span class="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400">{bloggerBadgeText}</span>
+        {:else}
+          <svg class="w-5 h-5 text-green-500 dark:text-green-400 align-middle" viewBox="0 0 24 24" fill="currentColor"><path d="M20.396 11c-.018-.646-.215-1.275-.57-1.816-.354-.54-.852-.972-1.438-1.246.223-.607.27-1.264.14-1.897-.131-.634-.437-1.218-.882-1.687-.47-.445-1.053-.75-1.687-.882-.633-.13-1.29-.083-1.897.14-.273-.587-.704-1.086-1.245-1.44S11.647 1.62 11 1.604c-.646.017-1.273.213-1.813.568s-.969.854-1.24 1.44c-.608-.223-1.267-.272-1.902-.14-.635.13-1.22.436-1.69.882-.445.47-.749 1.055-.878 1.688-.13.633-.08 1.29.144 1.896-.587.274-1.087.705-1.443 1.245-.356.54-.555 1.17-.574 1.817.02.647.218 1.276.574 1.817.356.54.856.972 1.443 1.245-.224.606-.274 1.263-.144 1.896.13.634.433 1.218.877 1.688.47.443 1.054.747 1.687.878.633.132 1.29.084 1.897-.136.274.586.705 1.084 1.246 1.439.54.354 1.17.551 1.816.569.647-.016 1.276-.213 1.817-.567s.972-.854 1.245-1.44c.604.239 1.266.296 1.903.164.636-.132 1.22-.447 1.68-.907.46-.46.776-1.044.908-1.681s.075-1.299-.165-1.903c.586-.274 1.084-.705 1.439-1.246.354-.54.551-1.17.569-1.816zM9.662 14.85l-3.429-3.428 1.293-1.302 2.072 2.072 4.4-4.794 1.347 1.246z"/></svg>
+        {/if}
       {/if}
 
       {#if isFlattened && parentAuthorName}
@@ -168,7 +196,7 @@
 
     <div class="text-[var(--text-color)] mt-1 leading-relaxed w-full max-w-full min-w-0 text-sm comment-markdown">
       {#if c.contentHtml && typeof c.contentHtml === 'string' && isValidHtml(c.contentHtml)}
-        <div class="break-words w-full max-w-full">{@html c.contentHtml}</div>
+        <div class="break-words w-full max-w-full">{@html DOMPurify.sanitize(c.contentHtml)}</div>
       {:else if c.contentText && typeof c.contentText === 'string' && c.contentText.trim() !== ''}
         <p class="break-words whitespace-pre-wrap overflow-hidden w-full max-w-full min-w-0">
           {c.contentText}
@@ -220,8 +248,10 @@
             url: replyUrl,
             content: replyContent,
             post_url: window.location.href,
+            admin_key: replyAdminKey || undefined,
           });
           replyContent = '';
+          replyAdminKey = '';
         }} class="space-y-3">
           <div class="grid grid-cols-1 md:grid-cols-3 gap-2">
             <div>
@@ -243,6 +273,14 @@
                 class="rounded w-full text-[var(--text-color)] border border-[var(--button-border-color)] focus:outline-none focus:border-[var(--link-color)] text-sm py-1 px-2" />
             </div>
           </div>
+
+          {#if adminCommentKeyConfigured && isAdminEmail}
+            <div>
+              <label for="reply-admin-key-{c.id}" class="block text-xs text-[var(--text-color)] mb-1">管理员验证密钥<span class="text-red-500">*</span></label>
+              <input id="reply-admin-key-{c.id}" type="password" placeholder="请输入管理员评论密钥" bind:value={replyAdminKey}
+                class="rounded w-full text-[var(--text-color)] border border-[var(--button-border-color)] focus:outline-none focus:border-[var(--link-color)] text-sm py-1 px-2" />
+            </div>
+          {/if}
 
           <div>
             {#if replyShowPreview}
@@ -303,6 +341,10 @@
               {email} 
               {url} 
               {language} 
+              {bloggerBadgeEnabled}
+              {bloggerBadgeText}
+              {adminCommentKeyConfigured}
+              {adminEmailHash}
               depth={depth + 1}
               isFlattened={false}
               on:reply={(e) => dispatch('reply', e.detail)} 
@@ -325,6 +367,10 @@
               {email} 
               {url} 
               {language}
+              {bloggerBadgeEnabled}
+              {bloggerBadgeText}
+              {adminCommentKeyConfigured}
+              {adminEmailHash}
               depth={1}
               isFlattened={true}
               parentAuthorName={flatReply._parentName}

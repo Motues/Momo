@@ -5,7 +5,6 @@ import 'katex/dist/katex.min.css';
 import '@fontsource/eb-garamond';
 import '@fontsource/noto-serif-sc/400.css';
 import '@fontsource/noto-serif-sc/700.css';
-import 'photoswipe/style.css'
 import { i18n } from "astro:config/client";
 import { ClientRouter } from "astro:transitions";
 
@@ -131,7 +130,6 @@ const pageLang = lang || i18n?.defaultLocale || "zh-cn";
 <script>
   import AOS from 'aos';
   import 'aos/dist/aos.css';
-
 
   function initApp() {
     // 1. 先处理 Markdown 的动态注入 (如果有)
