@@ -39,7 +39,7 @@ export function MusicCardComponent(properties, children) {
                 // 幂等性检查：如果卡片不存在，或已经标记为加载完成，则不再执行
                 if (!card || card.dataset.loaded === "true") return;
 
-                fetch('https://meting.motues.top/music?server=netease&type=details&id=${songId}', { referrerPolicy: "no-referrer" })
+                fetch('https://open.motues.top/music?server=netease&type=details&id=${songId}', { referrerPolicy: "no-referrer" })
                     .then(response => response.json())
                     .then(data => {
                         if (data && data.id) {
@@ -55,7 +55,7 @@ export function MusicCardComponent(properties, children) {
                             // 更新封面 - 先获取封面 URL
                             const coverEl = document.getElementById('${cardUuid}-cover');
                             if (coverEl) {
-                                fetch('https://meting.motues.top/music?server=netease&type=cover&id=${songId}', { referrerPolicy: "no-referrer" })
+                                fetch('https://open.motues.top/music?server=netease&type=cover&id=${songId}', { referrerPolicy: "no-referrer" })
                                     .then(res => res.json())
                                     .then(coverData => {
                                         if (coverData && coverData.url) {

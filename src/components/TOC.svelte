@@ -6,7 +6,7 @@
 	import i18nit from '@i18n/translation'
 
 	let { headings = [], language,} = $props();
-	const t = i18nit(language);
+	const t = $derived(i18nit(language));
 
 	// 内部状态
 	let tocVisible = $state(false);

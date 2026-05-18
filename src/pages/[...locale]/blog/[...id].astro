@@ -8,6 +8,7 @@ import FabMenu from '@components/control/FabMenu.astro'
 import TOC from '@components/TOC.svelte'
 import LicenseCard from '@components/misc/LicenseCard.astro'
 import Comments from '@components/comment/Comments.svelte'
+import Twikoo from '@components/comment/thirdparty/twikoo.astro'
 import BlogNavi from '@components/control/BlogNavi.astro'
 
 import { getCollection, render } from 'astro:content'
@@ -135,8 +136,12 @@ const { remarkPluginFrontmatter } = await render(entry);
             <BlogNavi prev={prev} next={next}/>
         }
         {
-            siteConfig.comments.enable && 
+            (siteConfig.comments.enable && siteConfig.comments.platform === "default") &&
             <Comments postSlug={entry.data.slugId} language={currentLang} postTitle={entry.data.title} client:visible/>
+        }
+        {
+            (siteConfig.comments.enable && siteConfig.comments.platform === "twikoo") &&
+            <Twikoo postSlug={entry.data.slugId} language={currentLang} envId={siteConfig.comments.backendUrl}/>
         }
     </div>
     {

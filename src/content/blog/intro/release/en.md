@@ -1,11 +1,12 @@
 ---
 title: Update Guide and Release
-pubDate: 2026-03-11
+pubDate: 2026-01-01
 description: Website Configuration
 category: Instruction
 image: "./images/banner.png"
 draft: false
 slugId: momo/intro/release
+pinTop: 1
 ---
 
 This project is currently under active maintenance. To update, follow these steps:
@@ -34,6 +35,39 @@ Below are general modification suggestions.
 ## Version Information
 
 > Version numbers follow the `YY.MM.DD` format
+
+### v26.5.6
+
+* Added the `LQIP` low-quality image placeholder feature
+* Added support for a new Markdown style: ++the underscore syntax++
+* Added style configuration options
+* This update modifies the `astro.config.mjs` configuration file to include the `remarkLqip` plugin; it also modifies the `config.ts` configuration file by adding fields such as `theme.LQIP`. When updating, you must add these new fields.
+
+
+### v26.5.3
+
+* Added a preview feature for comment replies
+* Enhanced comment content security
+* Fixed a type error in `astro.config.mjs`
+* This update modifies the configuration file `astro.config.mjs` by changing how `AdmonitionComponent` is imported; corresponding changes must be made
+
+### v26.4.27
+
+* The comment system now supports Markdown syntax
+* This update modifies the configuration file `src/i18n/`, adding fields such as `comments.write`; all other fields remain unchanged. When making modifications, simply add the new fields
+
+### v26.4.21
+
+* Added AOS animation toggle configuration
+* The comment system now supports Twikoo
+* This update modifies the `config.ts` configuration file by adding the `theme.AOS` and `comments.platform` fields; these new fields must be added when updating
+
+### v26.4.15
+
+* Added the function for pined posts
+* Updated the Music Card API URL
+* Fixed some styling issues
+* This update modifies the `astro.config.mjs` configuration file and adds a new dependency, `@iconify-json/fluent`. You must add the corresponding fields and run `pnpm install`.
 
 ### v26.4.7
 

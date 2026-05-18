@@ -29,7 +29,7 @@ Momo 支持添加评论功能，并提供两种部署方式，支持零服务器
 ```html
 <div id="momo-comment"></div>
 
-<script src="https://cdn.jsdelivr.net/npm/@motues/momo-comment@1.1.x/dist/momo-comment.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@motues/momo-comment@1.3.x/dist/momo-comment.min.js"></script>
 <script>
     momo.init({
         el: '#momo-comment', // 评论容器的 id
