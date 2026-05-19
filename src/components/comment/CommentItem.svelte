@@ -312,7 +312,7 @@
 
           <div class="flex justify-end gap-2">
             <button type="button" on:click={toggleReplyPreview}
-              class="rounded px-3 py-1 text-sm text-[var(--text-color)] border border-[var(--button-border-color)] hover:bg-[var(--button-hover-bg-color)]">
+              class="rounded px-3 py-1 text-sm text-[var(--text-color)] border border-[var(--button-border-color)] hover:bg-[var(--button-hover-color)]">
               {replyShowPreview ? (t('comments.write') || '撰写') : (t('comments.preview') || '预览')}
             </button>
             <button type="button" on:click={() => {

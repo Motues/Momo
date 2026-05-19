@@ -59,6 +59,12 @@ The above styles can be nested, such as:
 
 !!==Do you like the movie {君の名は}(きみ||な|)==!!
 
+## Footnotes
+
+This is a sentence in the article; I need to add a superscript reference [^1] here.
+
+This is another sentence that cites a different source [^2].
+
 ## Typst Testing
 
 Typst rendering based on [Typst.ts](https://myriad-dreamin.github.io/typst.ts/).
@@ -169,3 +175,6 @@ console.log(‘Hello World’);
 :::important[Custom Header]
 This is a tip box with a custom header. The header displays as "Custom Header" instead of the default “IMPORTANT”.
 :::
+
+[^1]: This is the text of the first reference; click the arrow before it to return to the main text.
+[^2]: This is the text of the second reference; [links](#) are supported.

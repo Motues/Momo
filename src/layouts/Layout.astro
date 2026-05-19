@@ -124,6 +124,10 @@ const pageLang = lang || i18n?.defaultLocale || "zh-cn";
     0% { transform: rotate(0deg); }
     100% { transform: rotate(360deg); }
   }
+
+  html {
+    scroll-behavior: smooth;
+  }
 </style>
 
 { siteConfig.theme.AOS &&

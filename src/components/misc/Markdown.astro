@@ -113,6 +113,142 @@ const className = Astro.props.class
     background: rgba(255, 255, 255, 0.2);
     color: #fff;
   }
+
+</style>
+
+<style is:global>
+  .markdown-content section[data-footnotes] .sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border-width: 0;
+  }
+
+  .markdown-content section[data-footnotes] a[data-footnote-backref]::before {
+    content: none !important;
+    display: none !important;
+    border: none !important;
+  }
+
+  .markdown-content section[data-footnotes] {
+    margin-top: 3rem;       
+    padding-top: 1.5rem;    
+    border-top: 1px dashed var(--button-border-color); 
+    color: var(--text-color-70);         
+    font-size: 0.875rem;    
+  }
+
+  .markdown-content section[data-footnotes] ol {
+    list-style: none; 
+    counter-reset: footnote-counter;
+    padding-left: 0;        
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0; 
+  }
+
+  .markdown-content section[data-footnotes] li {
+    counter-increment: footnote-counter; 
+    line-height: 1.6;
+    display: flex !important;
+    align-items: flex-start; 
+    position: relative !important; 
+  }
+
+  .markdown-content section[data-footnotes] li::before {
+    content: "[" counter(footnote-counter) "]" !important; 
+    display: inline-block !important;
+    font-weight: 600;      
+    color: var(--link-color); 
+    width: 2rem;
+    flex-shrink: 0;  
+    text-align: left; 
+    margin: 0 !important; 
+    transform: none !important; 
+  }
+
+  .markdown-content section[data-footnotes] li p {
+    display: inline !important; 
+    margin: 0 !important;
+    position: static !important; 
+  }
+
+  .markdown-content section[data-footnotes] a[data-footnote-backref] {
+    display: inline-block !important;
+    position: static !important; 
+    color: var(--link-color) !important;
+    text-decoration: none !important;
+    margin-left: 0;
+    transition: transform 0.2s ease;
+  }
+
+  .markdown-content section[data-footnotes] a[data-footnote-backref]:hover {
+    color: var(--link-color) !important;
+    transform: translateX(-2px);
+  }
+
+  @keyframes highlight-fade {
+    0% {
+      background-color: var(--link-color); 
+    }
+    100% {
+      background-color: transparent;
+    }
+  }
+
+  .markdown-content section[data-footnotes] li:target {
+    animation: highlight-fade 2s ease-out;
+    border-radius: 4px;
+  }
+  .markdown-content sup a[data-footnote-ref]::before,
+  .markdown-content sup a[data-footnote-ref]::after {
+    content: none; 
+    display: inline;
+    position: static;
+    border: none;
+    transform: none;
+  }
+
+  .markdown-content sup a[data-footnote-ref] {
+    display: inline !important; 
+    position: static !important; 
+    color: var(--link-color) !important; 
+    font-size: 0.75rem; 
+    font-weight: 600; 
+    padding: 0 1px; 
+    text-decoration: none !important;
+    transition: color 0.2s ease;
+  }
+
+  .markdown-content sup a[data-footnote-ref]::before {
+    content: "[" !important;
+    display: inline !important;
+    color: var(--link-color) !important; 
+    margin-right: 1px;
+  }
+
+  .markdown-content sup a[data-footnote-ref]::after {
+    content: "]" !important;
+    display: inline !important;
+    color: var(--link-color) !important;
+    margin-left: 1px;
+  }
+
+  .markdown-content sup a[data-footnote-ref]:hover {
+    filter: brightness(0.8) !important; 
+  }
+
+  .markdown-content p:has(sup a[data-footnote-ref]:target), 
+  .markdown-content sup a[data-footnote-ref]:target {
+    animation: highlight-fade 2s ease-out;
+    border-radius: 4px;
+  }
 </style>
 
 <script>

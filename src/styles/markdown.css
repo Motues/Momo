@@ -82,7 +82,7 @@
 .markdown-content table a::before {
   content: "";
   position: absolute;
-  bottom: 4px;
+  bottom: 2px;
   left: 0;
   width: 100%;
   border-bottom-style: dotted;
