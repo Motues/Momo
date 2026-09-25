@@ -44,3 +44,21 @@ export interface Stats {
   words: { cjk: number; latin: number; total: number }
   recent: ArticleSummary[]
 }
+
+// ---- 站点配置（src/config.ts）----
+// 配置是深层嵌套的自由结构，前端按路径读写，因此这里用宽松的索引类型
+export type ConfigValues = Record<string, any>
+
+export interface ConfigDoc {
+  path: string
+  source: string
+  values: ConfigValues
+  changed?: boolean
+}
+
+export interface FriendLinkItem {
+  name: string
+  avatar: string
+  url: string
+  description: string
+}

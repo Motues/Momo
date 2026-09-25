@@ -21,11 +21,13 @@ export async function getStaticPaths() {
 const allBlogPosts = await getBlogEntrySort(currentLang);
 
 const pageTitle = t("header.archive") + " - " + siteConfig.title;
+// SEO：用该页 Cover 文案（含文章总数）作为描述，避免多个页面共用同一段描述
+const pageDescription = `${t("cover.title.archive")} - ${t("cover.subTitle.archive", { count: allBlogPosts.length })}`;
 ---
 
-<MainPageLayout title={pageTitle} lang={currentLang}>
+<MainPageLayout title={pageTitle} lang={currentLang} description={pageDescription}>
     <ArchivePanel
-        client:only="svelte"
+        client:visible
         sortedPosts={allBlogPosts}
         currentLang={currentLang}
         defaultLocale={i18n!.defaultLocale}

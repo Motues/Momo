@@ -6,6 +6,7 @@ import Navi from '@components/control/Navi.astro';
 import FabMenu from '@components/control/FabMenu.astro';
 
 import { getBlogEntrySort } from '@utils/contentUtils'
+import { getSiteTitle } from '@utils/siteTitle';
 import { siteConfig } from '@/config';
 import { i18n } from "astro:config/client";
 import type { CollectionEntry } from 'astro:content';
@@ -60,7 +61,10 @@ export const getStaticPaths = (async ({ paginate }) => {
 
 
 const indexPage = getRelativeLocaleUrl(locale, '/');
-const pageTitle = `${siteConfig.title} - ${siteConfig.subTitle}`;
+// 副标题为空时标签栏只显示主标题；分页页追加页码，避免第 2 页起的标题完全重复
+const pageTitle = page.currentPage > 1
+    ? `${getSiteTitle()} (${page.currentPage})`
+    : getSiteTitle();
 
 ---
 

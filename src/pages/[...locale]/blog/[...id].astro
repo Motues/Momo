@@ -20,6 +20,7 @@ import { blogCoverUrl } from '@utils/urlUtils'
 import { formatFullDate } from '@/utils/time'
 import { getBlogEntrySort } from '@utils/contentUtils'
 import { getRelativeLocaleUrl } from '@utils/urlUtils';
+import { absoluteUrl, articleJsonLd, coverShareImage, normalizePath } from '@utils/seo';
 
 
 const currentLang = Astro.currentLocale || i18n!.defaultLocale;
@@ -64,8 +65,34 @@ const pageTitle = entry.data.title + ' - ' + siteConfig.title;
 const image = blogCoverUrl(entry.data.image, entry.id);
 
 const { remarkPluginFrontmatter } = await render(entry);
+
+// ---- SEO：分享图（构建期转成 jpg）与文章结构化数据 ----
+const shareImage = await coverShareImage(entry.data.image, entry.id);
+const pageUrl = absoluteUrl(normalizePath(Astro.url.pathname));
+const postJsonLd = articleJsonLd({
+    title: entry.data.title,
+    description: entry.data.description,
+    url: pageUrl,
+    image: shareImage,
+    lang: currentLang,
+    pubDate: entry.data.pubDate,
+    category: entry.data.category,
+    words: remarkPluginFrontmatter.words,
+    minutes: remarkPluginFrontmatter.minutes,
+});
 ---
-<MainPageLayout title={pageTitle} lang={currentLang} description={entry.data.description}>
+<MainPageLayout
+    title={pageTitle}
+    lang={currentLang}
+    description={entry.data.description}
+    image={shareImage}
+    type="article"
+    publishedTime={entry.data.pubDate}
+    section={entry.data.category}
+    keywords={entry.data.category ? [entry.data.category] : []}
+    noindex={entry.data.draft}
+    structuredData={postJsonLd}
+>
     <div class="mx-auto w-full max-w-[var(--page-width)] py-8 md:mt-0 mt-18">
         <div class="mb-18 text-center">
             <h1 class="font-bold text-3xl mb-2 pt-10 text-[var(--text-color)]">{ entry.data.title }</h1>
@@ -92,7 +119,7 @@ const { remarkPluginFrontmatter } = await render(entry);
         </div>
         {image && (
             <div class="cover overflow-hidden">
-                <ImageModule src={image} class="w-full h-full object-cover"/>
+                <ImageModule src={image} alt={entry.data.title} class="w-full h-full object-cover"/>
             </div>
         )}
         {entry.data.draft && (

@@ -17,7 +17,7 @@ console.log("404 page loaded with locale:", currentLang);
 const pageTitle = "404 - " + siteConfig.title;
 const indexPage = getRelativeLocaleUrl(currentLang, "/");
 ---
-<MainPageLayout title={pageTitle} lang="zh-CN">
+<MainPageLayout title={pageTitle} lang="zh-CN" noindex={true}>
     <div class="mx-auto w-full max-w-[var(--page-width)] px-4 text-center py-10">
         <div class="flex min-h-[65vh] flex-col items-center justify-center">
 

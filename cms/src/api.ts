@@ -1,4 +1,12 @@
-import type { ArticleDetail, ArticleSummary, FrontmatterData, MetaInfo, Stats } from './types'
+import type {
+  ArticleDetail,
+  ArticleSummary,
+  ConfigDoc,
+  ConfigValues,
+  FrontmatterData,
+  MetaInfo,
+  Stats,
+} from './types'
 
 async function req<T>(url: string, init?: RequestInit): Promise<T> {
   const res = await fetch(url, {
@@ -70,5 +78,22 @@ export const api = {
 
   stats() {
     return req<Stats>('/api/stats')
+  },
+
+  // 站点配置（src/config.ts）
+  getConfig() {
+    return req<ConfigDoc>('/api/config')
+  },
+
+  saveConfig(values: ConfigValues) {
+    return req<ConfigDoc>('/api/config', { method: 'PUT', body: JSON.stringify({ values }) })
+  },
+
+  // 用系统默认的文件管理器打开文章文件夹
+  reveal(path: string) {
+    return req<{ ok: boolean; dir: string }>('/api/reveal', {
+      method: 'POST',
+      body: JSON.stringify({ path }),
+    })
   },
 }

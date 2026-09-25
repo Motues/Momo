@@ -10,6 +10,8 @@ import { upload } from './upload.mjs'
 import { meta as metaRouter } from './meta.mjs'
 import { stats } from './stats.mjs'
 import { blogContent } from './blog-content.mjs'
+import { config as configRouter } from './config.mjs'
+import { reveal } from './reveal.mjs'
 
 const __dirname = fileURLToPath(new URL('.', import.meta.url))
 const indexHtml = await readFile(join(__dirname, '..', 'index.html'), 'utf-8')
@@ -21,6 +23,8 @@ app.route('/api/preview', preview)
 app.route('/api/upload', upload)
 app.route('/api/meta', metaRouter)
 app.route('/api/stats', stats)
+app.route('/api/config', configRouter)
+app.route('/api/reveal', reveal)
 app.route('/blog-content', blogContent)
 app.route('/katex-fonts', katexFonts)
 

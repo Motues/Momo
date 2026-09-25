@@ -19,10 +19,12 @@ pnpm cms
 ## 功能
 
 - **概览页**（`#/`）：文章总数 / 已发布 / 草稿 / 置顶 / 分类数 / 正文总字数统计，分类分布条形图，语言版本覆盖（中英双语），最近文章列表
+- **网站配置页**（`#/config`）：`src/config.ts` 的可视化编辑器（站点信息、阅读与目录、评论、主题、个人信息、许可协议、国际化、各语言 Cover 文案、友链列表；支持增删与上下移动友链），可展开查看文件源码；保存时**只改写真正改动过的字段**，文件里的注释与排版保持不变
 - **文章列表**（`#/list`）：搜索、分类筛选、草稿/已发布筛选、语言徽章；支持**卡片 / 表格**两种视图模式（localStorage 记忆选择）与**多种排序**（默认置顶+日期 / 发布日期升降序 / 标题 / 路径 / 分类，中文按拼音排序）；表格**列宽按内容自动分配**（宽裕时按内容比例铺满整行，狭窄时压缩标题/路径并保底最小宽度，窗口变化自动重算），表格右侧**行内操作**（置顶/取消置顶、草稿/发布切换、删除）
 - **Markdown 编辑器**：frontmatter 表单 + 正文源码，左侧编辑右侧**实时预览**（防抖 500ms）；编辑区上方**快速插入工具栏**（加粗/斜体/行内代码/链接/图片/引用、代码块/Typst、行内/块公式、提示块（note/tip/important/caution/warning）、GitHub/音乐卡片、注音/折叠/彩虹/下划线），支持选中文本包裹与光标定位
 - **完整自定义语法预览**：与博客渲染管线一致（见下方语法表）
 - **多语言版本**：同路径 `zh-cn.md` / `en.md` 标签页切换，可新建缺失的语言版本
+- **在文件夹中打开**：文章编辑页右上角按钮，用系统默认的文件管理器打开当前文章所在文件夹（Windows `explorer.exe` / macOS `open` / Linux `xdg-open`）
 - **slugId**：文章/评论标识元数据（如 `momo/xxx`），与文件夹位置解耦，保存时**不会**改变文件夹；仅当 slugId 与当前文件夹路径一致（CMS 新建的文章）且被修改时才整体移动文件夹
 - **封面图上传**：图片直接保存到文章文件夹，自动填写 `image: ./xxx.png`
 - **删除保护**：删除前二次确认，未保存内容离开页面时提醒
@@ -39,6 +41,9 @@ cms/
 │   ├── index.mjs         # 应用入口：/api/* 路由 + SPA 回退 + 静态资源
 │   ├── store.mjs         # 博客文章文件统一读写层（CRUD / slugId 元数据 / 分类统计 / 解析缓存）
 │   ├── articles.mjs      # GET/POST/PUT/DELETE /api/articles/*
+│   ├── config-file.mjs   # src/config.ts 的解析与「只改写改动字段」的写回（保留注释）
+│   ├── config.mjs        # GET/PUT /api/config：站点配置可视化编辑
+│   ├── reveal.mjs        # POST /api/reveal：用系统文件管理器打开文章文件夹
 │   ├── preview.mjs       # POST /api/preview：复用博客全部 remark/rehype 插件
 │   ├── upload.mjs        # POST /api/upload：封面图上传（multipart）
 │   ├── meta.mjs          # GET /api/meta：分类统计
@@ -48,7 +53,7 @@ cms/
 └── src/                  # 前端（纯 TypeScript SPA，hash 路由，无框架）
     ├── main.ts / router.ts / api.ts / types.ts / styles.css
     └── pages/ OverviewPage.ts（概览）、ListPage.ts（列表：卡片/表格）、EditorPage.ts、
-              header.ts（顶栏导航）、new-article.ts（新建文章弹窗）
+              ConfigPage.ts（网站配置）、header.ts（顶栏导航）、new-article.ts（新建文章弹窗）
 ```
 
 - **API 端口**：5188（唯一端口，Vite dev server 内嵌 Hono）
@@ -65,8 +70,22 @@ cms/
 | DELETE | `/api/articles/:path` | 删除整篇文章（文件夹） |
 | POST | `/api/preview` | 实时预览 `{ data, body, base }` → 完整 HTML 文档 |
 | POST | `/api/upload` | 上传封面图（multipart: file + path） |
+| POST | `/api/reveal` | 用系统默认的文件管理器打开文章文件夹 `{ path }` |
 | GET | `/api/meta` | 分类统计 |
 | GET | `/api/stats` | 概览统计（总数/发布/草稿/置顶/分类/字数/语言/最近文章） |
+| GET | `/api/config` | 读取 `src/config.ts`：`{ path, source, values }` |
+| PUT | `/api/config` | 保存配置 `{ values }` -> `{ path, source, values, changed }`；只写回改动过的字段 |
+
+## 站点配置写回（`server/config-file.mjs`）
+
+`src/config.ts` 是用户需要手工维护的文件（`pnpm momo update` 会提示手工合并），因此 CMS **不整文件重写**：
+
+1. 内置一套极小的扫描器，直接解析源码里的对象字面量（零依赖，`cms/server` 由 Node 原生加载）；
+2. 保存时把提交的配置与当前值做 diff，先逐字段、逐数组元素比较，再只替换/插入真正变化的片段——注释、引号风格（单/双引号）、缩进与字段顺序全部保留；
+3. 数组只在末尾追加元素、或删除元素（不会整体重写），因此友链里的注释不会被冲掉；
+4. 写回前重新解析一遍做校验，任何一个改动字段对不上就整体放弃并报错，绝不写坏文件。
+
+改动字段增删时，只需同步 `cms/src/pages/ConfigPage.ts` 的 `buildSections()`（表单分区描述），服务端无需改动。
 
 ## 自定义语法速查（预览与博客一致）
 

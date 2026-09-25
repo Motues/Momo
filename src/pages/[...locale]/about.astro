@@ -26,8 +26,10 @@ if (!aboutPost) {
 const { Content } = await render(aboutPost);
 
 const pageTitle = t("header.about") + " - " + siteConfig.title;
+// SEO：用该页 Cover 文案作为描述，避免多个页面共用同一段描述
+const pageDescription = `${t("cover.title.about")} - ${t("cover.subTitle.about")}`;
 ---
-<MainPageLayout title={pageTitle} lang={currentLang}>
+<MainPageLayout title={pageTitle} lang={currentLang} description={pageDescription}>
     <div class="mx-auto w-full max-w-[var(--page-width)]">
         <Cover title={t("cover.title.about")} subTitle={t("cover.subTitle.about")}/>
         <Markdown class="mb-6 markdown-content onload-animation">

@@ -9,12 +9,44 @@ interface Props {
   title: string;
   lang: string;
   description?: string;
+  image?: string;
+  type?: 'website' | 'article';
+  publishedTime?: Date | string;
+  modifiedTime?: Date | string;
+  section?: string;
+  keywords?: string[];
+  noindex?: boolean;
+  structuredData?: Record<string, unknown> | Record<string, unknown>[];
 }
-const { title, lang, description } = Astro.props;
+const {
+  title,
+  lang,
+  description,
+  image,
+  type,
+  publishedTime,
+  modifiedTime,
+  section,
+  keywords,
+  noindex,
+  structuredData,
+} = Astro.props;
 
 ---
 
-<Layout title={title} lang={lang} description={description}>
+<Layout
+  title={title}
+  lang={lang}
+  description={description}
+  image={image}
+  type={type}
+  publishedTime={publishedTime}
+  modifiedTime={modifiedTime}
+  section={section}
+  keywords={keywords}
+  noindex={noindex}
+  structuredData={structuredData}
+>
   <div class="flex flex-col min-h-screen">
     <div>
       <Header />

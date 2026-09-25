@@ -1,6 +1,7 @@
 export type Route =
   | { name: 'overview' }
   | { name: 'list' }
+  | { name: 'config' }
   | { name: 'edit'; path: string }
 
 export function parseRoute(hash: string): Route {
@@ -10,6 +11,7 @@ export function parseRoute(hash: string): Route {
     return { name: 'edit', path: parts.slice(1).map(decodeURIComponent).join('/') }
   }
   if (parts[0] === 'list') return { name: 'list' }
+  if (parts[0] === 'config') return { name: 'config' }
   return { name: 'overview' }
 }
 

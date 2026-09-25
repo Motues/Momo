@@ -167,6 +167,7 @@ function buildShell(root: HTMLElement, state: EditorState) {
         el('div', { class: 'editor-actions' }, [
           el('span', { class: 'dirty-badge', id: 'dirty-badge', hidden: true }, ['● 未保存']),
           el('button', { class: 'btn', id: 'btn-open-blog', title: '在博客中打开当前文章（新标签页）', onclick: () => openInBlog(state) }, ['打开博客']),
+          el('button', { class: 'btn', id: 'btn-open-folder', title: '用系统默认的文件管理器打开当前文章所在文件夹', onclick: () => openFolder(state) }, ['📁 打开文件夹']),
           el('button', { class: 'btn', onclick: () => togglePreview() }, ['预览开/关']),
           el('button', { class: 'btn btn-danger', onclick: () => doDelete(state) }, ['删除']),
           el('button', { class: 'btn btn-primary', id: 'btn-save', onclick: () => doSave(state) }, [
@@ -518,6 +519,16 @@ function blogOrigin(): string {
 function openInBlog(state: EditorState) {
   const url = `${blogOrigin()}/blog/${encodePath(state.path)}`
   window.open(url, '_blank', 'noopener')
+}
+
+// 用系统默认的文件管理器打开当前文章所在文件夹（服务端调用 explorer / open / xdg-open）
+async function openFolder(state: EditorState) {
+  try {
+    const res = await api.reveal(state.path)
+    toast(`已打开文件夹 ${res.dir}`)
+  } catch (e) {
+    toast((e as Error).message, 'error')
+  }
 }
 
 function pickFile(state: EditorState) {

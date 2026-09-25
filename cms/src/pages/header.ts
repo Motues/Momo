@@ -1,6 +1,6 @@
 import { el } from '../dom'
 
-export type PageKey = 'overview' | 'list'
+export type PageKey = 'overview' | 'list' | 'config'
 
 // 顶栏：Logo + 页面导航 + 右侧操作区
 export function pageHeader(active: PageKey, right: HTMLElement) {
@@ -13,6 +13,7 @@ export function pageHeader(active: PageKey, right: HTMLElement) {
       el('nav', { class: 'cms-nav' }, [
         el('a', { class: 'cms-nav-link' + (active === 'overview' ? ' active' : ''), href: '#/' }, ['概览']),
         el('a', { class: 'cms-nav-link' + (active === 'list' ? ' active' : ''), href: '#/list' }, ['文章列表']),
+        el('a', { class: 'cms-nav-link' + (active === 'config' ? ' active' : ''), href: '#/config' }, ['网站配置']),
       ]),
       right,
     ]),

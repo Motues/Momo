@@ -15,7 +15,7 @@
 ### `siteConfig`
 
 * `title`: Site title
-* `subTitle`: Site subtitle
+* `subTitle`: Site subtitle; **when left empty, the browser tab title (and the RSS title) shows `title` only**, without a dangling ` - ` separator
 * `rootSiteUrl`: Root URL of the site, used to generate absolute links for SEO and social sharing; `astro.config.mjs` uses it as `site`
 * `favicon`: Site icon
 * `pageSize`: Number of articles per page

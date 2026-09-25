@@ -917,6 +917,128 @@ body {
 
 .cms-toast[data-type='error'] { background: var(--danger); color: #fff; }
 
+/* ---------- 网站配置页 ---------- */
+.cms-config {
+  max-width: 900px;
+  padding-bottom: 60px;
+}
+
+.cfg-intro {
+  font-size: 13px;
+  color: var(--text-sub);
+  margin-bottom: 14px;
+}
+
+.cfg-intro code {
+  font-family: var(--mono);
+  background: var(--bg-sub);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 0 5px;
+  font-size: 12px;
+}
+
+.cfg-section { margin-bottom: 14px; }
+
+.cfg-section-head { margin-bottom: 12px; }
+
+.cfg-section-head .panel-title { margin: 0; }
+
+.cfg-desc {
+  margin: 4px 0 0;
+  font-size: 12px;
+  color: var(--text-sub);
+}
+
+.cfg-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px 16px;
+}
+
+.cfg-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 12px;
+  color: var(--text-sub);
+  min-width: 0;
+}
+
+.cfg-field.wide { grid-column: span 2; }
+.cfg-field .input { width: 100%; }
+.cfg-field select.input { cursor: pointer; }
+
+.cfg-field-check {
+  justify-content: flex-end;
+  align-self: start;
+  padding-top: 2px;
+}
+
+.cfg-field-check .form-check {
+  font-size: 13px;
+  color: var(--text);
+  padding-bottom: 0;
+  align-self: auto;
+}
+
+.cfg-label { font-weight: 500; }
+
+.cfg-hint {
+  font-size: 11px;
+  color: var(--text-sub);
+  opacity: 0.85;
+}
+
+/* 友链列表 */
+.cfg-links-head,
+.cfg-link-fields {
+  display: grid;
+  grid-template-columns: 1fr 1.4fr 1.4fr 1.2fr;
+  gap: 8px;
+}
+
+.cfg-links-head {
+  font-size: 11px;
+  color: var(--text-sub);
+  padding: 0 40px 6px 0;
+}
+
+.cfg-link-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 0;
+  border-top: 1px solid var(--border);
+}
+
+.cfg-link-fields { flex: 1; min-width: 0; }
+
+.cfg-link-actions { display: flex; gap: 4px; flex-shrink: 0; }
+
+.cfg-links .btn { margin-top: 12px; }
+
+/* 源码预览 */
+.cfg-source-panel { padding: 0; }
+
+.cfg-source-panel .form-toggle { border-radius: var(--radius); }
+
+.cfg-source-panel.collapsed .cfg-source { display: none; }
+
+.cfg-source {
+  margin: 0;
+  padding: 14px 16px;
+  max-height: 420px;
+  overflow: auto;
+  font-size: 12px;
+  line-height: 1.6;
+  background: var(--bg-sub);
+  border-top: 1px solid var(--border);
+  border-radius: 0 0 var(--radius) var(--radius);
+  white-space: pre;
+  tab-size: 4;
+}
+
 /* ---------- 响应式 ---------- */
 @media (max-width: 860px) {
   .editor-main { grid-template-columns: 1fr; }
@@ -929,4 +1051,9 @@ body {
   .cms-main { padding: 16px; }
   .overview-cols { grid-template-columns: 1fr; }
   .stat-grid { grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); }
+  .cfg-grid { grid-template-columns: 1fr; }
+  .cfg-field.wide { grid-column: span 1; }
+  .cfg-link-row { flex-direction: column; align-items: stretch; }
+  .cfg-link-fields { grid-template-columns: 1fr 1fr; }
+  .cfg-links-head { display: none; }
 }

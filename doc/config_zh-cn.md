@@ -15,7 +15,7 @@
 ### `siteConfig`
 
 * `title`: 网站的标题
-* `subTitle`: 网站的副标题
+* `subTitle`: 网站的副标题；**留空时浏览器标签栏（以及 RSS 标题）只显示 `title`**，不会出现多余的 ` - ` 分隔符
 * `rootSiteUrl`: 网站的根地址，用于生成 SEO 与社交分享的绝对链接；`astro.config.mjs` 的 `site` 默认取该值
 * `favicon`: 网站的图标
 * `pageSize`: 每页显示的文章数量
