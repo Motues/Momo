@@ -1,7 +1,7 @@
 {
   "name": "momo",
   "type": "module",
-  "version": "26.9.10",
+  "version": "26.9.25",
   "scripts": {
     "dev": "astro dev",
     "build": "astro build && pagefind --site dist",
@@ -16,6 +16,8 @@
     "@astrojs/rss": "^4.0.19",
     "@astrojs/svelte": "^9.0.1",
     "@chinese-fonts/lxgwwenkaibright": "^2.0.0",
+    "@expressive-code/plugin-collapsible-sections": "^0.44.2",
+    "@expressive-code/plugin-line-numbers": "^0.44.2",
     "@fontsource-variable/jetbrains-mono": "^5.2.8",
     "@fontsource/eb-garamond": "^5.2.7",
     "@fontsource/noto-serif-sc": "^5.2.9",
@@ -25,6 +27,7 @@
     "@tailwindcss/vite": "^4.1.13",
     "aos": "^2.3.4",
     "astro": "^7.2.1",
+    "astro-expressive-code": "^0.44.2",
     "astro-icon": "^1.1.5",
     "dompurify": "^3.4.2",
     "hastscript": "^9.0.1",
@@ -32,7 +35,6 @@
     "marked": "^18.0.2",
     "mdast-util-to-string": "^4.0.0",
     "pagefind": "^1.4.0",
-    "photoswipe": "^5.4.4",
     "reading-time": "^1.5.0",
     "rehype-components": "^0.3.0",
     "rehype-katex": "^7.0.1",

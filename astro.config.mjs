@@ -23,6 +23,16 @@ import svelte from "@astrojs/svelte";
 
 import { siteConfig, i18nConfig } from './src/config';
 
+// 代码块由 Expressive Code 官方集成渲染（标题栏 / 行高亮 / diff / 行号 / 折叠…）
+// 开关与主题在 src/config.ts 的 siteConfig.expressiveCode 里配置，
+// 其余选项见根目录 ec.config.mjs（CMS 预览复用同一份配置）
+import expressiveCode from "astro-expressive-code";
+import { ecThemeOptions } from "./ec.config.mjs";
+
+// 兜底：旧版 src/config.ts 里可能还没有 expressiveCode 字段
+const ecSettings = siteConfig.expressiveCode ?? {};
+const ecEnabled = ecSettings.enable !== false;
+
 // https://astro.build/config
 export default defineConfig({
   site: siteConfig.rootSiteUrl || 'https://momo.motues.top', // Root URL of site
@@ -43,13 +53,20 @@ export default defineConfig({
       "material-symbols": ["*"],
       "fluent": ["*"],
     }
-  }), svelte()],
+  }), svelte(),
+  // Expressive Code 开关：siteConfig.expressiveCode.enable
+  ...(ecEnabled ? [expressiveCode({
+    ...ecThemeOptions(ecSettings),
+    getBlockLocale: ({ file }) => {
+      const match = /(?:^|[\\/])([a-z]{2}(?:-[a-z]{2})?)\.md$/i.exec(file?.path || '');
+      if (!match) return undefined;
+      const code = match[1].toLowerCase();
+      return code === 'zh-cn' ? 'zh-CN' : code;
+    }
+  })] : [])],
   markdown: {
-    shikiConfig: {
-      theme: 'one-dark-pro', // code theme
-      // theme: 'github-dark',
-      wrap: false
-    },
+    // 关闭 Expressive Code 时不做语法高亮，代码块回退为纯文本
+    ...(ecEnabled ? {} : { syntaxHighlight: false }),
     processor: unified({
       remarkPlugins: [
         remarkMath,

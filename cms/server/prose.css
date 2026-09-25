@@ -67,7 +67,8 @@ body {
   padding: 0.15em 0.4em;
   border-radius: 4px;
 }
-.markdown-content pre {
+/* 代码块由 Expressive Code 渲染（样式随代码块内联注入），这里只兜底非 EC 的 <pre> */
+.markdown-content pre:not(.expressive-code pre) {
   background: var(--pre-bg);
   color: var(--pre-text);
   border-radius: 8px;
@@ -81,55 +82,8 @@ body {
   padding: 0;
   font-size: 0.88em;
 }
-.markdown-content pre.shiki { padding: 16px; }
-.markdown-content .shiki { background: transparent !important; }
 
-/* 引用 */
-.markdown-content blockquote {
-  margin: 1.2em 0;
-  padding: 0.1em 1em;
-  border-left: 4px solid var(--border);
-  color: var(--text-sub);
-}
-
-/* 列表 */
-.markdown-content ul, .markdown-content ol { padding-left: 1.6em; margin: 1em 0; }
-.markdown-content li { margin: 0.35em 0; }
-.markdown-content li::marker { color: var(--text-sub); }
-.markdown-content input[type="checkbox"] { margin-right: 0.4em; }
-
-/* 表格 */
-.markdown-content table {
-  border-collapse: collapse;
-  width: 100%;
-  margin: 1.2em 0;
-  display: block;
-  overflow-x: auto;
-}
-.markdown-content th, .markdown-content td {
-  border: 1px solid var(--border);
-  padding: 8px 14px;
-  text-align: left;
-}
-.markdown-content th { background: var(--code-bg); font-weight: 600; }
-
-/* 图片 / figure */
-.markdown-content img { max-width: 100%; height: auto; border-radius: 6px; }
-.markdown-content figure { text-align: center; margin: 1.5em 0; }
-.markdown-content figcaption {
-  font-size: 0.85em;
-  color: var(--text-sub);
-  margin-top: 0.5em;
-}
-
-/* 分隔线 */
-.markdown-content hr {
-  border: none;
-  height: 1px;
-  background: var(--border);
-  margin: 2.2em 0;
-}
-
+.markdown-content .expressive-code { margin: 1.2em 0; }
 /* ===== 博客自定义语法样式（与 src/styles/markdown.css 对应） ===== */
 
 /* Alert 组件 */

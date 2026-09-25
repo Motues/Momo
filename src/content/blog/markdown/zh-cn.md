@@ -154,6 +154,61 @@ int main() {
 }
 ```
 
+### 代码块增强（Expressive Code）
+
+代码高亮由 [Expressive Code](https://expressive-code.com/) 提供，在语言后面追加选项即可：
+
+- `title="文件路径"`：显示标题栏；`frame="terminal"` 显示终端窗口（三个圆点）
+- `{2,4-5}`：高亮指定行；`ins={2}` / `del={1}`：diff 标记
+- `showLineNumbers` / `startLineNumber=10`：显示行号
+- `collapse={3-10}`：折叠指定行；`wrap`：自动换行；`frame="none"`：不显示标题栏
+
+````
+```js title="src/app.js" {3} ins={4} del={5} showLineNumbers
+function greet(name) {
+  // 高亮第 3 行
+  console.log(`Hello, ${name}!`)
+  return true // 新增
+  return false // 删除
+}
+```
+````
+
+效果如下：
+
+```js title="src/app.js" {3} ins={4} del={5} showLineNumbers
+function greet(name) {
+  // 高亮第 3 行
+  console.log(`Hello, ${name}!`)
+  return true // 新增
+  return false // 删除
+}
+```
+
+终端窗口 + 折叠：
+
+````
+```bash frame="terminal" collapse={3-6}
+pnpm install
+pnpm build
+# 下面是折叠起来的内容
+echo "hello"
+echo "world"
+echo "again"
+echo "more"
+```
+````
+
+```bash frame="terminal" collapse={3-6}
+pnpm install
+pnpm build
+# 下面是折叠起来的内容
+echo "hello"
+echo "world"
+echo "again"
+echo "more"
+```
+
 ## 列表
 
 ### 有序列表

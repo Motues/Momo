@@ -29,6 +29,22 @@ Below are general modification suggestions.
 
 > Version numbers follow the `YY.MM.DD` format
 
+### 26.9.25
+
+> This update modifies `astro.config.mjs`, adds the new config file `ec.config.mjs`, and changes dependencies. Please read the notes below.
+
+* Code blocks now use the official **Expressive Code** integration (`astro-expressive-code`): title frames, line highlighting, diff markers, line numbers, collapsible sections, word wrap and terminal frames; the copy button and collapse interaction are provided by Expressive Code itself. The switch and the code theme live in `siteConfig.expressiveCode` of `src/config.ts` (`enable` / `theme`; when disabled, code blocks fall back to plain text), all other options live in the new `ec.config.mjs`, which the CMS live preview shares (same config and renderer)
+* The image lightbox is now a built-in implementation (the `photoswipe` package is no longer used): wheel / button / double-click / pinch zoom, drag to pan, arrow keys or swipe to switch, Esc to close, with a smooth fly-in from the thumbnail and a fly-back animation on close
+* New CMS "Site config" page (`#/config`): edit `src/config.ts` visually — only the fields you actually changed are rewritten, comments and formatting are preserved. The article editor also gained an "Open folder" button
+* SEO improvements: canonical URLs, hreflang alternates, Open Graph / Twitter Cards, WebSite + BlogPosting structured data, `sitemap.xml` and `robots.txt`; the archive page is server-rendered and every page has a single `<h1>`
+* When `siteConfig.subTitle` is empty, the browser tab title and RSS title show `title` only
+* Configuration files involved in this update:
+    * `astro.config.mjs`: adds the `astro-expressive-code` integration (including `getBlockLocale` so code block texts follow the article language, and using `siteConfig.expressiveCode` to decide whether it is enabled and which theme to use) and removes the now ineffective `markdown.shikiConfig`; simply overwrite it
+    * `ec.config.mjs` (new): Expressive Code plugins, default props, styles and texts (the code theme is not here, it comes from `src/config.ts`); copy it to your project root
+    * `src/config.ts`: adds `siteConfig.expressiveCode` (the `enable` switch and the `theme`, e.g. `"one-dark-pro"`); add it as needed — without it the defaults are used (enabled + `one-dark-pro`)
+    * `package.json`: adds `astro-expressive-code`, `@expressive-code/plugin-collapsible-sections` and `@expressive-code/plugin-line-numbers`, removes `photoswipe`
+* After updating, clear caches and reinstall dependencies: `pnpm momo clean --all` → `pnpm install` → `pnpm build`
+
 ### 26.9.10
 
 > This update contains **breaking configuration changes**. Please read the release notes below carefully!
@@ -68,7 +84,7 @@ Translated with DeepL.com (free version)
 * Fixed color flickering issues during page transitions and optimized certain UI elements
 * This update modifies the configuration file `src/i18n/`, adding fields such as `comments.verificationRequired`; all other fields remain unchanged. When making modifications, simply add the new fields
 
-### v26.5.6
+### 26.5.6
 
 * Added the `LQIP` low-quality image placeholder feature
 * Added support for a new Markdown style: the underscore syntax (++)
@@ -76,46 +92,46 @@ Translated with DeepL.com (free version)
 * This update modifies the `astro.config.mjs` configuration file to include the `remarkLqip` plugin; it also modifies the `config.ts` configuration file by adding fields such as `theme.LQIP`. When updating, you must add these new fields.
 
 
-### v26.5.3
+### 26.5.3
 
 * Added a preview feature for comment replies
 * Enhanced comment content security
 * Fixed a type error in `astro.config.mjs`
 * This update modifies the configuration file `astro.config.mjs` by changing how `AdmonitionComponent` is imported; corresponding changes must be made
 
-### v26.4.27
+### 26.4.27
 
 * The comment system now supports Markdown syntax
 * This update modifies the configuration file `src/i18n/`, adding fields such as `comments.write`; all other fields remain unchanged. When making modifications, simply add the new fields
 
-### v26.4.21
+### 26.4.21
 
 * Added AOS animation toggle configuration
 * The comment system now supports Twikoo
 * This update modifies the `config.ts` configuration file by adding the `theme.AOS` and `comments.platform` fields; these new fields must be added when updating
 
-### v26.4.15
+### 26.4.15
 
 * Added the function for pined posts
 * Updated the Music Card API URL
 * Fixed some styling issues
 * This update modifies the `astro.config.mjs` configuration file and adds a new dependency, `@iconify-json/fluent`. You must add the corresponding fields and run `pnpm install`.
 
-### v26.4.7
+### 26.4.7
 
 * Fixed translation errors
 * Changed the color of selected text
 * Updated the Mucis Card API URL
 * This update modifies the configuration file `src/i18n/language/en.ts` by changing the `themeInfo.system` field; all other fields remain unchanged. When updating, you only need to modify the fields that have changed.
 
-### v26.3.29
+### 26.3.29
 
 * Updated the comment data structure to support the new version of the comment backend
 * Optimized the styling of comments on mobile devices
 * Fixed an issue where the category menu on the archive page was misaligned
 * This update modifies the configuration file `src/i18n/` by adding the `comments.replyTo` field; all other fields remain unchanged. To apply the changes, simply add the new field
 
-### v26.3.17
+### 26.3.17
 
 * Changed the style of comment avatars to circular
 * Adjusted the margins of some components
@@ -123,8 +139,8 @@ Translated with DeepL.com (free version)
 
 Translated with DeepL.com (free version)
 
-### v26.3.11
+### 26.3.11
 
-* Initial release version `v26.3.11`
+* Initial release version `26.3.11`
 * Multiple project improvements, including: optimized mobile experience, unified website color scheme
 * This update modifies the configuration file `src/i18n/`. We recommend using the latest version and updating the `cover.title` and `cover.subtitle` fields with your own information.

@@ -447,7 +447,7 @@ async function renderPreview(state: EditorState) {
   const seq = ++state.previewSeq
   if (status) status.textContent = '渲染中…'
   try {
-    const doc = await api.preview({ data: state.data, body: state.body, base: state.path })
+    const doc = await api.preview({ data: state.data, body: state.body, base: state.path, lang: state.lang })
     if (seq !== state.previewSeq) return
     frame.srcdoc = doc
     if (status) status.textContent = '✓ 已更新'

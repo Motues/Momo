@@ -5,7 +5,6 @@
 | File | Purpose |
 | --- | --- |
 | `src/config.ts` | **Main entry point**: site information, theme switches, profile, license, friend links, languages and the Cover text of every page |
-| `astro.config.mjs` | Astro configuration: `site` and `i18n` are read from `src/config.ts`, so usually only build-time options such as `markdown.shikiConfig` need editing |
 | `src/content.config.ts` | Schema of the article frontmatter (only needs changes when fields are added or modified) |
 | `src/i18n/` | UI translations (everything except the Cover text) |
 | `src/types/` | TypeScript types for the configuration above |
@@ -33,6 +32,9 @@
     * `LQIP`: Enable LQIP (low-quality image placeholder)
     * `PhotoSwipe`: Enable PhotoSwipe
     * `postCard.imageMode`: Cover style of the article cards on the home page, `top` puts the image above the content, `background` uses it as the card background
+* `expressiveCode`
+    * `enable`: Enable [Expressive Code](https://expressive-code.com/) 
+    * `theme`: Shiki theme name of code blocks, e.g. `one-dark-pro` (default), `github-dark`, `vitesse-dark`; the same theme is used in light and dark mode
 
 :::tip
 For the backend project, refer to [Momo-backend](https://github.com/Motues/Momo-Backend). Ensure all configurations are completed as specified, particularly for cross-domain domains.

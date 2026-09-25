@@ -18,6 +18,7 @@ export const CONFIG_PATHS = [
   'pnpm-lock.yaml',
   'pnpm-workspace.yaml',
   'astro.config.mjs',
+  'ec.config.mjs',
   'svelte.config.js',
   'tsconfig.json',
   'pagefind.yml',

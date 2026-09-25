@@ -13,20 +13,8 @@ slugId: momo/intro/config
 | File | Purpose |
 | --- | --- |
 | `src/config.ts` | **Main entry point**: site information, theme switches, profile, license, friend links, languages and the Cover text of every page |
-| `astro.config.mjs` | Astro configuration: `site` and `i18n` are read from `src/config.ts`, so usually only build-time options such as `markdown.shikiConfig` need editing |
 | `src/content.config.ts` | Schema of the article frontmatter (only needs changes when fields are added or modified) |
 | `src/i18n/` | UI translations (everything except the Cover text) |
-
-## `astro.config.mjs`
-
-* `site`: Website URL, taken from `siteConfig.rootSiteUrl`
-* `i18n`: Internationalization configuration, taken from `i18nConfig`
-    * `locales`: Supported languages, corresponds to `i18nConfig.supportedLanguages`
-    * `defaultLocale`: Default language, corresponds to `i18nConfig.defaultLanguage`
-* `markdown`
-    * `shikiConfig`: Code block styling. Refer to Astro's documentation [Shiki](https://docs.astro.build/en/guides/syntax-highlighting/#setting-a-default-shiki-theme)
-
-> In other words, everything related to languages and your domain lives in `src/config.ts`; `astro.config.mjs` normally needs no changes.
 
 ## `src/config.ts`
 
@@ -54,6 +42,9 @@ slugId: momo/intro/config
         * `imageMode`: Cover image mode for article cards
             * `"top"`: The image is displayed above the card content (default)
             * `"background"`: The image is used as the card background, fading to transparent from right to left
+* `expressiveCode`
+    * `enable`: Enable the Expressive Code code block enhancements; when disabled, code blocks fall back to plain text (identical on the blog and in the CMS preview)
+    * `theme`: Shiki theme name of code blocks, e.g. `"one-dark-pro"` (default), `"github-dark"`, `"vitesse-dark"`; the same theme is used in light and dark mode
 
 :::tip
 For the backend project, refer to [Momo-backend](https://github.com/Motues/Momo-Backend). Ensure all configurations are completed as specified, particularly for cross-domain domains.

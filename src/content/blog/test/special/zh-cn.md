@@ -180,5 +180,53 @@ console.log('Hello World');
 这是一个带有自定义标题的提示框。标题会显示为“自定义标题”而不是默认的“IMPORTANT”。
 :::
 
+## Expressive Code 测试
+
+代码块由 [Expressive Code](https://expressive-code.com/) 渲染，在语言后面追加选项即可（完整写法见 [Markdown 基本功能](/blog/markdown)）：
+
+````
+```js title="src/app.js" {3} ins={4} del={5} showLineNumbers
+function greet(name) {
+  // 高亮第 3 行
+  console.log(`Hello, ${name}!`)
+  return true // 新增
+  return false // 删除
+}
+```
+````
+
+效果如下：
+
+```js title="src/app.js" {3} ins={4} del={5} showLineNumbers
+function greet(name) {
+  // 高亮第 3 行
+  console.log(`Hello, ${name}!`)
+  return true // 新增
+  return false // 删除
+}
+```
+
+### 终端窗口与折叠
+
+`frame="terminal"` 显示终端窗口（三个圆点），`collapse={3-6}` 折叠指定行，点击「已折叠 N 行」可以展开：
+
+```bash frame="terminal" collapse={3-6}
+pnpm install
+pnpm build
+# 下面是折叠起来的内容
+echo "hello"
+echo "world"
+echo "again"
+echo "more"
+```
+
+### 自动换行与无标题栏
+
+`wrap` 让过长的代码自动换行，`frame="none"` 不显示标题栏：
+
+```text wrap frame="none"
+在黑暗森林中，每个文明都是带枪的猎人，像幽灵般潜行于林间，竭力不让脚步发出一点儿声音，连呼吸都必须小心翼翼。
+```
+
 [^1]: 这里是第一个引用的具体内容，点击前面的箭头可以跳回正文。
 [^2]: 这是第二个引用的内容，支持[链接](#)。

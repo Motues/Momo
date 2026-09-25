@@ -52,7 +52,7 @@ export const api = {
   },
 
   // 实时预览：返回完整 HTML 文档字符串（用于 iframe srcdoc）
-  async preview(body: { data: FrontmatterData; body: string; base: string }) {
+  async preview(body: { data: FrontmatterData; body: string; base: string; lang?: string }) {
     const res = await fetch('/api/preview', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },

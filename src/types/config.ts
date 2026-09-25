@@ -25,7 +25,11 @@ export type SiteConfig = {
         postCard: {
             imageMode: "top" | "background"; 
         };
-    }
+    };
+    expressiveCode: {
+        enable: boolean;
+        theme: string;
+    };
 }
 
 export type ProfileConfig = {

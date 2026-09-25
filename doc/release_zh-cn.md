@@ -29,6 +29,22 @@
 
 > 版本号采用 `YY.MM.DD` 的格式
 
+### 26.9.25
+
+> 本次更新修改了 `astro.config.mjs`，并新增配置文件 `ec.config.mjs`、调整了依赖，请阅读下面的更新说明。
+
+* 代码块改用官方的 **Expressive Code** 集成（`astro-expressive-code`）：支持标题栏、行高亮、diff 标记、行号、折叠代码段、自动换行与终端窗口，复制按钮与折叠交互由 Expressive Code 自带；开关与代码主题在 `src/config.ts` 的 `siteConfig.expressiveCode` 中配置（`enable` / `theme`，关闭后代码块回退为纯文本），其余选项集中在新增的 `ec.config.mjs`，CMS 实时预览复用同一份配置与渲染器
+* 图片灯箱改为自研实现（不再依赖 `photoswipe` 包）：滚轮 / 按钮 / 双击 / 双指缩放，拖拽平移，方向键或左右滑动切换，Esc 关闭；打开时从缩略图平滑飞入、关闭时飞回原位
+* CMS 新增「网站配置」页面（`#/config`）：可视化修改 `src/config.ts`，保存时只改写真正改动过的字段，注释与排版保持不变；文章编辑页右上角新增「在文件夹中打开」
+* SEO 增强：canonical、hreflang 多语言对照、Open Graph / Twitter Card、WebSite + BlogPosting 结构化数据、`sitemap.xml`、`robots.txt`；归档页改为服务端渲染，每个页面保证唯一 `<h1>`
+* `siteConfig.subTitle` 为空时，浏览器标签栏标题与 RSS 标题只显示 `title`
+* 本次更新涉及的配置文件：
+    * `astro.config.mjs`：新增 `astro-expressive-code` 集成（含按文章语言切换代码块文案的 `getBlockLocale`，并按 `siteConfig.expressiveCode` 决定是否启用与使用哪个主题），移除已无效的 `markdown.shikiConfig`，直接覆盖即可
+    * `ec.config.mjs`（新增）：Expressive Code 的插件、默认属性、样式与文案（代码主题不在这里，由 `src/config.ts` 决定），复制到项目根目录即可
+    * `src/config.ts`：新增 `siteConfig.expressiveCode`（`enable` 开关与 `theme` 代码主题，如 `"one-dark-pro"`），可以按需补上；不补时按默认值处理（启用 + `one-dark-pro`）
+    * `package.json`：新增依赖 `astro-expressive-code`、`@expressive-code/plugin-collapsible-sections`、`@expressive-code/plugin-line-numbers`，移除 `photoswipe`
+* 更新后请清除缓存并重新安装依赖：`pnpm momo clean --all` → `pnpm install` → `pnpm build`
+
 ### 26.9.10
 
 > 本次更新包含**破坏性配置变更**，请仔细阅读下面的更新说明！
@@ -66,60 +82,60 @@
 * 修复页面切换时的颜色闪烁问题，优化部分UI
 * 本次更新对配置文件 `src/i18n/` 进行了修改，增加了`comments.verificationRequired` 等字段，其余字段保持不变；修改时只需要添加新的字段即可
 
-### v26.5.6
+### 26.5.6
 
 * 添加 `LQIP` 低质量图像占位符功能
 * 增加新的 Markdown 样式支持：下划线语法（++）
 * 添加样式配置选项
 * 本次更新对配置文件 `astro.config.mjs` 进行了修改，引入 `remarkLqip` 插件；对配置文件 `config.ts` 进行了修改，添加了 `theme.LQIP` 等字段，更新时需要添加新的字段
 
-### v26.5.3
+### 26.5.3
 
 * 添加评论回复预览功能
 * 增强评论内容安全性
 * 修复 `astro.config.mjs` 类型错误
 * 本次更新对配置文件 `astro.config.mjs` 进行了修改，修改 `AdmonitionComponent` 导入方式，需要修改对应改动
 
-### v26.4.27
+### 26.4.27
 
 * 评论系统支持 Markdown 语法
 * 本次更新对配置文件 `src/i18n/` 进行了修改，增加了`comments.write` 等字段，其余字段保持不变；修改时只需要添加新的字段即可
 
-### v26.4.21
+### 26.4.21
 
 * 添加 AOS 动效开关配置
 * 评论系统支持 Twikoo
 * 本次更新对配置文件 `config.ts` 进行了修改，添加了 `theme.AOS` 和 `comments.platform` 字段，更新时需要添加新的字段
 
-### v26.4.15
+### 26.4.15
 
 * 添加文章置顶功能
 * 更新音乐卡片 API 地址
 * 修复部分样式问题
 * 本次更新对配置文件 `astro.config.mjs` 进行了修改，添加了新的依赖 `@iconify-json/fluent`，需要添加对应字段，并运行 `pnpm install`
 
-### v26.4.7
+### 26.4.7
 
 * 修改翻译错误
 * 修改选中文本的颜色
 * 修改 Mucis Card 的 API 地址
 * 本次更新对配置文件 `src/i18n/language/en.ts` 进行了修改，修改了`themeInfo.system` 字段，其余字段保持不变；更新时只需要修改变化的字段即可
 
-### v26.3.29
+### 26.3.29
 
 * 更新评论数据结构，适配新版本的评论后台
 * 优化评论在移动端的样式
 * 修复归档页面分类菜单样式错位的问题
 * 本次更新对配置文件 `src/i18n/` 进行了修改，增加了`comments.replyTo` 字段，其余字段保持不变；修改时只需要添加新的字段即可
 
-### v26.3.17
+### 26.3.17
 
 * 修改评论头像的样式为圆形
 * 调整部分组件的边距
 * 本次更新对配置文件 `src/i18n/` 进行了修改，增加了`themeInfo` 字段，其余字段保持不变；修改时只需要添加新的字段即可
 
-### v26.3.11
+### 26.3.11
 
-* 首次发布版本号 `v26.3.11`
+* 首次发布版本号 `26.3.11`
 * 对项目多处进行修改，包括：优化移动端体验、对网站色彩进行统一
 * 本次更新对配置文件 `src/i18n/` 进行了修改，建议使用最新的版本，然后修改 `cover.title` 和 `cover.subtitle` 字段为自己的信息

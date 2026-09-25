@@ -182,9 +182,10 @@
   background-color: rgba(255, 255, 255, 0.1);
 }
 
-.markdown-content pre {
-  margin-top: 0.5rem !important;
-  margin-bottom: 0.5rem !important;
+/* 代码块由 Expressive Code 渲染（样式见构建产物 /_astro/ec.*.css，配置见 ec.config.mjs），
+   下面这些规则只用于兜底（正文里手写的 <pre>），因此排除 .expressive-code 内部 */
+.markdown-content pre:not(.expressive-code pre) {
+  margin: 0.5rem 0;
   padding: 1rem;
   overflow: auto;
   background-color: rgba(0, 0, 0, 0.05);
@@ -193,7 +194,7 @@
   line-height: 1.5;
 }
 
-[data-theme="dark"] .markdown-content pre {
+[data-theme="dark"] .markdown-content pre:not(.expressive-code pre) {
   background-color: rgba(0, 0, 0, 0.2);
 }
 
@@ -203,10 +204,9 @@
   font-size: 0.9rem;
 }
 
-[data-theme="dark"] .markdown-content pre code {
-  padding: 0;
-  background: none;
-  font-size: 0.9rem;
+/* 代码块与正文的间距（EC 不设置外边距） */
+.markdown-content .expressive-code {
+  margin: 1.25rem 0;
 }
 
 .markdown-content hr {

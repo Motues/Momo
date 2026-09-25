@@ -1,5 +1,6 @@
 ---
 import { siteConfig } from '@/config'
+import ImageLightbox from './ImageLightbox.astro'
 import '@fontsource-variable/jetbrains-mono'
 import '@fontsource-variable/jetbrains-mono/wght-italic.css'
 import '@styles/markdown.css'
@@ -57,63 +58,12 @@ const className = Astro.props.class
 </script>
 
 <style is:global>
-  .code-block-wrapper {
-    position: relative !important;
-    width: 100%;
-  }
-
+  /* 代码块的复制按钮 / 可折叠段落 / 语法高亮均由 Expressive Code 提供
+     （astro-expressive-code 集成 + src/config.ts 的 expressiveCode 开关与根目录 ec.config.mjs，
+     CSS 与 JS 会随代码块自动注入；关闭 expressiveCode 后代码块回退为 markdown.css 里的纯文本样式） */
   pre {
-    margin-top: 0 !important;
     overflow-x: auto;
   }
-  .copy-btn {
-    position: absolute;
-    top: 12px;
-    right: 12px;
-    z-index: 20;
-    padding: 6px;
-    background: rgba(40, 44, 52, 0.8); 
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    border-radius: 6px;
-    cursor: pointer;
-    color: #ccc;
-    
-    opacity: 0;
-    transition: all 0.2s ease-in-out;
-    
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
-
-  .code-block-wrapper:hover .copy-btn {
-    opacity: 1;
-  }
-
-  @media (hover: none) {
-    .copy-btn {
-      opacity: 1;
-    }
-  }
-
-  .copy-btn .icon-check {
-    display: none; 
-  }
-
-  .copy-btn.copied .icon-copy {
-    display: none; 
-  }
-
-  .copy-btn.copied .icon-check {
-    display: block; 
-    color: #4caf50;
-  }
-
-  .copy-btn:hover {
-    background: rgba(255, 255, 255, 0.2);
-    color: #fff;
-  }
-
 </style>
 
 <style is:global>
@@ -251,43 +201,6 @@ const className = Astro.props.class
   }
 </style>
 
-<script>
-  const copyIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>`;
-  const checkIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#4caf50" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>`;
-
-  function createCopyButtons() {
-    const blocks = document.querySelectorAll("pre");
-
-    blocks.forEach((block) => {
-      if (block.parentElement.classList.contains("code-block-wrapper")) return;
-
-      const wrapper = document.createElement("div");
-      wrapper.className = "code-block-wrapper";
-
-      block.parentNode.insertBefore(wrapper, block);
-      wrapper.appendChild(block);
-
-      const button = document.createElement("button");
-      button.className = "copy-btn";
-      button.innerHTML = `<span class="icon-copy">${copyIcon}</span><span class="icon-check">${checkIcon}</span>`;
-      
-      wrapper.appendChild(button);
-
-      button.addEventListener("click", async () => {
-        const code = block.querySelector("code");
-        const text = code ? code.innerText : block.innerText;
-        await navigator.clipboard.writeText(text);
-
-        button.classList.add("copied");
-        setTimeout(() => button.classList.remove("copied"), 2000);
-      });
-    });
-  }
-
-
-  createCopyButtons();
-  document.addEventListener("astro:page-load", createCopyButtons);
-</script>
 
 { siteConfig.theme.LQIP &&
 <script>
@@ -311,82 +224,4 @@ const className = Astro.props.class
 </script>
 }
 
-{ siteConfig.theme.PhotoSwipe &&
-<script>
-    import 'photoswipe/style.css'
-    import PhotoSwipeLightbox from 'photoswipe/lightbox';
-
-    function createPhotoSwipeLightbox() {
-      const container = document.querySelector('.markdown-content');
-      if (container) {
-        // 查找文章区域内所有的 figure 元素
-        // console.log('Initializing PhotoSwipe Lightbox for images in .markdown-content');
-        const figures = container.querySelectorAll('figure');
-
-        figures.forEach((figure) => {
-          const img = figure.querySelector('img');
-          if (!img) return;
-
-          // 检查 img 是否是 figure 的直接子节点
-          if (!figure.contains(img) || img.parentElement !== figure) {
-            // console.warn('Image is not a direct child of figure, skipping:', img);
-            return;
-          }
-
-          // 创建 a 标签
-          const a = document.createElement('a');
-          a.href = img.src;
-          a.className = 'pswp-link';
-          
-          // 优先使用已有属性
-          const width = img.getAttribute('width');
-          const height = img.getAttribute('height');
-          
-          if (width && height) {
-            a.setAttribute('data-pswp-width', width);
-            a.setAttribute('data-pswp-height', height);
-          } else {
-            // 外部图片：尝试从自然尺寸获取
-            // 如果图片已加载，直接使用 naturalWidth/naturalHeight
-            if (img.complete && img.naturalWidth) {
-              a.setAttribute('data-pswp-width', img.naturalWidth.toString());
-              a.setAttribute('data-pswp-height', img.naturalHeight.toString());
-            } else {
-              // 图片未加载完成，监听 load 事件
-              img.addEventListener('load', () => {
-                if (img.naturalWidth) {
-                  a.setAttribute('data-pswp-width', img.naturalWidth.toString());
-                  a.setAttribute('data-pswp-height', img.naturalHeight.toString());
-                }
-              }, { once: true });
-              
-              // 设置一个合理的默认值，避免铺满屏幕
-              // 大多数博客图片宽度在 800-1200 之间
-              a.setAttribute('data-pswp-width', '1000');
-              a.setAttribute('data-pswp-height', '750');
-            }
-          }
-          
-          figure.insertBefore(a, img);
-          a.appendChild(img);
-        });
-
-        // 初始化 Lightbox
-        const lightbox = new PhotoSwipeLightbox({
-          // 指定文章内所有包含图片的链接
-          gallery: '.markdown-content',
-          children: 'a.pswp-link',
-          pswpModule: () => import('photoswipe')
-        });
-        lightbox.init();
-        console.log('PhotoSwipe Lightbox initialized');
-      }else {
-        console.log('No .markdown-content found, skipping PhotoSwipe Lightbox initialization.');
-      }
-    }
-
-    document.addEventListener('astro:page-load', createPhotoSwipeLightbox);
-    // document.addEventListener('astro:after-swap', createPhotoSwipeLightbox);
-    
-</script>
-}
+{ siteConfig.theme.PhotoSwipe && <ImageLightbox /> }

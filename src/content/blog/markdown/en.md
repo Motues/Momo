@@ -153,6 +153,61 @@ int main() {
 }
 ```
 
+### Enhanced Code Blocks (Expressive Code)
+
+Syntax highlighting is powered by [Expressive Code](https://expressive-code.com/). Add options after the language:
+
+- `title="path/to/file"` shows a title bar; `frame="terminal"` renders a terminal window
+- `{2,4-5}` highlights lines; `ins={2}` / `del={1}` add diff markers
+- `showLineNumbers` / `startLineNumber=10` show line numbers
+- `collapse={3-10}` collapses lines; `wrap` wraps long lines; `frame="none"` hides the frame
+
+````
+```js title="src/app.js" {3} ins={4} del={5} showLineNumbers
+function greet(name) {
+  // highlighted line 3
+  console.log(`Hello, ${name}!`)
+  return true // added
+  return false // removed
+}
+```
+````
+
+Result:
+
+```js title="src/app.js" {3} ins={4} del={5} showLineNumbers
+function greet(name) {
+  // highlighted line 3
+  console.log(`Hello, ${name}!`)
+  return true // added
+  return false // removed
+}
+```
+
+Terminal frame with a collapsible section:
+
+````
+```bash frame="terminal" collapse={3-6}
+pnpm install
+pnpm build
+# collapsed content below
+echo "hello"
+echo "world"
+echo "again"
+echo "more"
+```
+````
+
+```bash frame="terminal" collapse={3-6}
+pnpm install
+pnpm build
+# collapsed content below
+echo "hello"
+echo "world"
+echo "again"
+echo "more"
+```
+
 ## Lists
 
 ### Ordered Lists

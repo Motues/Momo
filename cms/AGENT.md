@@ -57,7 +57,8 @@ cms/
 ```
 
 - **API 端口**：5188（唯一端口，Vite dev server 内嵌 Hono）
-- **预览管线**：直接复用 `../src/plugins/*.mjs`（remark-typst、remark-directive-rehype、remark-combined、admonition、github/music/quote 卡片、figure 插件）+ KaTeX + shiki 高亮（one-dark-pro 主题），与博客 astro.config.mjs 的插件顺序一致，跳过仅构建期需要的 reading-time 与 LQIP 插件。
+- **预览管线**：直接复用 `../src/plugins/*.mjs`（remark-typst、remark-directive-rehype、remark-combined、admonition、github/music/quote 卡片、figure 插件）+ KaTeX，与博客 astro.config.mjs 的插件顺序一致，跳过仅构建期需要的 reading-time 与 LQIP 插件。
+- **代码块**：使用官方 **Expressive Code**（`rehype-expressive-code`）渲染，配置与博客共用根目录 `ec.config.mjs`（折叠 / 行号插件、`defaultProps` 与中文文案），通过 `customCreateRenderer` 复用同一个渲染器（shiki 主题只加载一次）；主题与开关取自 `src/config.ts` 的 `siteConfig.expressiveCode`（用 `config-file.mjs` 的 `readConfig()` 解析，按文件 mtime 缓存，改完配置无需重启 CMS），`enable: false` 时预览退化为纯文本代码块（与博客关闭语法高亮一致）；`/api/preview` 的 `lang` 字段用于让代码块内的界面文案跟随文章语言。样式与复制 / 折叠脚本由 EC 随代码块内联注入，无需在 `prose.css` 中重复实现。
 
 ## API 一览
 
@@ -68,7 +69,7 @@ cms/
 | POST | `/api/articles` | 新建文章 `{ path, lang }` |
 | PUT | `/api/articles/:path/:lang` | 保存 `{ data, body }`；仅当 slugId 与路径一致且被修改时移动文件夹 |
 | DELETE | `/api/articles/:path` | 删除整篇文章（文件夹） |
-| POST | `/api/preview` | 实时预览 `{ data, body, base }` → 完整 HTML 文档 |
+| POST | `/api/preview` | 实时预览 `{ data, body, base, lang }` → 完整 HTML 文档 |
 | POST | `/api/upload` | 上传封面图（multipart: file + path） |
 | POST | `/api/reveal` | 用系统默认的文件管理器打开文章文件夹 `{ path }` |
 | GET | `/api/meta` | 分类统计 |
@@ -102,6 +103,7 @@ cms/
 | `==内容==` | 彩虹文字 |
 | `++内容++` | 下划线 |
 | `![标题图片](./cover.jpg)` | 图片 + figure 标题（`title` 属性作为 figcaption） |
+| ` ```js title="a.js" {3} ins={4} collapse={6-9} showLineNumbers ` | Expressive Code 代码块（标题栏 / 行高亮 / diff / 行号 / 折叠 / 换行 / 终端窗口） |
 
 ## 注意事项
 

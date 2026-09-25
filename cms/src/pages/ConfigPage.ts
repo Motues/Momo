@@ -100,6 +100,38 @@ function buildSections(values: ConfigValues): SectionDef[] {
       ],
     },
     {
+      id: 'code',
+      title: '代码块',
+      desc: 'Expressive Code（代码高亮与增强），保存后博客需重新构建，CMS 预览会自动跟随',
+      fields: [
+        {
+          path: ['siteConfig', 'expressiveCode', 'enable'],
+          label: '启用 Expressive Code',
+          type: 'bool',
+          hint: '关闭后代码块不再高亮，回退为纯文本代码块',
+        },
+        {
+          path: ['siteConfig', 'expressiveCode', 'theme'],
+          label: '代码主题 theme',
+          type: 'select',
+          options: [
+            'one-dark-pro',
+            'one-light',
+            'github-dark',
+            'github-light',
+            'vitesse-dark',
+            'vitesse-light',
+            'dracula',
+            'nord',
+            'monokai',
+            'solarized-dark',
+            'solarized-light',
+          ],
+          hint: 'Shiki 主题名，深浅色模式共用同一套主题',
+        },
+      ],
+    },
+    {
       id: 'profile',
       title: '个人信息',
       fields: [

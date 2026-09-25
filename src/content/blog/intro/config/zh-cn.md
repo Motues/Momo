@@ -13,20 +13,8 @@ slugId: momo/intro/config
 | 文件 | 作用 |
 | --- | --- |
 | `src/config.ts` | **主要配置入口**：站点信息、主题开关、个人资料、License、友链、多语言与各页面的 Cover 文案 |
-| `astro.config.mjs` | Astro 配置：其中 `site`、`i18n` 会自动读取 `src/config.ts`，通常只需要改 `markdown.shikiConfig` 等构建期选项 |
 | `src/content.config.ts` | 文章 frontmatter 的 schema（只有在新增/修改字段时才需要改动） |
 | `src/i18n/` | 界面文案翻译（除 Cover 之外的部分） |
-
-## `astro.config.mjs`
-
-* `site`: 网站的 URL，取自 `siteConfig.rootSiteUrl`
-* `i18n`: 国际化配置，取自 `i18nConfig`
-    * `locales`: 支持的语言，对应 `i18nConfig.supportedLanguages`
-    * `defaultLocale`: 默认语言，对应 `i18nConfig.defaultLanguage`
-* `markdown`
-    * `shikiConfig`: 代码块的样式，可以参考Astro的文档[Shiki](https://docs.astro.build/en/guides/syntax-highlighting/#setting-a-default-shiki-theme)
-
-> 也就是说语言与域名相关的内容都在 `src/config.ts` 中配置，`astro.config.mjs` 一般不需要改动。
 
 ## `src/config.ts`
 
@@ -54,6 +42,9 @@ slugId: momo/intro/config
         * `imageMode`: 首页文章卡片封面图的展示模式
             * `"top"`: 图片单独显示在卡片内容顶部（默认）
             * `"background"`: 图片作为卡片背景，从右向左逐渐渐隐
+* `expressiveCode`
+    * `enable`: 是否启用 Expressive Code 代码块增强；关闭后代码块回退为纯文本（博客与 CMS 预览一致）
+    * `theme`: 代码块的 Shiki 主题名，如 `"one-dark-pro"`（默认）、`"github-dark"`、`"vitesse-dark"`，深浅色模式共用同一套主题
 
 :::tip
 后端项目参考[Momo-backend](https://github.com/Motues/Momo-Backend)进行部署，一定需要按照要求进行配置，尤其是跨域的域名认证

@@ -176,5 +176,54 @@ console.log(‘Hello World’);
 This is a tip box with a custom header. The header displays as "Custom Header" instead of the default “IMPORTANT”.
 :::
 
+
+## Expressive Code Testing
+
+Code blocks are rendered by [Expressive Code](https://expressive-code.com/); append the options after the language (see the [Markdown Basics](/en/blog/markdown) article for the full list):
+
+````
+```js title="src/app.js" {3} ins={4} del={5} showLineNumbers
+function greet(name) {
+  // Highlights line 3
+  console.log(`Hello, ${name}!`)
+  return true // Added
+  return false // Removed
+}
+```
+````
+
+Result:
+
+```js title="src/app.js" {3} ins={4} del={5} showLineNumbers
+function greet(name) {
+  // Highlights line 3
+  console.log(`Hello, ${name}!`)
+  return true // Added
+  return false // Removed
+}
+```
+
+### Terminal Frame and Collapsed Lines
+
+`frame="terminal"` shows a terminal window (three dots), `collapse={3-6}` folds the given lines, and clicking the collapsed-lines summary expands them:
+
+```bash frame="terminal" collapse={3-6}
+pnpm install
+pnpm build
+# The lines below are collapsed
+echo "hello"
+echo "world"
+echo "again"
+echo "more"
+```
+
+### Word Wrap and No Title Bar
+
+`wrap` wraps long lines and `frame="none"` hides the title bar:
+
+```text wrap frame="none"
+The universe is a dark forest. Every civilization is an armed hunter stalking through the trees like a ghost, trying to tread without sound.
+```
+
 [^1]: This is the text of the first reference; click the arrow before it to return to the main text.
 [^2]: This is the text of the second reference; [links](#) are supported.

@@ -5,7 +5,6 @@
 | 文件 | 作用 |
 | --- | --- |
 | `src/config.ts` | **主要配置入口**：站点信息、主题开关、个人资料、License、友链、多语言与各页面的 Cover 文案 |
-| `astro.config.mjs` | Astro 配置：其中 `site`、`i18n` 会自动读取 `src/config.ts`，通常只需要改 `markdown.shikiConfig` 等构建期选项 |
 | `src/content.config.ts` | 文章 frontmatter 的 schema（只有在新增/修改字段时才需要改动） |
 | `src/i18n/` | 界面文案翻译（除 Cover 之外的部分） |
 | `src/types/` | 上述配置的 TypeScript 类型定义 |
@@ -33,6 +32,9 @@
     * `LQIP`: 是否启用 LQIP 低质量图片占位
     * `PhotoSwipe`: 是否启用图片灯箱模式
     * `postCard.imageMode`: 首页文章卡片封面样式，`top` 为图片在内容上方，`background` 为图片作为卡片背景
+* `expressiveCode`
+    * `enable`: 是否启用 [Expressive Code](https://expressive-code.com/)（
+    * `theme`: 代码块的 Shiki 主题名，如 `one-dark-pro`（默认）、`github-dark`、`vitesse-dark`；深浅色模式共用同一套主题
 
 > 后端项目参考 [Momo-backend](https://github.com/Motues/Momo-Backend) 进行部署，一定需要按照要求进行配置，尤其是跨域的域名认证
 
