@@ -53,5 +53,10 @@
     "@iconify-json/material-symbols": "^1.2.35",
     "@iconify-json/simple-icons": "^1.2.48",
     "@iconify-json/vscode-icons": "^1.2.29"
+  },
+  "pnpm": {
+    "overrides": {
+      "tar": "7.5.21"
+    }
   }
 }
