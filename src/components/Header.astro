@@ -147,7 +147,9 @@ if (profileConfig.indexPage) {
         </div>
     </div>
 <!-- Mobile Menu -->
-<div id="mobile-menu-container" class="fixed inset-0 z-[100] hidden">
+<!-- 层级：与搜索弹层同层（z-[1100]），必须高于右下角 FabMenu（z-[1000]），
+     否则抽屉的遮罩盖不住浮动按钮，FAB 会浮在遮罩之上 -->
+<div id="mobile-menu-container" class="fixed inset-0 z-[1100] hidden">
     <div id="mobile-menu-overlay" class="absolute inset-0 bg-black/60 backdrop-blur-sm opacity-0 transition-opacity duration-300 ease-in-out"></div>
     
     <div id="mobile-menu-drawer" class="absolute top-0 left-0 bottom-0 w-[70%] max-w-[300px] bg-[var(--bg-color)] shadow-2xl transform -translate-x-full transition-transform duration-300 ease-in-out flex flex-col">

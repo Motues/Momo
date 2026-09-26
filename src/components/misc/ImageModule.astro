@@ -39,11 +39,18 @@ if (isLocal) {
   // 只收集图片文件！早先这里的 pattern 是 "../../**/*"，会把 src 下的所有文件
   // （包括 Markdown.astro、markdown.css 等）都变成动态 import，
   // 结果任何用到 ImageModule 的页面（例如首页）都会被拖上几百 KB 的正文样式。
+  //
+  // caseSensitive: false 只影响 glob 的“发现”阶段：Vite 默认大小写敏感，
+  // 相机导出的 .JPG / .PNG 这类大写后缀会整个漏掉，封面直接变成 undefined。
   const images = import.meta.glob<ImageMetadata>(
     "../../**/*.{jpg,jpeg,jfif,png,apng,webp,avif,gif,svg,tiff,tif,bmp,ico,heic}",
-    { import: "default" }
+    { import: "default", caseSensitive: false }
   );
-  let imagePath = path.normalize(path.join("../../", "/", src)).replace(/\\/g, "/");
+
+  // 查找仍然严格区分大小写：glob 的 key 用的是磁盘上的真实文件名，
+  // 所以 cover.jpg 与 COVER.JPG 是两个不同文件，frontmatter 写哪个就取哪个，
+  // 大小写写错依旧会报「Image file not found」，不会静默拿到另一个文件。
+  const imagePath = path.normalize(path.join("../../", "/", src)).replace(/\\/g, "/");
   const imageGetter = images[imagePath];
 
   if (!imageGetter) {

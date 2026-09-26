@@ -34,7 +34,12 @@ const fakeResult: SearchResult[] = [
   }
 ]
 ---
-<div id="search-modal" class="fixed inset-0 z-[100] opacity-0 pointer-events-none">
+<!--
+  层级：z-[1100] 必须高于右下角 FabMenu（#fabMenu 为 z-[1000]，其目录面板 z-[1001]
+  是在 FAB 自己的层叠上下文里，所以盖过 1000 即可），否则遮罩与弹窗会压在 FAB 下面，
+  浮动按钮会浮在遮罩之上；同时保持在图片灯箱（z-2000）之下。
+-->
+<div id="search-modal" class="fixed inset-0 z-[1100] opacity-0 pointer-events-none">
   <div class="absolute inset-0 modal-backdrop opacity-0" aria-hidden="true"></div>
 
   <div class="fixed inset-0 flex items-start justify-center p-4 pt-[25vh]">

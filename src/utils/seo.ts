@@ -8,10 +8,15 @@ import { getImage } from 'astro:assets'
 import { i18n } from 'astro:config/client'
 import { profileConfig, siteConfig } from '@/config'
 
-/** 内容目录里的图片：构建期取出优化后的 URL 作为分享图 */
+/**
+ * 内容目录里的图片：构建期取出优化后的 URL 作为分享图。
+ * caseSensitive: false 只用于“发现”图片：Vite 的 glob 默认大小写敏感，
+ * `.JPG` / `.PNG` 这类大写后缀会被整体漏掉，导致这些文章缺 og:image。
+ * 下面的查找仍是精确匹配（key 为磁盘真实文件名），大小写不同即不同文件。
+ */
 const contentImages = import.meta.glob<ImageMetadata>(
     '/src/content/blog/**/*.{png,jpg,jpeg,webp,avif,gif}',
-    { import: 'default', eager: true },
+    { import: 'default', eager: true, caseSensitive: false },
 )
 
 /** 站内路径 -> 绝对 URL（已带 base 的路径不会重复拼接） */
