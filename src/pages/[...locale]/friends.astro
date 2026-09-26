@@ -28,7 +28,7 @@ const pageTitle = t("header.friends") + " - " + siteConfig.title;
 const pageDescription = `${t("cover.title.friends")} - ${t("cover.subTitle.friends")}`;
 ---
 
-<MainPageLayout title={pageTitle} lang={currentLang} description={pageDescription}>
+<MainPageLayout title={pageTitle} lang={currentLang} description={pageDescription} markdownFont={true}>
     <div class="mx-auto w-full max-w-[var(--page-width)]">
         <Cover title={t("cover.title.friends")} subTitle={t("cover.subTitle.friends")} />
         
@@ -39,7 +39,7 @@ const pageDescription = `${t("cover.title.friends")} - ${t("cover.subTitle.frien
                         href={friend.url} 
                         target="_blank" 
                         rel="noopener noreferrer"
-                        class="group flex items-center justify-between p-4 border border-[var(--button-border-color)] rounded-lg shadow-sm active:bg-[var(--button-hover-color)] hover:bg-[var(--button-hover-color)] transition-all duration-300"
+                        class="group flex items-center justify-between p-4 border border-[var(--button-border-color)] rounded-lg shadow-sm active:bg-[var(--button-hover-color)] hover:bg-[var(--button-hover-color)] transition-colors duration-300"
                     >
                         <div class="flex items-center min-w-0">
                             <img 
@@ -60,7 +60,7 @@ const pageDescription = `${t("cover.title.friends")} - ${t("cover.subTitle.frien
                             viewBox="0 0 24 24" 
                             stroke-width="2" 
                             stroke="currentColor" 
-                            class="w-5 h-5 text-[var(--link-color)] opacity-0 transform translate-x-[-10px] group-hover:opacity-100 group-hover:translate-x-0 group-active:opacity-100 group-active:translate-x-0 transition-all duration-300 ml-2 flex-shrink-0"
+                            class="w-5 h-5 text-[var(--link-color)] opacity-0 transform translate-x-[-10px] group-hover:opacity-100 group-hover:translate-x-0 group-active:opacity-100 group-active:translate-x-0 transition duration-300 ml-2 flex-shrink-0"
                         >
                             <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
                         </svg>
@@ -68,7 +68,7 @@ const pageDescription = `${t("cover.title.friends")} - ${t("cover.subTitle.frien
                 ))
             }
         </div>
-        <Markdown class="mb-6 markdown-content onload-animation">
+        <Markdown class="mb-6 markdown-content">
             <Content />
         </Markdown>
     </div>

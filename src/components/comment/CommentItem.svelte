@@ -369,7 +369,7 @@
         {#if hasHiddenReplies}
           <div class="flex justify-center mt-3">
             <button on:click={() => showAllReplies = !showAllReplies}
-              class="px-6 py-2.5 w-full text-sm font-medium text-[var(--text-color)] bg-transparent hover:bg-[var(--button-hover-color)] active:bg-[var(--button-hover-color)] transition-all duration-300 ease-in-out">
+              class="px-6 py-2.5 w-full text-sm font-medium text-[var(--text-color)] bg-transparent hover:bg-[var(--button-hover-color)] active:bg-[var(--button-hover-color)] transition-colors duration-300 ease-in-out">
               {showAllReplies ? t('comments.collapseReplies') : t('comments.showMoreReplies')}
             </button>
           </div>
@@ -404,7 +404,7 @@
         {#if hasHiddenMobileReplies}
           <div class="flex justify-center mt-3">
             <button on:click={() => showAllReplies = !showAllReplies}
-              class="px-6 py-2.5 w-full text-sm font-medium text-[var(--text-color)] bg-transparent hover:bg-[var(--button-hover-color)] active:bg-[var(--button-hover-color)] transition-all duration-300 ease-in-out">
+              class="px-6 py-2.5 w-full text-sm font-medium text-[var(--text-color)] bg-transparent hover:bg-[var(--button-hover-color)] active:bg-[var(--button-hover-color)] transition-colors duration-300 ease-in-out">
               {showAllReplies ? t('comments.collapseReplies') : t('comments.showMoreReplies')}
             </button>
           </div>

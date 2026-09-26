@@ -17,6 +17,8 @@ interface Props {
   keywords?: string[];
   noindex?: boolean;
   structuredData?: Record<string, unknown> | Record<string, unknown>[];
+  /** 页面是否渲染 Markdown 正文（透传给 Layout，用于异步加载引用块字体） */
+  markdownFont?: boolean;
 }
 const {
   title,
@@ -30,6 +32,7 @@ const {
   keywords,
   noindex,
   structuredData,
+  markdownFont,
 } = Astro.props;
 
 ---
@@ -46,6 +49,7 @@ const {
   keywords={keywords}
   noindex={noindex}
   structuredData={structuredData}
+  markdownFont={markdownFont}
 >
   <div class="flex flex-col min-h-screen">
     <div>

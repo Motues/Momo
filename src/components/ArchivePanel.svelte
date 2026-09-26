@@ -143,13 +143,13 @@
                         <div animate:flip={{ duration: 600 }} in:fade={{ duration: 150 }} out:fade={{ duration: 150 }} >
                             <a 
                                 href={getRelativeLocaleUrl(currentLang, `/blog/${post.id}`)} 
-                                class="flex items-center gap-4 active:bg-[var(--button-hover-color)] hover:bg-[var(--button-hover-color)] p-2 rounded transition-all duration-200 group"
+                                class="flex items-center gap-4 active:bg-[var(--button-hover-color)] hover:bg-[var(--button-hover-color)] p-2 rounded transition-colors duration-200 group"
                             >
                                 <span class="text-[var(--text-color-70)] min-w-[80px] md:min-w-[120px]">
                                     {formatMonthDay(post.data.pubDate, currentLang)}
                                 </span>
                                 
-                                <span class="text-lg group-hover:pl-2 group-hover:text-[var(--link-color)] group-hover:font-bold transition-all duration-200 flex-1 group-active:text-[var(--link-color)]">
+                                <span class="text-lg group-hover:pl-2 group-hover:text-[var(--link-color)] group-hover:font-bold transition-[padding-left,color,font-weight] duration-200 flex-1 group-active:text-[var(--link-color)]">
                                     {post.data.title}
                                     {#if post.isFallback}
                                         <span class="inline-block px-1 ml-2 text-xs font-mono uppercase bg-[var(--button-hover-color)] rounded border border-[var(--button-border-color)]">
@@ -185,7 +185,7 @@
                 {#each categories as cat}
                     <button 
                         on:click={() => toggleCategory(cat)}
-                        class="px-3 py-1 text-xs rounded-md transition-all border
+                        class="px-3 py-1 text-xs rounded-md transition-[color,background-color,border-color] border
                         {selectedCategories.includes(cat) 
                             ? 'bg-[var(--link-color)] text-white border-[var(--link-color)]' 
                             : 'hover:border-[var(--link-color)] border-[var(--button-border-color)] text-[var(--text-color)]'}"

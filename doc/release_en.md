@@ -12,7 +12,7 @@ Blog text, images, and other content are stored in the `src/content/`, `src/asse
 
 You can directly clone this project, then overwrite the new project with your original configuration files. Run `pnpm install` to install dependencies, followed by `pnpm build` for local compilation. Finally, execute `pnpm preview` to preview the compiled project.
 
-When updating inside this repository, run `pnpm momo update`: it backs up your own `src/config.ts` to `.backup/`, pulls the remote update, installs dependencies, and finally lists the **configuration files that need to be merged by hand**. If something goes wrong with `src/config.ts` afterwards, `pnpm momo restore` rolls it back to the state before the update.
+When updating inside this repository, run `pnpm momo update`: it reads the latest [release](https://github.com/Motues/Momo/releases), compares it with the version in `package.json`, downloads the new source, **keeps your own posts and images** (`src/content`, `src/assets`, `public`) and `src/config.ts`, overwrites the rest of the code and installs dependencies, then lists the **configuration files that need to be merged by hand**. Run `pnpm momo update --dry-run` first to preview the changes without writing anything; the files that get overwritten are saved under `.backup/update-<timestamp>/overwritten/`, and `pnpm momo restore <backup name>` rolls the config back.
 
 ## Version Number Changed
 
@@ -28,6 +28,18 @@ Below are general modification suggestions.
 ## Version Information
 
 > Version numbers follow the `YY.MM.DD` format
+
+### 26.9.26
+
+> `src/config.ts` is the only file that needs merging by hand; everything else can simply be overwritten. See the notes below.
+
+* New **automatic image collage**: consecutive images are laid out as a grid (2 per row on mobile) and still open full size in the lightbox
+* `pnpm momo update` is now **release-based**: it no longer depends on local git, keeps your posts, images and `src/config.ts`, and gains `--check` / `--dry-run` / `--version` / `--keep` / `--keep-config` / `--repo`
+* Front-end smoothness work: reduced the home page's blocking stylesheet, enabled Astro prefetch and a persisted header, fixed the listener pile-up and the entrance animation dying after a client-side navigation, and made scrolling rAF-throttled with an always-mounted table of contents, narrowed `transition-all`, a higher-priority LCP cover image, idle Pagefind prefetch and no sideways shift when the mobile drawer locks scrolling
+* New `pnpm momo audit` command for re-measuring the first-paint cost of a build
+* The CMS "Site config" page gained the collage switch and the per-row limit
+* Configuration files involved in this update:
+    * `src/config.ts`: `siteConfig.theme` gains `imageCollage` (the collage switch and per-row limit)
 
 ### 26.9.25
 
@@ -68,8 +80,6 @@ Below are general modification suggestions.
 * Astro7 requires Node.js version >= 22; we recommend using version 24 LTS. After upgrading, you must clear your local cache (folders such as `/node_modules`) before you can compile and preview locally
 * This update modifies the configuration files `content.config.ts` and `astro.config.mjs`
 * If you encounter any issues after upgrading, please feel free to submit an issue to provide feedback
-
-Translated with DeepL.com (free version)
 
 ### 26.8.12
 
@@ -136,8 +146,6 @@ Translated with DeepL.com (free version)
 * Changed the style of comment avatars to circular
 * Adjusted the margins of some components
 * This update modifies the configuration file `src/i18n/` by adding the `themeInfo` field; all other fields remain unchanged. To apply the changes, simply add the new field
-
-Translated with DeepL.com (free version)
 
 ### 26.3.11
 

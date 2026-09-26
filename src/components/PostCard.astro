@@ -3,7 +3,7 @@ import "@styles/global.css"
 import ImageModule from "./misc/ImageModule.astro";
 
 import type { CollectionEntry } from 'astro:content';
-import { getCollection, render } from 'astro:content'
+import { render } from 'astro:content'
 
 import { getRelativeLocaleUrl } from '@utils/urlUtils';
 import { formatFullDate } from '@/utils/time'
@@ -21,14 +21,16 @@ interface Props {
     pubDate: Date;
     url: string;
     fallback: boolean;
+    priority?: boolean;
 }
 
-const { entry, title, description, image, pubDate, url, fallback } = Astro.props;
+const { entry, title, description, image, pubDate, url, fallback, priority = false } = Astro.props;
 
 const currentLang = Astro.currentLocale || i18n!.defaultLocale;
 const t = i18nit(currentLang);
 
 const pageUrl = getRelativeLocaleUrl(currentLang, "/blog/" + url);
+
 const { remarkPluginFrontmatter } = await render(entry);
 
 // 首页文章卡片封面图模式："background" 将图片作为卡片背景，从右向左渐隐
@@ -40,11 +42,11 @@ const isBgMode = siteConfig.theme.postCard.imageMode === "background";
         <>
         {isBgMode ? (
             <div class="bg-image">
-                <ImageModule src={image} alt={title} class="w-full h-full" />
+                <ImageModule src={image} alt={title} class="w-full h-full" priority={priority} />
             </div>
         ) : (
             <a href={pageUrl} class="cover h-60 overflow-hidden hover-scale block">
-                <ImageModule src={image} alt={title} class="w-full h-full object-cover"/>
+                <ImageModule src={image} alt={title} class="w-full h-full object-cover" priority={priority} />
             </a>
         )}
         </>
@@ -56,7 +58,7 @@ const isBgMode = siteConfig.theme.postCard.imageMode === "background";
             </span>
             <Icon 
                 name="fa6-solid:angle-right" 
-                class="ml-2 opacity-100 md:opacity-0 md:group-hover:opacity-100 transform md:translate-x-[-5px] md:group-hover:translate-x-0 transition-all duration-300 ease-in-out text-[var(--text-color)] group-hover:text-[var(--link-color)] group-active:text-[var(--link-color)]"
+                class="ml-2 opacity-100 md:opacity-0 md:group-hover:opacity-100 transform md:translate-x-[-5px] md:group-hover:translate-x-0 transition duration-300 ease-in-out text-[var(--text-color)] group-hover:text-[var(--link-color)] group-active:text-[var(--link-color)]"
             />
         </a>
         <p class="description text-[var(--text-color-70)] leading-relaxed mt-2">

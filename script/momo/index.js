@@ -7,8 +7,9 @@ import update from './commands/update.js'
 import newPost from './commands/new.js'
 import clean from './commands/clean.js'
 import doctor from './commands/doctor.js'
+import audit from './commands/audit.js'
 
-const COMMANDS = [backup, restore, update, newPost, clean, doctor]
+const COMMANDS = [backup, restore, update, newPost, clean, doctor, audit]
 
 const ALIASES = {
   b: 'backup',
@@ -39,7 +40,8 @@ function printHelp(version) {
   log.raw(c.gray('  pnpm momo backup              备份 src/config.ts'))
   log.raw(c.gray('  pnpm momo backup --config     备份全部配置文件'))
   log.raw(c.gray('  pnpm momo backup --all        备份全部配置和文章内容'))
-  log.raw(c.gray('  pnpm momo update              拉取仓库更新并同步依赖'))
+  log.raw(c.gray('  pnpm momo update              从 GitHub Release 更新模板代码'))
+  log.raw(c.gray('  pnpm momo update --dry-run    预览更新会改动哪些文件'))
   log.raw(c.gray('  pnpm momo new my-post         新建文章'))
 }
 

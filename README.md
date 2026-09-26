@@ -43,7 +43,7 @@ Momo 取自小红书📕，每个新用户最初的昵称，象征着初始新�
 
 参考 [更新指南](./doc/release_zh-cn.md)，介绍如何更新项目，详细信息可以访问 [Momo](https://momo.motues.top/intro/release)。
 
-执行 `pnpm momo update` 可以自动完成「备份配置 → 拉取更新 → 安装依赖」，并提示本次更新中需要手工合并的配置文件。
+执行 `pnpm momo update` 可以自动完成「检查 GitHub Release → 下载新版本源码 → 备份 → 覆盖代码 → 安装依赖」，并提示本次更新中需要手工合并的配置文件。你自己的文章与图片（`src/content`、`src/assets`、`public`）和 `src/config.ts` 会原样保留；先加 `--dry-run` 可以只预览变更、不写入任何文件。
 
 ## 🍃 分支
 
@@ -67,7 +67,7 @@ Momo 取自小红书📕，每个新用户最初的昵称，象征着初始新�
 | `pnpm momo new [path]` | 新建文章，路径省略时按日期自动生成，例如 `pnpm momo new docs/test` |
 | `pnpm momo backup` | 备份 `src/config.ts` 到 `.backup/`（加 `--config` 备份全部配置文件，加 `--all` 再连同文章内容与图片） |
 | `pnpm momo restore [名称]` | 从备份恢复（默认最近一次） |
-| `pnpm momo update` | 拉取仓库更新并同步依赖（更新前自动备份 `src/config.ts`） |
+| `pnpm momo update` | 从 [GitHub Release](https://github.com/Motues/Momo/releases) 更新模板代码并同步依赖（保留自己的文章与图片；`--dry-run` 预览变更） |
 | `pnpm momo clean` | 清理构建产物与缓存（加 `--all` 连同 `node_modules`） |
 | `pnpm momo doctor` | 检查环境、依赖与项目状态 |
 | `pnpm momo --help` | 查看全部 momo 命令与选项 |

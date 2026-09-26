@@ -281,7 +281,8 @@ export function formatBytes(bytes) {
 
 export async function readJson(file, fallback = null) {
   try {
-    return JSON.parse(await readFile(file, 'utf8'))
+    // 去掉 BOM：Windows 记事本等编辑器保存的 JSON 会带 BOM，JSON.parse 会直接失败
+    return JSON.parse((await readFile(file, 'utf8')).replace(/^\uFEFF/, ''))
   } catch {
     return fallback
   }

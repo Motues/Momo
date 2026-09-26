@@ -38,7 +38,7 @@ const fakeResult: SearchResult[] = [
   <div class="absolute inset-0 modal-backdrop opacity-0" aria-hidden="true"></div>
 
   <div class="fixed inset-0 flex items-start justify-center p-4 pt-[25vh]">
-    <div class="search-modal-content bg-[var(--bg-color)] rounded-xl shadow-xl w-full max-w-2xl border border-[var(--button-border-color)] overflow-hidden scale-80 transition-all duration-300 opacity-0 flex flex-col max-h-[40vh]">
+    <div class="search-modal-content bg-[var(--bg-color)] rounded-xl shadow-xl w-full max-w-2xl border border-[var(--button-border-color)] overflow-hidden scale-80 transition duration-300 opacity-0 flex flex-col max-h-[40vh]">
       <div class="flex items-center p-4 border-b border-[var(--button-border-color)]">
         <svg class="w-5 h-5 text-[var(--text-color-70)] mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
@@ -48,7 +48,6 @@ const fakeResult: SearchResult[] = [
           id="search-input"
           placeholder={t("search.placeholder")+"..."}
           class="w-full bg-transparent border-0 focus:ring-0 focus:outline-none  text-[var(--text-color)]"
-          autofocus
         />
         <button id="close-search" class="ml-2 p-2 text-[var(--text-color-70)] rounded-lg hover:bg-[var(--button-hover-color)] active:bg-[var(--button-hover-color)]" aria-label="Close Search">
           <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
@@ -74,7 +73,10 @@ function initSearchModal() {
   const modalBackdrop = searchModal?.firstElementChild;
   const modalContent = searchModal?.querySelector('.search-modal-content');
 
-  if (!searchButton || !searchModal) return; // 防止重复绑定
+  if (!searchButton || !searchModal) return;
+
+  // 换页时本脚本会重新执行：先解绑上一次挂在 document 上的 keydown
+  window.__momoSearchModal?.cleanup?.();
 
   const openModal = () => {
     searchModal.classList.remove('opacity-0', 'pointer-events-none');
@@ -100,50 +102,57 @@ function initSearchModal() {
     }, 300);
   };
 
-  searchButton.addEventListener('click', openModal);
-  closeSearch?.addEventListener('click', closeModal);
-  searchModal.addEventListener('click', (e) => {
+  // 搜索按钮位于 transition:persist 的顶栏里，用 onclick 赋值保证幂等
+  searchButton.onclick = openModal;
+  if (closeSearch) closeSearch.onclick = closeModal;
+  searchModal.onclick = (e) => {
     if (!modalContent?.contains(e.target)) closeModal();
-  });
-  document.addEventListener('keydown', (e) => {
+  };
+
+  const onKeyDown = (e) => {
     if (e.key === 'Escape' && !searchModal.classList.contains('opacity-0')) {
       closeModal();
     }
-  });
+  };
+  document.addEventListener('keydown', onKeyDown);
+
+  window.__momoSearchModal = {
+    cleanup() {
+      document.removeEventListener('keydown', onKeyDown);
+    },
+  };
 }
 
-document.addEventListener('DOMContentLoaded', initSearchModal);
-document.addEventListener('astro:after-swap', initSearchModal);
+// astro:page-load 首次加载时也会触发，不再额外监听 DOMContentLoaded（避免首屏绑两份）
+document.addEventListener('astro:page-load', initSearchModal);
 </script>
 
 
 <style>
+  /* 遮罩只动画 opacity：backdrop-filter 逐帧插值会持续触发合成与重绘，
+     模糊值固定为 2px（与原动画的终值一致），观感基本不变 */
   @keyframes backdropFadeIn {
-    0% {
-      opacity: 0;
-      backdrop-filter: blur(0px);
-    }
-    100% {
-      opacity: 1;
-      backdrop-filter: blur(2px);
-    }
+    from { opacity: 0; }
+    to { opacity: 1; }
   }
   
   @keyframes backdropFadeOut {
-    0% {
-      opacity: 1;
-      backdrop-filter: blur(2px);
-    }
-    100% {
-      opacity: 0;
-      backdrop-filter: blur(0px);
-    }
+    from { opacity: 1; }
+    to { opacity: 0; }
   }
   
   .modal-backdrop {
     background-color: rgba(0, 0, 0, 0.3);
-    backdrop-filter: blur(0px);
+    /* 注意：构建时的 CSS 压缩器会把 backdrop-filter 与 -webkit-backdrop-filter
+       当作同一属性合并、只保留后写的那条，所以标准属性必须单独放进 @supports。 */
+    -webkit-backdrop-filter: blur(2px);
     transition: opacity 0.3s ease-out;
+  }
+
+  @supports (backdrop-filter: blur(1px)) {
+    .modal-backdrop {
+      backdrop-filter: blur(2px);
+    }
   }
   
   .modal-backdrop.show {
@@ -195,28 +204,45 @@ function initPagefindSearch() {
   });
 }
 
+// 等待 Pagefind 就绪：Header 里的加载器会派发 pagefind-ready 事件
+// （原实现监听的是 pagefindready，名字对不上，所以永远等不到通知）
+function waitForPagefind(timeout = 4000) {
+  if (window.pagefind) return Promise.resolve(window.pagefind);
+  return new Promise((resolve) => {
+    const done = () => {
+      document.removeEventListener('pagefind-ready', done);
+      resolve(window.pagefind ?? null);
+    };
+    document.addEventListener('pagefind-ready', done, { once: true });
+    setTimeout(done, timeout);
+  });
+}
+
 async function performSearch(query) {
   const searchResults = document.getElementById('search-results');
-  const isDev = !window.pagefind;
+  const pagefind = window.pagefind ?? (await waitForPagefind());
+
+  // 开发环境（或索引未加载成功）时退回假数据
+  const isDev = !pagefind;
 
   if (isDev) {
     displayResults(fakeResult);
-  } else if (window.pagefind) {
-    await window.pagefind.destroy();
-    await window.pagefind.init();
-    // console.log('Pagefind is initialized');
+  } else {
+    // 只需要初始化一次：重复调用 search() 即可，不必每次 destroy + init
     try {
-      const searchResultsData = await window.pagefind.search(query);
-      const results = [];
+      const searchResultsData = await pagefind.search(query);
 
-      for (const result of searchResultsData.results) {
-        const data = await result.data();
-        results.push({
-          url: data.url,
-          meta: { title: data.meta.title },
-          excerpt: data.excerpt
-        });
-      }
+      // 并发取回每条结果的数据（原来是逐条 await，串行等待）
+      const results = (await Promise.all(
+        searchResultsData.results.map(async (result) => {
+          const data = await result.data();
+          return {
+            url: data.url,
+            meta: { title: data.meta.title },
+            excerpt: data.excerpt
+          };
+        })
+      ));
 
       displayResults(results);
     } catch (error) {
@@ -227,13 +253,6 @@ async function performSearch(query) {
         </div>
       `;
     }
-  } else {
-    console.log('Pagefind is not available');
-    searchResults.innerHTML = `
-      <div class="p-8 text-center text-[var(--text-color-70)]">
-        <p>搜索功能暂时不可用</p>
-      </div>
-    `;
   }
 }
 
@@ -261,15 +280,15 @@ function displayResults(results) {
 }
 
 // ========== 初始化逻辑 ==========
-document.addEventListener('pagefindready', () => {
+document.addEventListener('pagefind-ready', () => {
   // console.log('Pagefind is ready');
 });
 document.addEventListener('pagefindloaderror', () => {
   console.log('Pagefind failed to load, search functionality will not work');
 });
 
-document.addEventListener('DOMContentLoaded', initPagefindSearch);
-document.addEventListener('astro:after-swap', initPagefindSearch);
+// astro:page-load 首次加载时同样会触发，无需再监听 DOMContentLoaded
+document.addEventListener('astro:page-load', initPagefindSearch);
 </script>
 
 

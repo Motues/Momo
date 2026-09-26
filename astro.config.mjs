@@ -14,6 +14,7 @@ import { MusicCardComponent } from "./src/plugins/rehype-component-music-card.mj
 import { GithubCardComponent } from './src/plugins/rehype-component-github-card.mjs';
 import { QuoteComponent } from "./src/plugins/rehype-component-quote.mjs"
 import { customFigurePlugin } from "./src/plugins/rehype-figure-plugin.mjs";
+import { rehypeImageCollage } from "./src/plugins/rehype-image-collage.mjs";
 import { remarkCombined } from './src/plugins/remark-combined.mjs';
 import { remarkTypst } from './src/plugins/remark-typst.mjs';
 import { remarkReadingTime } from './src/plugins/remark-reading-time.mjs';
@@ -23,15 +24,12 @@ import svelte from "@astrojs/svelte";
 
 import { siteConfig, i18nConfig } from './src/config';
 
-// 代码块由 Expressive Code 官方集成渲染（标题栏 / 行高亮 / diff / 行号 / 折叠…）
-// 开关与主题在 src/config.ts 的 siteConfig.expressiveCode 里配置，
-// 其余选项见根目录 ec.config.mjs（CMS 预览复用同一份配置）
 import expressiveCode from "astro-expressive-code";
 import { ecThemeOptions } from "./ec.config.mjs";
 
-// 兜底：旧版 src/config.ts 里可能还没有 expressiveCode 字段
 const ecSettings = siteConfig.expressiveCode ?? {};
 const ecEnabled = ecSettings.enable !== false;
+const collageSettings = siteConfig.theme?.imageCollage ?? {};
 
 // https://astro.build/config
 export default defineConfig({
@@ -44,6 +42,10 @@ export default defineConfig({
       redirectToDefaultLocale: false
     }
   },
+  prefetch: {
+    prefetchAll: true,
+    defaultStrategy: 'hover',
+  },
   integrations: [icon({
     include: {
       "fa6-brands": ["*"],
@@ -54,7 +56,6 @@ export default defineConfig({
       "fluent": ["*"],
     }
   }), svelte(),
-  // Expressive Code 开关：siteConfig.expressiveCode.enable
   ...(ecEnabled ? [expressiveCode({
     ...ecThemeOptions(ecSettings),
     getBlockLocale: ({ file }) => {
@@ -65,7 +66,6 @@ export default defineConfig({
     }
   })] : [])],
   markdown: {
-    // 关闭 Expressive Code 时不做语法高亮，代码块回退为纯文本
     ...(ecEnabled ? {} : { syntaxHighlight: false }),
     processor: unified({
       remarkPlugins: [
@@ -80,6 +80,10 @@ export default defineConfig({
       rehypePlugins: [
         rehypeKatex,
         customFigurePlugin,
+        [rehypeImageCollage, {
+          enable: collageSettings.enable !== false,
+          maxColumns: collageSettings.maxColumns ?? 4
+        }],
         [
           rehypeComponents,
           {

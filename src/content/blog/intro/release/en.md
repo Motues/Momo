@@ -21,7 +21,7 @@ Blog text, images, and other content are stored in the `src/content/`, `src/asse
 
 You can directly clone this project, then overwrite the new project with your original configuration files. Run `pnpm install` to install dependencies, followed by `pnpm build` for local compilation. Finally, execute `pnpm preview` to preview the compiled project.
 
-When updating inside this repository, run `pnpm momo update`: it backs up your configuration files to `.backup/`, pulls the remote update, installs dependencies, and finally lists the **configuration files that need to be merged by hand**. If something goes wrong afterwards, `pnpm momo restore` rolls the configuration back to the state before the update.
+When updating inside this repository, run `pnpm momo update`: it reads the latest [release](https://github.com/Motues/Momo/releases), compares it with the version in `package.json`, downloads that version's source, **keeps your own posts and images** (`src/content`, `src/assets`, `public`) and `src/config.ts`, overwrites the rest of the code and installs dependencies, then lists the **configuration files that need to be merged by hand**. Run `pnpm momo update --dry-run` first to preview the changes; overwritten files are saved under `.backup/update-<timestamp>/overwritten/`, and `pnpm momo restore <backup name>` rolls the configuration back.
 
 ## Version Number Changed
 
@@ -37,6 +37,23 @@ Below are general modification suggestions.
 ## Version Information
 
 > Version numbers follow the `YY.MM.DD` format
+
+### 26.9.26
+
+* New **automatic image collage**: consecutive images in the content are laid out as a grid and still open full size in the lightbox
+* `pnpm momo update` is now **release-based**: it no longer depends on local git and keeps your own posts, images and `src/config.ts`
+* Front-end smoothness work: reduced the home page's blocking stylesheet and fixed the listener pile-up and the entrance animation dying after a client-side navigation
+* New `pnpm momo audit` command for re-measuring the first-paint cost of a build
+* The CMS "Site config" page gained the collage switch and the per-row limit
+* This update modifies the `src/config.ts` configuration file by adding the `theme.imageCollage` field; you must add this new field when updating, while every other file can simply be overwritten
+
+### 26.9.25
+
+* Code blocks switched to the official **Expressive Code** integration, with title bars, line highlighting, diff markers, line numbers, collapsible sections and a copy button; the switch and code theme live in `siteConfig.expressiveCode` in `src/config.ts`
+* The image lightbox is now self-built (no longer depending on `photoswipe`): wheel / button / double-click / pinch zoom, drag to pan, arrow keys or swipe to switch, Esc to close, with fly-in and fly-out animations
+* The CMS gained a "Site config" page (`#/config`) for editing `src/config.ts` visually; the archive page is now server-rendered
+* SEO improvements: canonical, hreflang, Open Graph / Twitter Cards, structured data, `sitemap.xml` and `robots.txt`
+* This update modifies the `astro.config.mjs` configuration file, adds the new config file `ec.config.mjs` and adds `siteConfig.expressiveCode` to `src/config.ts`; it also changes the dependencies (adds `astro-expressive-code`, removes `photoswipe`), so add the new fields and run `pnpm install` when updating
 
 ### 26.9.10
 
@@ -61,8 +78,6 @@ Below are general modification suggestions.
 * Astro7 requires Node.js version >= 22; we recommend using version 24 LTS. After upgrading, you must clear your local cache (folders such as `/node_modules`) before you can compile and preview locally
 * This update modifies the configuration files `content.config.ts` and `astro.config.mjs`
 * If you encounter any issues after upgrading, please feel free to submit an issue to provide feedback
-
-Translated with DeepL.com (free version)
 
 ### 26.8.12
 
@@ -129,8 +144,6 @@ Translated with DeepL.com (free version)
 * Changed the style of comment avatars to circular
 * Adjusted the margins of some components
 * This update modifies the configuration file `src/i18n/` by adding the `themeInfo` field; all other fields remain unchanged. To apply the changes, simply add the new field
-
-Translated with DeepL.com (free version)
 
 ### 26.3.11
 

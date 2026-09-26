@@ -1,4 +1,6 @@
 :root {
+  color-scheme: light;
+
   /* 布局变量 */
   --header-width: min(1024px,90vw);
   --page-width: min(776px, 90vw);
@@ -44,6 +46,8 @@
   }
 
   [data-theme="dark"] {
+    color-scheme: dark;
+
     --bg-color: #0a0a0a;
     --text-color: #ffffff;
     --text-color-70: #b5b5b5;

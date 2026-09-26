@@ -91,6 +91,18 @@ function buildSections(values: ConfigValues): SectionDef[] {
         { path: ['siteConfig', 'theme', 'LQIP'], label: '图片占位 LQIP', type: 'bool' },
         { path: ['siteConfig', 'theme', 'PhotoSwipe'], label: '图片查看器 PhotoSwipe', type: 'bool' },
         {
+          path: ['siteConfig', 'theme', 'imageCollage', 'enable'],
+          label: '连续图片自动拼图 imageCollage',
+          type: 'bool',
+          hint: '正文里连续放置的多张图片自动排成网格（需重新构建博客）',
+        },
+        {
+          path: ['siteConfig', 'theme', 'imageCollage', 'maxColumns'],
+          label: '拼图每行最多几张 maxColumns',
+          type: 'number',
+          hint: '取值 2 - 6，实际每行张数会按图片数量自动选择',
+        },
+        {
           path: ['siteConfig', 'theme', 'postCard', 'imageMode'],
           label: '卡片封面模式',
           type: 'select',

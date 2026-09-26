@@ -12,7 +12,7 @@
   <div class="lightbox-backdrop" data-act="close"></div>
 
   <div class="lightbox-stage" id="lb-stage">
-    <img class="lightbox-img" id="lb-img" alt="" draggable="false" />
+    <img class="lightbox-img" id="lb-img" alt="" draggable="false" decoding="async" />
   </div>
 
   <button class="lightbox-nav lightbox-prev" data-act="prev" type="button" aria-label="上一张" title="上一张 (←)">
@@ -47,7 +47,9 @@
   .lightbox {
     position: fixed;
     inset: 0;
-    z-index: 999;
+    /* 必须高于 FabMenu 容器（z-1000）与目录面板（z-1001），
+       否则灯箱打开时右下角悬浮按钮会浮在遮罩之上 */
+    z-index: 2000;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -183,12 +185,20 @@
   interface LbItem { src: string; alt: string; caption: string }
 
   // 正文里可放大的图片（链接里的图片保持原有跳转行为）
+  // 每次打开都遍历全文太浪费：按页面缓存一次，换页时失效
+  let imagesCache: HTMLImageElement[] | null = null
+
   function contentImages(): HTMLImageElement[] {
+    if (imagesCache) return imagesCache
     const container = document.querySelector('.markdown-content')
-    if (!container) return []
-    return Array.from(container.querySelectorAll('img')).filter(
+    if (!container) {
+      imagesCache = []
+      return imagesCache
+    }
+    imagesCache = Array.from(container.querySelectorAll('img')).filter(
       (img) => !img.closest('a') && !!(img.currentSrc || img.getAttribute('src')),
     )
+    return imagesCache
   }
 
   function itemOf(img: HTMLImageElement): LbItem {
@@ -201,6 +211,9 @@
   }
 
   function initLightbox() {
+    // 换页后正文图片列表已经不同，缓存作废
+    imagesCache = null
+
     const root = document.getElementById('momo-lightbox') as HTMLElement | null
     if (!root || root.dataset.ready === '1') return
     root.dataset.ready = '1'
@@ -230,8 +243,28 @@
     let startY = 0
     let pinchStart = 0
     let pinchScale = MIN_SCALE
+    // 打开前的 body overflow，关闭动画结束后再还原（见 restoreScroll）
+    let lockedOverflow: string | null = null
 
     const clamp = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value))
+
+    function cancelAnimations(elements: Element[]) {
+      elements.forEach((element) => {
+        element.getAnimations().forEach((animation) => animation.cancel())
+      })
+    }
+
+    // 打开灯箱时锁定页面滚动；记录原值，避免覆盖其它组件（如移动端菜单）的锁定状态
+    function lockScroll() {
+      if (lockedOverflow === null) lockedOverflow = document.body.style.overflow
+      document.body.style.overflow = 'hidden'
+    }
+
+    function restoreScroll() {
+      if (lockedOverflow === null) return
+      document.body.style.overflow = lockedOverflow
+      lockedOverflow = null
+    }
 
     // 缩放后的图片不能拖出可视区域
     function clampPan() {
@@ -342,11 +375,11 @@
       root.hidden = false
       root.setAttribute('aria-hidden', 'false')
       root.style.opacity = ''
-      document.body.style.overflow = 'hidden'
+      lockScroll()
       syncNav()
       preloadNeighbours()
 
-      img.getAnimations().forEach((animation) => animation.cancel())
+      cancelAnimations([img, root, bar, caption])
       await waitForImage()
       if (!open || seq !== transitionSeq) return
       playOpenAnimation(thumbRect)
@@ -355,6 +388,8 @@
 
     function playOpenAnimation(thumbRect: DOMRect | null) {
       const reduced = reducedMotion()
+      // 清掉上一次快速开关残留的动画（尤其是 fill: backwards 的工具栏动画）
+      cancelAnimations([img, root, bar, caption])
       const to = img.getBoundingClientRect()
       const duration = reduced || !to.width ? 0 : 340
 
@@ -386,41 +421,58 @@
       })
     }
 
-    // 关闭：飞回缩略图后隐藏
+    // 关闭：整层淡出 + 图片飞回缩略图
+    // 关键点：动画必须带 fill: 'forwards'，且在动画真正结束之后才隐藏 / 还原滚动，
+    // 否则动画一结束状态就回弹成不透明，隐藏前会闪一帧全黑遮罩
     function close() {
       if (!open) return
       open = false
-      transitionSeq += 1
+      const seq = ++transitionSeq
       pointers.clear()
       dragging = false
-      document.body.style.overflow = ''
 
       const reduced = reducedMotion()
       const thumbRect = sourceRect()
+      const animations: Animation[] = []
       const finish = () => {
+        // 关闭动画期间又被重新打开（动画被取消也会让 finished 结束），此时不要隐藏
+        if (seq !== transitionSeq) return
+        // 先隐藏再取消动画：取消 fill 效果时页面已完成隐藏，不会出现回弹闪烁
         root.hidden = true
         root.setAttribute('aria-hidden', 'true')
         root.style.opacity = ''
         img.removeAttribute('src')
-        lastFocus?.focus?.()
+        animations.forEach((animation) => animation.cancel())
+        restoreScroll()
+        // preventScroll：避免关闭时浏览器把焦点元素滚回视口导致页面跳动
+        lastFocus?.focus?.({ preventScroll: true })
       }
 
-      img.getAnimations().forEach((animation) => animation.cancel())
+      cancelAnimations([img, root, bar, caption])
+
       if (reduced || !thumbRect || !img.clientWidth) {
         finish()
         return
       }
 
       const from = img.getBoundingClientRect()
-      const animation = img.animate(
-        [
-          { transform: transformOf(), opacity: 1 },
-          { transform: flipTransform(thumbRect, from), opacity: 0.3 },
-        ],
-        { duration: 280, easing: 'cubic-bezier(0.4, 0, 0.2, 1)' },
+      const duration = 280
+      animations.push(
+        img.animate(
+          [
+            { transform: transformOf(), opacity: 1 },
+            { transform: flipTransform(thumbRect, from), opacity: 0.35 },
+          ],
+          { duration, easing: 'cubic-bezier(0.4, 0, 0.2, 1)', fill: 'forwards' },
+        ),
+        root.animate([{ opacity: 1 }, { opacity: 0 }], {
+          duration,
+          easing: 'ease-in',
+          fill: 'forwards',
+        }),
       )
-      root.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 260, easing: 'ease-in' })
-      animation.finished.then(finish, finish)
+      // 两个动画时长一致，等全部结束再隐藏；元素被移除时动画会被取消，allSettled 同样能兜底
+      Promise.allSettled(animations.map((animation) => animation.finished)).then(finish)
     }
 
     // 前后切换：旧图滑出、新图滑入
@@ -633,16 +685,21 @@
     document.addEventListener('keydown', onKey)
 
     // ---- 视口变化时重新夹紧位移 ----
-    window.addEventListener('resize', () => {
+    const onResize = () => {
       if (open) {
         clampPan()
         render(false)
       }
-    })
+    }
+    window.addEventListener('resize', onResize)
 
     const cleanup = () => {
       document.removeEventListener('keydown', onKey)
+      // resize 必须一起解绑：换页后是全新的 DOM，旧闭包会一直留在 window 上
+      window.removeEventListener('resize', onResize)
       if (open) close()
+      // 页面切换时不再等待关闭动画，立即还原滚动锁定
+      restoreScroll()
     }
     document.addEventListener('astro:before-swap', cleanup, { once: true })
 

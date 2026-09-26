@@ -32,7 +32,7 @@ const postAuthor = author ?? profileConfig.name;
     <div class="transition font-bold">
         {title}
     </div>
-    <a href={postUrl} class="transition-all text-sm py-1 font-bold text-[var(--text-color-70)] hover:text-[var(--link-color)]">
+    <a href={postUrl} class="transition-colors text-sm py-1 font-bold text-[var(--text-color-70)] hover:text-[var(--link-color)]">
         {postUrl}
     </a>
     <div class="flex gap-6 mt-3 text-sm">
@@ -46,7 +46,7 @@ const postAuthor = author ?? profileConfig.name;
         </div>
         <div>
             <div class="transition text-[var(--text-color-70)]">{t("license.license")}</div>
-            <a href={postLicense.url} target="_blank" class="transition-all  text-[var(--text-color)] hover:text-[var(--link-color)] font-bold">{postLicense.name}</a>
+            <a href={postLicense.url} target="_blank" class="transition-colors  text-[var(--text-color)] hover:text-[var(--link-color)] font-bold">{postLicense.name}</a>
         </div>
     </div>
     <Icon name="fa6-brands:creative-commons" class="transition text-[15rem] absolute pointer-events-none right-6 top-1/2 -translate-y-1/2 text-[var(--text-color)]/5"></Icon>

@@ -32,7 +32,7 @@ const tocHeadings = headings.filter(h => h.depth > 1 && h.depth < 5);
   class="fixed bottom-[5vh] lg:bottom-[13.5vh] right-[7vw] lg:left-[var(--toc-offset-left)] w-10 h-10 z-[1000] transition-opacity duration-300 opacity-0 pointer-events-none"
   data-scroll-distance={scrollToTopDistance}
 >
-  <div id="menuItems" class="absolute bottom-full left-0 mb-3 flex flex-col items-center gap-3 transition-all duration-300 ease-out translate-y-10 opacity-0 pointer-events-none [.is-active_&]:translate-y-0 [.is-active_&]:opacity-100 [.is-active_&]:pointer-events-auto">
+  <div id="menuItems" class="absolute bottom-full left-0 mb-3 flex flex-col items-center gap-3 transition duration-300 ease-out translate-y-10 opacity-0 pointer-events-none [.is-active_&]:translate-y-0 [.is-active_&]:opacity-100 [.is-active_&]:pointer-events-auto">
     
     {showBackTop && (
       <button id="backTop" title={t("button.backToTop")} class="relative w-10 h-10 rounded-full border border-[var(--text-color)]/20 cursor-pointer flex items-center justify-center transition-transform duration-200 active:scale-90 shadow-none backdrop-blur bg-[var(--bg-color)]/20 hover:bg-[var(--button-hover-color)]">
@@ -70,15 +70,15 @@ const tocHeadings = headings.filter(h => h.depth > 1 && h.depth < 5);
     )}
   </div>
 
-  <button id="menuTrigger" title={t("button.meun")} class="w-full h-full rounded-full border border-[var(--text-color)]/20 cursor-pointer flex items-center justify-center transition-all duration-300 shadow-none backdrop-blur bg-[var(--bg-color)]/20 active:scale-95 hover:bg-[var(--button-hover-color)]">
-    <Icon name="fa6-solid:ellipsis" class="absolute text-lg text-[var(--text-color)] transition-all duration-300 opacity-100 rotate-0 [.is-active_&]:opacity-0 [.is-active_&]:rotate-90" />
-    <Icon name="fa6-solid:xmark" class="absolute text-lg text-[var(--text-color)] transition-all duration-300 opacity-0 -rotate-90 [.is-active_&]:opacity-100 [.is-active_&]:rotate-0" />
+  <button id="menuTrigger" title={t("button.meun")} class="w-full h-full rounded-full border border-[var(--text-color)]/20 cursor-pointer flex items-center justify-center transition duration-300 shadow-none backdrop-blur bg-[var(--bg-color)]/20 active:scale-95 hover:bg-[var(--button-hover-color)]">
+    <Icon name="fa6-solid:ellipsis" class="absolute text-lg text-[var(--text-color)] transition duration-300 opacity-100 rotate-0 [.is-active_&]:opacity-0 [.is-active_&]:rotate-90" />
+    <Icon name="fa6-solid:xmark" class="absolute text-lg text-[var(--text-color)] transition duration-300 opacity-0 -rotate-90 [.is-active_&]:opacity-100 [.is-active_&]:rotate-0" />
   </button>
 
   {tocHeadings.length > 0 && (
     <div 
       id="tocPanel" 
-      class="lg:hidden absolute bottom-25 right-0 lg:bottom-0 lg:left-14 w-60 lg:w-72 max-h-[60vh] flex flex-col bg-[var(--bg-color)]/95 backdrop-blur-lg border border-[var(--text-color)]/20 rounded-2xl shadow-2xl transition-all duration-300 ease-[cubic-bezier(0.34,1.56,0.64,1)] origin-bottom-right lg:origin-bottom-left scale-50 opacity-0 pointer-events-none translate-y-4 lg:translate-y-0 lg:-translate-x-4 [.toc-active_&]:scale-100 [.toc-active_&]:opacity-100 [.toc-active_&]:pointer-events-auto [.toc-active_&]:translate-y-0 [.toc-active_&]:translate-x-0 z-[1001]"
+      class="lg:hidden absolute bottom-25 right-0 lg:bottom-0 lg:left-14 w-60 lg:w-72 max-h-[60vh] flex flex-col bg-[var(--bg-color)]/95 backdrop-blur-lg border border-[var(--text-color)]/20 rounded-2xl shadow-2xl transition duration-300 ease-[cubic-bezier(0.34,1.56,0.64,1)] origin-bottom-right lg:origin-bottom-left scale-50 opacity-0 pointer-events-none translate-y-4 lg:translate-y-0 lg:-translate-x-4 [.toc-active_&]:scale-100 [.toc-active_&]:opacity-100 [.toc-active_&]:pointer-events-auto [.toc-active_&]:translate-y-0 [.toc-active_&]:translate-x-0 z-[1001]"
     >
       <div class="px-4 py-3 border-b border-[var(--text-color)]/10 font-bold text-sm text-[var(--text-color)] flex justify-between items-center bg-[var(--button-hover-color)] rounded-t-2xl">
         <span>{t("button.toc")}</span>
@@ -92,7 +92,7 @@ const tocHeadings = headings.filter(h => h.depth > 1 && h.depth < 5);
             <li>
               <a 
                 href={`#${h.slug}`} 
-                class="toc-link block py-1.5 px-3 rounded-lg hover:bg-[var(--text-color)]/10 text-[var(--text-color)]/80 hover:text-[var(--text-color)] transition-all duration-200 line-clamp-2"
+                class="toc-link block py-1.5 px-3 rounded-lg hover:bg-[var(--text-color)]/10 text-[var(--text-color)]/80 hover:text-[var(--text-color)] transition-colors duration-200 line-clamp-2"
                 style={`margin-left: ${(h.depth - 2) * 0.8}rem`}
               >
                 {h.text}
@@ -106,7 +106,12 @@ const tocHeadings = headings.filter(h => h.depth > 1 && h.depth < 5);
 </div>
 
 <script is:inline>
+// 客户端换页时 Astro 会重新执行本脚本，而 DOM 是全新的：
+// 只靠元素上的 dataset 守卫无法回收挂在 window/document 上的旧监听器，
+// 因此统一用全局注册表保存「上一次绑定」，每次初始化先解绑再绑定。
 function initFabMenu() {
+  window.__momoFabMenu?.cleanup?.();
+
   const container = document.getElementById('fabMenu');
   const trigger = document.getElementById('menuTrigger');
   const backTop = document.getElementById('backTop');
@@ -123,18 +128,33 @@ function initFabMenu() {
   let isTocOpen = false;
   let scrollPosOnTocOpen = 0;
 
-  const handleScroll = () => {
+  // ---- 滚动处理：rAF 合并 + 缓存文档高度 + 进度条去抖 ----
+  let ticking = false;
+  let docHeight = 0;
+  // 上一次真正写进 DOM 的进度（百分比），变化小于 0.5% 时不再触碰样式
+  let lastPercent = -1;
+  let lastVisible = null;
+
+  function measure() {
+    docHeight = document.documentElement.scrollHeight - document.documentElement.clientHeight;
+  }
+
+  function updateScroll() {
+    ticking = false;
     const scrollTop = window.scrollY || document.documentElement.scrollTop;
-    const docHeight = document.documentElement.scrollHeight - document.documentElement.clientHeight;
-    
-    // 控制 FAB 整体显示/隐藏
-    if (scrollTop > threshold) {
-      container.classList.remove('opacity-0', 'pointer-events-none');
-      container.classList.add('opacity-100', 'pointer-events-auto');
-    } else {
-      container.classList.add('opacity-0', 'pointer-events-none');
-      container.classList.remove('opacity-100', 'pointer-events-auto', 'is-active', 'toc-active');
-      isTocOpen = false; // 回到顶部时同时关闭目录状态
+
+    // 控制 FAB 整体显示/隐藏（只在状态真的变化时改 class）
+    const visible = scrollTop > threshold;
+    if (visible !== lastVisible) {
+      lastVisible = visible;
+      if (visible) {
+        container.classList.remove('opacity-0', 'pointer-events-none');
+        container.classList.add('opacity-100', 'pointer-events-auto');
+      } else {
+        container.classList.add('opacity-0', 'pointer-events-none');
+        container.classList.remove('opacity-100', 'pointer-events-auto', 'is-active', 'toc-active');
+        isTocOpen = false; // 回到顶部时同时关闭目录状态
+      }
     }
 
     // 滑动页面时平滑关闭目录 (设置 50px 的缓冲阈值，防止误触)
@@ -146,11 +166,28 @@ function initFabMenu() {
     // 更新进度条
     if (progressCircle && docHeight > 0) {
       const scrollPercent = Math.min(100, (scrollTop / docHeight) * 100);
-      const circumference = 2 * Math.PI * 20;
-      const offset = circumference - (scrollPercent / 100) * circumference;
-      progressCircle.style.strokeDasharray = `${circumference - offset} ${offset}`;
+      if (Math.abs(scrollPercent - lastPercent) >= 0.5 || scrollPercent === 100) {
+        lastPercent = scrollPercent;
+        const circumference = 2 * Math.PI * 20;
+        const offset = circumference - (scrollPercent / 100) * circumference;
+        progressCircle.style.strokeDasharray = `${circumference - offset} ${offset}`;
+      }
     }
-  };
+  }
+
+  function handleScroll() {
+    if (ticking) return;
+    ticking = true;
+    window.requestAnimationFrame(updateScroll);
+  }
+
+  function handleResize() {
+    measure();
+    handleScroll();
+  }
+
+  // 目录高亮观察器（换页时必须断开，否则会持续观察已卸载的标题节点）
+  let tocObserver = null;
 
   // 主按钮切换
   trigger.onclick = (e) => {
@@ -229,7 +266,7 @@ tocLinks.forEach(link => {
       threshold: 0
     };
 
-    const tocObserver = new IntersectionObserver((entries) => {
+    tocObserver = new IntersectionObserver((entries) => {
       entries.forEach(entry => {
         if (entry.isIntersecting) {
           // 清除所有高亮
@@ -278,15 +315,29 @@ tocLinks.forEach(link => {
   }
 
   // 点击外部关闭所有展开项
-  document.addEventListener('click', (e) => {
+  const onDocumentClick = (e) => {
     if (!container.contains(e.target)) {
       container.classList.remove('is-active', 'toc-active');
       isTocOpen = false;
     }
-  });
+  };
 
   window.addEventListener('scroll', handleScroll, { passive: true });
-  handleScroll();
+  window.addEventListener('resize', handleResize, { passive: true });
+  document.addEventListener('click', onDocumentClick);
+
+  measure();
+  updateScroll();
+
+  window.__momoFabMenu = {
+    cleanup() {
+      window.removeEventListener('scroll', handleScroll);
+      window.removeEventListener('resize', handleResize);
+      document.removeEventListener('click', onDocumentClick);
+      tocObserver?.disconnect();
+      tocObserver = null;
+    },
+  };
 }
 
 document.addEventListener('astro:page-load', initFabMenu);

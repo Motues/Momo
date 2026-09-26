@@ -380,6 +380,3 @@ Displays as:
 ---
 
 ---
-
-
-Translated with DeepL.com (free version)

@@ -1,6 +1,8 @@
 ---
 import { siteConfig } from '@/config'
 import ImageLightbox from './ImageLightbox.astro'
+// KaTeX 只用在正文公式上，放在这里可以避免每个页面都为它付出约 23 KB 的阻塞 CSS
+import 'katex/dist/katex.min.css'
 import '@fontsource-variable/jetbrains-mono'
 import '@fontsource-variable/jetbrains-mono/wght-italic.css'
 import '@styles/markdown.css'
@@ -19,14 +21,28 @@ const className = Astro.props.class
     const spoilers = document.querySelectorAll('.spoiler');
     
     spoilers.forEach(el => {
+      // 幂等守卫：同一个元素只绑定一次
+      // （原实现既在模块顶层调用又监听了 astro:page-load，首屏就会绑两份）
+      if (el.dataset.spoilerBound === '1') return;
+      el.dataset.spoilerBound = '1';
+
       let timeoutId = null;
       let clickTime = 0;
+      let scrollHandler = null;
+
+      const removeScrollHandler = () => {
+        if (scrollHandler) {
+          window.removeEventListener('scroll', scrollHandler);
+          scrollHandler = null;
+        }
+      };
 
       el.addEventListener('click', () => {
         el.classList.add('revealed');
         clickTime = Date.now();
 
         if (timeoutId) clearTimeout(timeoutId);
+        removeScrollHandler();
 
         const isMobile = window.innerWidth < 776;
 
@@ -38,23 +54,43 @@ const className = Astro.props.class
         } else {
           // --- 移动端逻辑 (< 776px) ---
           // 只有满足两个条件：1. 发生滚动 2. 距离点击已过3秒
-          const handleScroll = () => {
+          scrollHandler = () => {
             const timeElapsed = Date.now() - clickTime;
             
             if (timeElapsed >= 3000) {
               el.classList.remove('revealed');
-              window.removeEventListener('scroll', handleScroll);
+              removeScrollHandler();
             }
           };
 
-          window.addEventListener('scroll', handleScroll, { passive: true });
+          window.addEventListener('scroll', scrollHandler, { passive: true });
         }
       });
     });
   }
 
-  setupSpoilers();
+  // astro:page-load 在首次加载时也会触发，不需要在模块顶层再调用一次
   document.addEventListener('astro:page-load', setupSpoilers);
+
+  // LQIP 图片的淡入：关闭 LQIP 时插件不会输出 .lqip-markdown-img，这里自然就是空操作，
+  // 因此不需要再按 siteConfig.theme.LQIP 拆成另一个 <script>（少一个内联脚本）
+  function handleLqipImages() {
+    const lqipImages = document.querySelectorAll('.lqip-markdown-img');
+    lqipImages.forEach(img => {
+      if (img.complete) {
+        img.classList.add('lqip-loaded');
+      } else {
+        img.addEventListener('load', () => {
+          img.classList.add('lqip-loaded');
+        });
+        img.addEventListener('error', () => {
+          img.classList.add('lqip-loaded');
+        });
+      }
+    });
+  }
+
+  document.addEventListener('astro:page-load', handleLqipImages);
 </script>
 
 <style is:global>
@@ -201,27 +237,5 @@ const className = Astro.props.class
   }
 </style>
 
-
-{ siteConfig.theme.LQIP &&
-<script>
-  function handleLqipImages() {
-    const lqipImages = document.querySelectorAll('.lqip-markdown-img');
-    lqipImages.forEach(img => {
-      if (img.complete) {
-        img.classList.add('lqip-loaded');
-      } else {
-        img.addEventListener('load', () => {
-          img.classList.add('lqip-loaded');
-        });
-        img.addEventListener('error', () => {
-          img.classList.add('lqip-loaded');
-        });
-      }
-    });
-  }
-          
-  document.addEventListener('astro:page-load', handleLqipImages);
-</script>
-}
 
 { siteConfig.theme.PhotoSwipe && <ImageLightbox /> }

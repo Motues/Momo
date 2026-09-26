@@ -379,7 +379,7 @@
         <div class="flex justify-center mt-8">
           <button on:click={() => { page++; loadComments(true); }}
             disabled={loadingMore}
-            class="px-6 py-2.5 w-full text-sm font-medium text-[var(--text-color)] bg-transparent hover:bg-[var(--button-hover-color)] active:bg-[var(--button-hover-color)] transition-all duration-300 ease-in-out disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2">
+            class="px-6 py-2.5 w-full text-sm font-medium text-[var(--text-color)] bg-transparent hover:bg-[var(--button-hover-color)] active:bg-[var(--button-hover-color)] transition-colors duration-300 ease-in-out disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2">
             {#if loadingMore}
               <svg class="animate-spin h-4 w-4 text-[var(--text-color)]" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                 <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>

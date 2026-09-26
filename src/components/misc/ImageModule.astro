@@ -13,10 +13,17 @@ interface Props {
     class?: string;
     width?: number;
     height?: number;
+    /** 首屏关键图片（文章封面 / 首张卡片封面）：eager + 高优先级，避免被 lazy 拖成 LCP */
+    priority?: boolean;
 }
 
-const { src, alt, id, width, height } = Astro.props;
+const { src, alt, id, width, height, priority = false } = Astro.props;
 const className = Astro.props.class;
+
+// 非首屏图片保持 lazy（Astro 的 <Image> 默认就是 lazy）
+const loadingAttrs = priority
+    ? { loading: 'eager' as const, fetchpriority: 'high' as const, decoding: 'async' as const }
+    : { loading: 'lazy' as const, decoding: 'async' as const };
 
 const isLocal = !(
     src.startsWith("/") ||
@@ -29,7 +36,13 @@ let lqipGradient = "";
 const enableLQIP = siteConfig.theme.LQIP;
 
 if (isLocal) {
-  const images = import.meta.glob<ImageMetadata>("../../**/*", { import: "default" });
+  // 只收集图片文件！早先这里的 pattern 是 "../../**/*"，会把 src 下的所有文件
+  // （包括 Markdown.astro、markdown.css 等）都变成动态 import，
+  // 结果任何用到 ImageModule 的页面（例如首页）都会被拖上几百 KB 的正文样式。
+  const images = import.meta.glob<ImageMetadata>(
+    "../../**/*.{jpg,jpeg,jfif,png,apng,webp,avif,gif,svg,tiff,tif,bmp,ico,heic}",
+    { import: "default" }
+  );
   let imagePath = path.normalize(path.join("../../", "/", src)).replace(/\\/g, "/");
   const imageGetter = images[imagePath];
 
@@ -57,6 +70,7 @@ if (isLocal) {
             width={width} 
             height={height}
             class=""
+            {...loadingAttrs}
             onload="this.parentElement.dataset.loaded = 'true'" 
         />
         )
@@ -70,7 +84,7 @@ if (isLocal) {
             id={id} 
             width={width} 
             height={height} 
-            loading="lazy"
+            {...loadingAttrs}
             class=""
             onload="this.parentElement.dataset.loaded = 'true'" 
         />

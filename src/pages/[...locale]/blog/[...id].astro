@@ -92,6 +92,7 @@ const postJsonLd = articleJsonLd({
     keywords={entry.data.category ? [entry.data.category] : []}
     noindex={entry.data.draft}
     structuredData={postJsonLd}
+    markdownFont={true}
 >
     <div class="mx-auto w-full max-w-[var(--page-width)] py-8 md:mt-0 mt-18">
         <div class="mb-18 text-center">
@@ -119,7 +120,8 @@ const postJsonLd = articleJsonLd({
         </div>
         {image && (
             <div class="cover overflow-hidden">
-                <ImageModule src={image} alt={entry.data.title} class="w-full h-full object-cover"/>
+                {/* 文章封面通常就是本页的 LCP 元素：优先加载 */}
+                <ImageModule src={image} alt={entry.data.title} class="w-full h-full object-cover" priority />
             </div>
         )}
         {entry.data.draft && (
@@ -152,7 +154,7 @@ const postJsonLd = articleJsonLd({
             </div>
         </div>
         )}
-        <Markdown class="mb-6 mt-10 markdown-content onload-animation">
+        <Markdown class="mb-6 mt-10 markdown-content">
             <Content />
         </Markdown>
         {licenseConfig.enable &&

@@ -31,6 +31,8 @@
     * `AOS`: Enable AOS animations
     * `LQIP`: Enable LQIP (low-quality image placeholder)
     * `PhotoSwipe`: Enable PhotoSwipe
+    * `imageCollage.enable`: Enable automatic image collage (consecutive images in the content are arranged into a grid)
+    * `imageCollage.maxColumns`: Max images per row in a collage (2 - 6, default 4); the actual number per row is chosen automatically from the image count, and the images of the last row always fill the whole row
     * `postCard.imageMode`: Cover style of the article cards on the home page, `top` puts the image above the content, `background` uses it as the card background
 * `expressiveCode`
     * `enable`: Enable [Expressive Code](https://expressive-code.com/) 

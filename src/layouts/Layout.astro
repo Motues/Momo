@@ -1,10 +1,16 @@
 ---
 import { siteConfig, profileConfig } from '@/config';
 import "@styles/global.css"
-import 'katex/dist/katex.min.css';
+// KaTeX 的样式移到真正的渲染处（Markdown.astro），不再让每个页面都下载
+// 标题 / 页脚用的 EB Garamond 只有几条 @font-face，保持阻塞，避免首屏字体跳变
 import '@fontsource/eb-garamond';
-import '@fontsource/noto-serif-sc/400.css';
-import '@fontsource/noto-serif-sc/700.css';
+// 正文用的 Noto Serif SC 有 202 条 @font-face（约 320 KB CSS），改成非阻塞加载：
+// 这里只取构建后的 URL，真正应用见 <head> 里的 <link media="print" onload>
+import notoSerifSc400 from '@fontsource/noto-serif-sc/400.css?url';
+import notoSerifSc700 from '@fontsource/noto-serif-sc/700.css?url';
+// 正文引用块（blockquote / ::quote）用的 LXGW Bright Medium：234 条 @font-face（约 180 KB CSS）
+// 同样只在渲染 Markdown 正文的页面异步加载，见 <head> 里的 markdownFont 分支
+import lxgwBrightCss from '@chinese-fonts/lxgwwenkaibright/dist/LXGWBright-Medium/result.css?url';
 import { i18n } from "astro:config/client";
 import { ClientRouter } from "astro:transitions";
 import { getSiteTitle } from '@utils/siteTitle';
@@ -36,6 +42,8 @@ interface Props {
   noindex?: boolean;
   /** 额外的 JSON-LD 结构化数据，与站点级 WebSite 一起输出 */
   structuredData?: Record<string, unknown> | Record<string, unknown>[];
+  /** 页面是否渲染 Markdown 正文：决定要不要异步加载引用块专用的 LXGW 字体 */
+  markdownFont?: boolean;
 }
 const {
   title,
@@ -49,6 +57,7 @@ const {
   keywords = [],
   noindex = false,
   structuredData,
+  markdownFont = false,
 } = Astro.props;
 
 const pageTitle = title;
@@ -72,11 +81,38 @@ const schemas = [
 ];
 // 转义 < 防止正文里的 </script> 提前闭合标签
 const jsonLd = JSON.stringify(schemas).replace(/</g, '\\u003c');
+
+// ---- 第三方域名预热（统计脚本 / 评论后端）----
+const umamiScript = 'https://umami.motues.top/script.js';
+function originOf(value?: string) {
+  if (!value) return '';
+  try {
+    return new URL(value).origin;
+  } catch {
+    return ''; // 例如 twikoo 的 envId 不是 URL
+  }
+}
+const commentOrigin =
+  type === 'article' && siteConfig.comments.enable
+    ? originOf(siteConfig.comments.backendUrl)
+    : '';
+
+// ---- AOS 的过渡时长必须写在 HTML 上 ----
+// AOS 的 CSS 只给 [data-aos] 声明了 transition-property，时长完全来自
+// body[data-aos-duration="500"] [data-aos]{transition-duration:.5s}（没有其它兜底规则）。
+// 而客户端跳转时 ClientRouter 会把 <body> 整个换成新文档里的 body，
+// 只由 AOS.init() 用 JS 挂上去的属性活不过换页 —— 结果就是「从别的页面点进来时
+// 内容直接出现、刷新一下才恢复上浮」（实测跳转后 transition-duration 从 .5s 变成 0s）。
+// 所以把这三个属性写进 body 标签，让每一页的 HTML 都自带正确的值。
+const aosBodyAttrs = siteConfig.theme.AOS
+  ? { 'data-aos-duration': '500', 'data-aos-easing': 'ease', 'data-aos-delay': '0' }
+  : {};
 ---
 
 <!DOCTYPE html>
 <html lang={pageLang} class="h-full">
 <head>
+    <meta charset="UTF-8">
     <script is:inline>
         (function() {
         const savedTheme = localStorage.getItem('theme');
@@ -97,7 +133,6 @@ const jsonLd = JSON.stringify(schemas).replace(/</g, '\\u003c');
         }
         })();
     </script>
-    <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="description" content={descriptionText}>
     {keywords.length > 0 && <meta name="keywords" content={keywords.join(', ')}>}
@@ -133,11 +168,31 @@ const jsonLd = JSON.stringify(schemas).replace(/</g, '\\u003c');
     <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#0a0a0a">
     <link rel="alternate" type="application/rss+xml" title={getSiteTitle()} href={new URL("rss.xml", Astro.site)} >
     <link rel="icon" href={siteConfig.favicon} type="image/x-icon">
-    <script defer src="https://umami.motues.top/script.js" data-hash is:inline></script>
+
+    <!-- 正文 CJK 字体（Noto Serif SC）：202 条 @font-face 不参与首屏阻塞渲染，
+         用 media="print" 先异步取回、onload 再切成 all；禁用 JS 时由 <noscript> 兜底 -->
+    <link rel="stylesheet" href={notoSerifSc400} media="print" onload="this.media='all'">
+    <noscript><link rel="stylesheet" href={notoSerifSc400}></noscript>
+    <link rel="stylesheet" href={notoSerifSc700} media="print" onload="this.media='all'">
+    <noscript><link rel="stylesheet" href={notoSerifSc700}></noscript>
+
+    <!-- 引用块字体（LXGW Bright Medium）：只有渲染正文的页面才需要，同样非阻塞 -->
+    {markdownFont && <link rel="stylesheet" href={lxgwBrightCss} media="print" onload="this.media='all'">}
+    {markdownFont && <noscript><link rel="stylesheet" href={lxgwBrightCss}></noscript>}
+
+    <!-- 第三方域名连接预热：统计域名随时可能用到，评论后端只在文章页预热 -->
+    <link rel="dns-prefetch" href={originOf(umamiScript)}>
+    <link rel="preconnect" href={originOf(umamiScript)} crossorigin>
+    {commentOrigin && <link rel="dns-prefetch" href={commentOrigin}>}
+    {commentOrigin && <link rel="preconnect" href={commentOrigin} crossorigin>}
+
+    <script defer src={umamiScript} data-hash is:inline></script>
     <title>{pageTitle}</title>
     <script type="application/ld+json" set:html={jsonLd}></script>
     <ClientRouter />
     <script is:inline>
+        // 换页相关的两个内联脚本合并成一个：减少解析与执行次数（TODO 第 17 项）。
+        // 这里只注册事件监听，可以安全地在 <head> 里提前执行。
         document.addEventListener('astro:before-swap', (e) => {
             const theme = document.documentElement.getAttribute('data-theme');
             const sysTheme = document.documentElement.classList.contains('system-theme');
@@ -147,25 +202,20 @@ const jsonLd = JSON.stringify(schemas).replace(/</g, '\\u003c');
             if (sysTheme) {
                 e.newDocument.documentElement.classList.add('system-theme');
             }
+            // 前进 / 后退时 ClientRouter 会用 scrollTo({left, top}) 恢复滚动位置，
+            // 如果 html 上还留着 scroll-behavior: smooth，这个恢复过程会被动画拖慢。
+            // 这里临时切成 auto，等新页面稳定后再交还给 CSS（页内锚点仍需要平滑滚动）。
+            document.documentElement.style.scrollBehavior = 'auto';
+            e.newDocument.documentElement.style.scrollBehavior = 'auto';
         });
-    </script>
-</head>
-<body class="h-full bg-[var(--bg-color)]">
-    
-    <div id="loading-overlay" aria-hidden="true">
-      <div class="spinner"></div>
-    </div>
 
-    <slot />
-    
-    <script is:inline>
         let loaderTimeout;
 
         // 1. 开始准备跳转
         document.addEventListener('astro:before-preparation', () => {
             loaderTimeout = setTimeout(() => {
-            const overlay = document.getElementById('loading-overlay');
-            if (overlay) overlay.style.display = 'flex';
+                const overlay = document.getElementById('loading-overlay');
+                if (overlay) overlay.style.display = 'flex';
             }, 500); 
         });
 
@@ -182,8 +232,19 @@ const jsonLd = JSON.stringify(schemas).replace(/</g, '\\u003c');
             clearTimeout(loaderTimeout);
             const overlay = document.getElementById('loading-overlay');
             if (overlay) overlay.style.display = 'none';
+            // 滚动位置已经恢复完毕，把平滑滚动交还给 CSS（见 before-swap 的说明）
+            document.documentElement.style.scrollBehavior = '';
         });
-        </script>
+    </script>
+</head>
+<body class="h-full bg-[var(--bg-color)]" {...aosBodyAttrs}>
+    
+    <div id="loading-overlay" aria-hidden="true">
+      <div class="spinner"></div>
+    </div>
+
+    <slot />
+    
 </body>
 </html>
 
@@ -196,7 +257,8 @@ const jsonLd = JSON.stringify(schemas).replace(/</g, '\\u003c');
     justify-content: center;
     background-color: rgba(255, 255, 255, 0.7);
     z-index: 9999;
-    backdrop-filter: blur(2px);
+    /* 这里原本还有 backdrop-filter: blur(2px)：整屏模糊在换页瞬间的合成成本很高，
+       而去掉后观感几乎不变（背景本来就压了一层 70% 的半透明色） */
     animation: fadeIn 0.3s ease-out;
   }
 
@@ -223,6 +285,8 @@ const jsonLd = JSON.stringify(schemas).replace(/</g, '\\u003c');
     100% { transform: rotate(360deg); }
   }
 
+  /* 页内锚点（脚注、目录）依赖这里的平滑滚动。
+     前进/后退时的滚动恢复由 ClientRouter 接管，并在 before-swap 里临时切成 auto，不受影响。 */
   html {
     scroll-behavior: smooth;
   }
@@ -234,7 +298,23 @@ const jsonLd = JSON.stringify(schemas).replace(/</g, '\\u003c');
   import 'aos/dist/aos.css';
 
   function initApp() {
-    // 1. 先处理 Markdown 的动态注入 (如果有)
+    // AOS 的 init() 每次调用都会往 window 上新增 resize / orientationchange / scroll
+    // 三个监听器且不会去重，换页时反复 init 会成倍累积（这正是滚动越来越卡的主因之一），
+    // 因此整个会话只初始化一次，之后统一用 refreshHard() 更新元素。
+    const state = window.__momoAos || (window.__momoAos = { started: false });
+
+    // 0. 过渡时长以 <body> 上的 data-aos-duration 为准（见 Layout 里 aosBodyAttrs 的说明）。
+    //    客户端跳转换掉 <body> 后，只要 HTML 上带着这个属性就仍然有过渡；
+    //    这里再做一次兜底，保证即使属性被移除也不会退化成「瞬间出现」。
+    const body = document.body;
+    const duration = Number(body.dataset.aosDuration) || 500;
+    if (!body.hasAttribute('data-aos-duration')) {
+      body.setAttribute('data-aos-duration', String(duration));
+      body.setAttribute('data-aos-easing', 'ease');
+      body.setAttribute('data-aos-delay', '0');
+    }
+
+    // 1. 先给正文的动态子元素打上入场标记
     const container = document.querySelector('.markdown-content');
     if (container) {
       const elements = container.querySelectorAll(':scope > *');
@@ -244,13 +324,21 @@ const jsonLd = JSON.stringify(schemas).replace(/</g, '\\u003c');
       });
     }
 
-    // 2. 统一初始化
-    AOS.init({
-      duration: 800,
-      once: true,
-    });
-    
-    // 3. 强力刷新
+    // 2. 只在首次初始化
+    //    注意：这里必须和上面的打标记处在同一帧。曾经试过用 requestAnimationFrame
+    //    延后一帧以便让「首屏内已经可见的正文」也走一遍上浮，实测那会让这些元素
+    //    先可见、再瞬间变透明、然后淡回来（闪一下），比直接出现更糟，故保持原样。
+    if (!state.started) {
+      state.started = true;
+      AOS.init({
+        duration,
+        once: true,
+      });
+      return;
+    }
+
+    // 3. 换页后 DOM 全是新的：必须用 refreshHard() 重新收集 [data-aos] 元素，
+    //    只调 refresh() 的话 AOS 里的元素列表还是上一页的、新元素永远不会显现。
     AOS.refreshHard();
   }
 

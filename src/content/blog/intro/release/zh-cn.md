@@ -22,7 +22,7 @@ pinTop: 1
 
 可以直接克隆本项目，然后将自己原本的配置文件覆盖到新项目，然后运行 `pnpm install` 安装依赖，然后运行 `pnpm build` 本地编译，然后运行 `pnpm preview` 预览编译后的项目。
 
-在本仓库内更新时，可以直接执行 `pnpm momo update`：它会先备份配置文件到 `.backup/`，再拉取远端更新并安装依赖，最后列出本次更新中**需要手工合并的配置文件**。如果更新后配置出了问题，可以用 `pnpm momo restore` 回滚到更新前的配置。
+在本仓库内更新时，可以直接执行 `pnpm momo update`：它会读取 [Release](https://github.com/Motues/Momo/releases) 里的最新版本，与 `package.json` 的版本号对比后下载该版本源码，**保留你自己的文章与图片**（`src/content`、`src/assets`、`public`）和 `src/config.ts`，覆盖其余代码并安装依赖，最后列出本次更新中**需要手工合并的配置文件**。更新前可以先用 `pnpm momo update --dry-run` 预览将要变更的文件；被覆盖的旧文件保存在 `.backup/update-<时间戳>/overwritten/` 里，配置出问题可以用 `pnpm momo restore <备份名>` 回滚。
 
 ## 版本号改变
 
@@ -38,6 +38,23 @@ pinTop: 1
 ## 版本信息
 
 > 版本号采用 `YY.MM.DD` 的格式
+
+### 26.9.26
+
+* 新增**连续图片自动拼图**：正文里连续放置的多张图片会自动排成网格，点击仍由灯箱打开大图
+* `pnpm momo update` 改为**基于 GitHub Release 更新**，不再依赖本地 git，并保留你自己的文章、图片与 `src/config.ts`
+* 前端流畅度优化：优化首页阻塞样式表，修复事件监听器成倍累积与客户端跳转后入场动画失效等问题
+* 新增 `pnpm momo audit` 命令，用于复测构建产物的首屏开销
+* CMS 的「网站配置」页新增拼图开关与每行上限
+* 本次更新对配置文件 `src/config.ts` 进行了修改，添加了 `theme.imageCollage` 字段，更新时需要添加新的字段；其余文件直接覆盖即可
+
+### 26.9.25
+
+* 代码块改用官方的 **Expressive Code** 集成，支持标题栏、行高亮、diff 标记、行号、折叠代码段与复制按钮，开关与代码主题在 `src/config.ts` 的 `siteConfig.expressiveCode` 中配置
+* 图片灯箱改为自研实现（不再依赖 `photoswipe`）：滚轮 / 按钮 / 双击 / 双指缩放、拖拽平移、方向键或左右滑动切换，Esc 关闭，打开与关闭带飞入飞出动画
+* CMS 新增「网站配置」页面（`#/config`），可视化修改 `src/config.ts`；归档页改为服务端渲染
+* SEO 增强：canonical、hreflang 多语言对照、Open Graph / Twitter Card、结构化数据、`sitemap.xml`、`robots.txt`
+* 本次更新对配置文件 `astro.config.mjs` 进行了修改，新增配置文件 `ec.config.mjs`，并对 `src/config.ts` 添加了 `siteConfig.expressiveCode` 字段；同时调整了依赖（新增 `astro-expressive-code`，移除 `photoswipe`），更新时需要添加对应字段并运行 `pnpm install`
 
 ### 26.9.10
 

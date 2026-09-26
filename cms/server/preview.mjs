@@ -23,6 +23,7 @@ import { remarkTypst } from '../../src/plugins/remark-typst.mjs'
 import { parseDirectiveNode } from '../../src/plugins/remark-directive-rehype.js'
 import { remarkCombined } from '../../src/plugins/remark-combined.mjs'
 import { customFigurePlugin } from '../../src/plugins/rehype-figure-plugin.mjs'
+import { rehypeImageCollage } from '../../src/plugins/rehype-image-collage.mjs'
 import { admonition } from '../../src/plugins/rehype-component-admonition.mjs'
 import { GithubCardComponent } from '../../src/plugins/rehype-component-github-card.mjs'
 import { MusicCardComponent } from '../../src/plugins/rehype-component-music-card.mjs'
@@ -32,27 +33,39 @@ import { normalizeData } from './store.mjs'
 import { CONFIG_PATH, readConfig } from './config-file.mjs'
 
 // ---------- 代码高亮：Expressive Code（官方实现，与博客共用根目录 ec.config.mjs） ----------
-// 开关与主题来自 src/config.ts 的 siteConfig.expressiveCode（用 CMS 自己的配置解析器读取，
-// 并按文件修改时间缓存，因此改完配置无需重启 CMS 就能在预览里生效）
-let ecRuntime
-async function getEcRuntime() {
+// 开关类配置（Expressive Code 的开关与主题、图片拼图）都来自 src/config.ts 的 siteConfig，
+// 统一按文件修改时间缓存，因此改完配置无需重启 CMS 就能在预览里生效
+let runtime
+async function getRuntime() {
   const info = await stat(CONFIG_PATH).catch(() => null)
   const key = info ? `${info.mtimeMs}:${info.size}` : 'missing'
-  if (ecRuntime?.key === key) return ecRuntime
+  if (runtime?.key === key) return runtime
 
   const parsed = await readConfig().catch(() => null)
-  const settings = parsed?.values?.siteConfig?.expressiveCode ?? {}
-  const options = { ...ecConfig, ...ecThemeOptions(settings) }
-  // 关闭 Expressive Code 时预览退化为纯文本代码块（与博客侧关闭语法高亮的行为一致）
-  const enabled = settings.enable !== false
+  const site = parsed?.values?.siteConfig ?? {}
+
+  // Expressive Code：关闭时预览退化为纯文本代码块（与博客侧关闭语法高亮的行为一致）
+  const ecSettings = site.expressiveCode ?? {}
+  const options = { ...ecConfig, ...ecThemeOptions(ecSettings) }
+  const enabled = ecSettings.enable !== false
   // 单例渲染器：shiki 主题解析与基础样式生成只做一次，否则每次预览都要重新加载主题
   const renderer = enabled ? createRenderer(options) : null
-  ecRuntime = {
+
+  // 图片拼图：默认值与博客 astro.config.mjs 中保持一致
+  const collageSettings = site.theme?.imageCollage ?? {}
+
+  runtime = {
     key,
-    enabled,
-    options: renderer ? { ...options, customCreateRenderer: () => renderer } : null,
+    ec: {
+      enabled,
+      options: renderer ? { ...options, customCreateRenderer: () => renderer } : null,
+    },
+    collage: {
+      enable: collageSettings.enable !== false,
+      maxColumns: collageSettings.maxColumns ?? 4,
+    },
   }
-  return ecRuntime
+  return runtime
 }
 
 // ---------- 图片相对路径重写：./x.png -> /blog-content/<base>/x.png ----------
@@ -105,7 +118,7 @@ const proseCss = await readFile(join(dirname(fileURLToPath(import.meta.url)), 'p
 
 // ---------- 主管线：remark 阶段（与 astro.config.mjs 顺序一致） ----------
 // unified 的 processor 一旦 process 就会被冻结，因此每个请求都新建
-function createProcessor(base, locale, ec) {
+function createProcessor(base, locale, ec, collage) {
   const processor = unified()
     .use(remarkParse)
     // 解析并丢弃 frontmatter（yaml 节点在 remark-rehype 转换时被忽略，不会显示）
@@ -119,6 +132,8 @@ function createProcessor(base, locale, ec) {
     .use(remarkRehype, { allowDangerousHtml: true })
     .use(rehypeKatex)
     .use(customFigurePlugin)
+    // 连续放置的多张图片自动拼图（与博客使用同一插件与同一份配置）
+    .use(rehypeImageCollage, collage)
     .use(rehypeComponents, {
       components: {
         github: GithubCardComponent,
@@ -156,8 +171,8 @@ preview.post('/', async (c) => {
 
   let html
   try {
-    const ec = await getEcRuntime()
-    const file = await createProcessor(base, locale, ec).process(markdown)
+    const { ec, collage } = await getRuntime()
+    const file = await createProcessor(base, locale, ec, collage).process(markdown)
     html = String(file)
   } catch (e) {
     console.error('[preview] render failed:', e?.stack || e)

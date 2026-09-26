@@ -30,6 +30,10 @@ export const siteConfig: SiteConfig = {
         AOS: true, // Whether to enable AOS (Animate On Scroll) for animations
         LQIP: true, // Whether to enable LQIP (Low-Quality Image Placeholder) for image placeholders
         PhotoSwipe: true, // Whether to enable PhotoSwipe for image viewer
+        imageCollage: {
+            enable: true, // Whether to automatically arrange consecutive images into a grid (collage)
+            maxColumns: 4 // Max images per row in a collage (2 - 6); the actual number is chosen automatically
+        },
         postCard: {
             imageMode: "top" // Cover image mode for article cards: "top" shows the image above the content; "background" uses the image as the card background, fading to transparent from right to left
         }

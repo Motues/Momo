@@ -48,7 +48,7 @@ const currentLang = Astro.currentLocale || i18n!.defaultLocale;
 const t = i18nit(currentLang);
 
 // 样式类：整合了移动端和桌面端的差异
-const btnBaseClass = "p-2 md:px-4 md:py-2 flex items-center border rounded-lg transition-all duration-200";
+const btnBaseClass = "p-2 md:px-4 md:py-2 flex items-center border rounded-lg transition duration-200";
 const btnActiveProps = "text-[var(--text-color)] hover:bg-[var(--button-hover-color)] border-[var(--button-border-color)] active:scale-90";
 const btnDisabledProps = "text-[var(--text-color-30)] border-[var(--button-border-color)] opacity-40 cursor-not-allowed pointer-events-none";
 ---
@@ -84,7 +84,7 @@ const btnDisabledProps = "text-[var(--text-color-30)] border-[var(--button-borde
       return (
         <a
           href={getRelativeLocaleUrl(currentLang, getPageUrl(p as number))}
-          class={`w-8 h-8 md:w-10 md:h-10 flex items-center justify-center rounded-lg border transition-all duration-200 
+          class={`w-8 h-8 md:w-10 md:h-10 flex items-center justify-center rounded-lg border transition duration-200 
             ${isCurrent 
               ? 'border-[var(--button-border-color)] font-bold text-[var(--text-color)] pointer-events-none' 
               : 'border-transparent text-[var(--text-color-70)] hover:border-[var(--button-border-color)] hover:text-[var(--text-color)] active:bg-[var(--button-hover-color)] active:scale-90'

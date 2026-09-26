@@ -31,6 +31,8 @@
     * `AOS`: 是否启用 AOS 动画
     * `LQIP`: 是否启用 LQIP 低质量图片占位
     * `PhotoSwipe`: 是否启用图片灯箱模式
+    * `imageCollage.enable`: 是否启用连续图片自动拼图（正文里连续放置的多张图片自动排成网格）
+    * `imageCollage.maxColumns`: 拼图每行最多放几张图片（2 - 6，默认 4）；实际每行张数会按图片数量自动选择，最后一行的图片自动补满整行
     * `postCard.imageMode`: 首页文章卡片封面样式，`top` 为图片在内容上方，`background` 为图片作为卡片背景
 * `expressiveCode`
     * `enable`: 是否启用 [Expressive Code](https://expressive-code.com/)（

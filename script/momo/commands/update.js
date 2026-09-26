@@ -1,39 +1,83 @@
-// update.js — pnpm momo update：拉取仓库更新并同步依赖
-import { readFile } from 'node:fs/promises'
+// update.js — pnpm momo update：从 GitHub Release 拉取模板新代码并同步依赖
+//
+// 与旧实现的区别：
+// - 旧版依赖本地 git（git fetch + pull），检查的是「本地仓库的上游分支」；
+// - 新版直接读 https://github.com/<repo>/releases 与 release 源码包，没有 .git 也能更新，
+//   版本对比用的是 package.json 的版本号（YY.MM.DD）；
+// - 用户自己的内容（src/content、src/assets、public、src/config.ts 等）一律保留，
+//   其它文件按 release 覆盖，覆盖前把旧文件备份到 .backup/update-<时间戳>/overwritten/。
+import { readFile, rm } from 'node:fs/promises'
 import { join } from 'node:path'
+import { tmpdir } from 'node:os'
 import {
+  BACKUP_DIR,
   CONFIG_PATHS,
+  CONTENT_PATHS,
+  USER_CONFIG_PATHS,
   c,
   confirm,
+  copyPath,
+  ensureDir,
   fail,
   fromRoot,
-  git,
   gitInfo,
   log,
   pathExists,
-  run,
+  readJson,
+  relPath,
   runPnpm,
+  writeJson,
 } from '../lib.js'
+import {
+  DEFAULT_REPO,
+  compareVersions,
+  downloadRelease,
+  findRelease,
+  listReleases,
+  planChanges,
+} from '../release.js'
 import backupCommand from './backup.js'
 
-const short = (rev) => (rev ? rev.slice(0, 8) : '未知')
+// 这些目录/文件永远不参与覆盖（release 里本来也不会有，属于双保险）
+const ALWAYS_SKIP = ['node_modules', 'dist', '.astro', '.backup', '.git']
 
-/** 读取某个提交上的 package.json 版本号 */
-function versionAt(rev) {
-  const raw = git(['show', `${rev}:package.json`])
-  if (!raw) return null
-  try {
-    return JSON.parse(raw).version ?? null
-  } catch {
-    return null
-  }
+// 默认保留的用户内容：文章与图片、用户自己的配置、本地 AI 工具说明与环境变量
+const DEFAULT_KEEP = [
+  ...CONTENT_PATHS, // src/content、src/assets、public
+  ...USER_CONFIG_PATHS, // src/config.ts
+  'AGENT.md',
+  'cms/AGENT.md',
+  '.env',
+  '.env.local',
+  '.env.production',
+]
+
+const LIST_LIMIT = 12
+
+function stamp(date = new Date()) {
+  const p = (n) => String(n).padStart(2, '0')
+  return (
+    `${date.getFullYear()}${p(date.getMonth() + 1)}${p(date.getDate())}` +
+    `-${p(date.getHours())}${p(date.getMinutes())}${p(date.getSeconds())}`
+  )
 }
 
-/** 从更新指南里截取对应版本的说明 */
-async function releaseNotes(version) {
-  if (!version) return null
-  const text = await readFile(fromRoot('doc/release_zh-cn.md'), 'utf8').catch(() => null)
-  if (!text) return null
+const fmtDate = (value) => {
+  if (!value) return ''
+  const date = new Date(value)
+  return Number.isNaN(date.getTime()) ? '' : date.toLocaleDateString('zh-CN')
+}
+
+function printList(title, files, color = c.gray) {
+  if (!files.length) return
+  log.info(`${title}${c.bold(String(files.length))} 个`)
+  for (const file of files.slice(0, LIST_LIMIT)) log.info(`  ${color('•')} ${file}`)
+  if (files.length > LIST_LIMIT) log.info(c.gray(`  …还有 ${files.length - LIST_LIMIT} 个`))
+}
+
+/** 从更新指南（doc/release_zh-cn.md）里截取某个版本的段落 */
+function notesFrom(text, version) {
+  if (!text || !version) return null
   const lines = text.split(/\r?\n/)
   const pattern = new RegExp(`^###\\s+v?${version.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\s*$`)
   const start = lines.findIndex((line) => pattern.test(line))
@@ -48,179 +92,251 @@ async function releaseNotes(version) {
   return lines.slice(start, end).join('\n').trim()
 }
 
-/** 判断文件是否属于「配置文件」，升级后可能需要手工合并 */
-function isConfigFile(file) {
-  return CONFIG_PATHS.some((p) => file === p || file.startsWith(`${p}/`))
+/** 备份目录名：同秒内多次更新时自动加序号，避免与已有备份冲突 */
+async function nextBackupName() {
+  const base = `update-${stamp()}`
+  let name = base
+  let index = 2
+  while (await pathExists(join(fromRoot(BACKUP_DIR), name))) {
+    name = `${base}-${index}`
+    index += 1
+  }
+  return name
 }
 
 export default {
   name: 'update',
-  summary: '拉取远端更新并同步依赖（更新前自动备份 src/config.ts）',
-  usage: 'pnpm momo update [--dry-run] [--stash] [--rebase] [--no-backup] [--no-install]',
+  summary: '从 GitHub Release 更新模板代码（保留自己的文章与图片）',
+  usage: 'pnpm momo update [--check] [--dry-run] [--version <标签>] [--keep <路径>] [--keep-config]',
   details: [
-    '流程：备份 src/config.ts → git fetch → 快进合并 → pnpm install → 提示需要手工合并的配置文件。',
-    '工作区有未提交改动时会中止，可用 --stash 自动暂存（更新完自动恢复）。',
+    `数据源：https://github.com/${DEFAULT_REPO}/releases（用 package.json 的版本号对比，不需要本地 git）。`,
+    '',
+    '更新时保留用户自己的内容：',
+    `  ${[...CONTENT_PATHS, ...USER_CONFIG_PATHS].join('、')}`,
+    '其余文件按 release 覆盖；被覆盖的旧文件备份到 .backup/update-<时间戳>/overwritten/，配置文件另有一份完整备份。',
+    '注意：release 中已删除的文件不会自动删除，需要时请手动清理。',
   ].join('\n'),
   options: {
-    'dry-run': { type: 'boolean', desc: '只检查远端是否有更新，不做任何修改' },
-    stash: { type: 'boolean', desc: '工作区有改动时自动 git stash，更新后恢复' },
-    rebase: { type: 'boolean', desc: '本地有提交时用 git pull --rebase 变基' },
-    force: { type: 'boolean', desc: '忽略未提交的改动直接更新（有覆盖风险）' },
-    backup: { type: 'boolean', default: true, desc: '更新前自动备份配置（--no-backup 关闭）' },
+    check: { type: 'boolean', desc: '只检查是否有新版本，不下载' },
+    'dry-run': { type: 'boolean', desc: '下载并列出将要变更的文件，但不写入任何文件' },
+    version: { type: 'string', desc: '更新到指定版本（标签，如 v26.9.26）' },
+    repo: { type: 'string', desc: `数据源仓库，默认 ${DEFAULT_REPO}（也可用环境变量 MOMO_REPO）` },
+    keep: { type: 'string', desc: '额外保留的路径，逗号分隔，如 src/components/Header.astro' },
+    'keep-config': { type: 'boolean', desc: '保留全部配置文件，只更新代码与文档（自己按说明合并配置）' },
+    backup: { type: 'boolean', default: true, desc: '更新前备份配置与被覆盖的文件（--no-backup 关闭）' },
     install: { type: 'boolean', default: true, desc: '更新后自动 pnpm install（--no-install 关闭）' },
     yes: { alias: 'y', type: 'boolean', desc: '跳过确认' },
   },
 
   async run({ flags }) {
-    if (!(await pathExists(fromRoot('.git'))) || !gitInfo()) {
-      fail('当前目录不是 git 仓库，无法自动更新')
-    }
-
-    const branch = git(['rev-parse', '--abbrev-ref', 'HEAD'])
-    if (!branch || branch === 'HEAD') fail('当前处于游离 HEAD 状态，请先切换到分支再更新')
-
-    // 上游分支：优先使用已配置的上游，否则退回 origin/<branch>
-    let upstream = git(['rev-parse', '--abbrev-ref', '--symbolic-full-name', '@{u}'])
-    if (!upstream) {
-      const guess = `origin/${branch}`
-      if (!git(['rev-parse', '--verify', '--quiet', `refs/remotes/${guess}`])) {
-        fail(`分支 ${branch} 没有上游分支，请先执行：git push -u origin ${branch}`)
-      }
-      upstream = guess
-    }
-    const remote = upstream.split('/')[0]
+    const repo = flags.repo || process.env.MOMO_REPO || DEFAULT_REPO
+    const token = process.env.GITHUB_TOKEN || process.env.GH_TOKEN
+    const localVersion = (await readJson(fromRoot('package.json'), {}))?.version ?? null
 
     log.title('检查更新')
-    log.info(`分支：${c.bold(branch)}  上游：${c.gray(upstream)}`)
+    log.info(`数据源：${c.cyan(`https://github.com/${repo}/releases`)}`)
+    log.info(`本地版本：${c.bold(localVersion ?? '未知')}`)
 
-    run('git', ['fetch', '--prune', remote], { quiet: true })
-    log.info(c.gray(`已获取远端最新提交`))
+    const releases = await listReleases({ repo, token })
+    const target = flags.version
+      ? await findRelease({ repo, version: flags.version, releases, token })
+      : releases.find((item) => compareVersions(item.version, localVersion ?? '0') > 0)
 
-    const before = git(['rev-parse', 'HEAD'])
-    const after = git(['rev-parse', upstream])
-    if (!after) fail(`无法解析上游分支 ${upstream}`)
-
-    const behind = Number(git(['rev-list', '--count', `${before}..${after}`]) ?? 0)
-    const ahead = Number(git(['rev-list', '--count', `${after}..${before}`]) ?? 0)
-
-    if (behind === 0) {
+    if (!target) {
+      const latest = releases[0]
       log.raw()
-      log.ok(ahead > 0 ? `已是最新（本地领先远端 ${ahead} 个提交）` : '已是最新，无需更新')
+      log.ok(
+        latest
+          ? `已是最新版本（最新 release：${c.bold(latest.tag)}${c.gray(fmtDate(latest.publishedAt) ? `，${fmtDate(latest.publishedAt)}` : '')}）`
+          : '远端还没有发布任何 Release',
+      )
+      log.info(c.gray('可用 pnpm momo update --version <标签> 指定版本，或 --dry-run 预览变更'))
       return
     }
 
-    log.raw()
-    log.info(`远端有 ${c.bold(String(behind))} 个新提交（本地领先 ${ahead} 个）：`)
-    const commits = (git(['log', '--oneline', '--no-decorate', '-n', '15', `${before}..${after}`]) ?? '').split('\n')
-    for (const line of commits) log.info(`  ${c.gray(line)}`)
-    if (behind > commits.length) log.info(c.gray(`  …还有 ${behind - commits.length} 个提交`))
+    const knownTarget = releases.some((item) => item.tag === target.tag)
+    const newer = releases
+      .filter((item) => compareVersions(item.version, localVersion ?? '0') > 0)
+      .sort((a, b) => compareVersions(a.version, b.version))
+    // 只有目标本身就是 Release 时才能列出「跨过的版本」，否则只提示目标版本
+    const pending = knownTarget ? newer.filter((item) => compareVersions(item.version, target.version) <= 0) : []
+    if (!pending.length) pending.push(target)
 
-    const oldVersion = versionAt(before)
-    const newVersion = versionAt(after)
-    if (newVersion && oldVersion !== newVersion) {
-      log.raw()
-      log.info(`版本变化：${c.yellow(oldVersion ?? '未知')} → ${c.green(newVersion)}`)
+    const isDowngrade = compareVersions(target.version, localVersion ?? '0') <= 0 && Boolean(flags.version)
+    log.raw()
+    if (isDowngrade) {
+      log.warn(`指定版本 ${c.bold(target.tag)} 不高于本地版本 ${c.bold(localVersion ?? '未知')}，将按你的要求覆盖`)
+    } else {
+      log.ok(
+        `${c.bold(localVersion ?? '未知')} → ${c.bold(target.version)}` +
+          c.gray(`（${target.tag}${target.publishedAt ? `，${fmtDate(target.publishedAt)} 发布` : ''}）`),
+      )
+    }
+    if (!knownTarget) {
+      log.info(c.gray(`Release 列表里没有 ${target.tag}，将直接下载该标签的源码（没有更新说明）`))
+    } else if (pending.length > 1) {
+      log.info(`跨越 ${pending.length} 个版本：${pending.map((item) => item.tag).join(' → ')}`)
     }
 
-    if (ahead > 0 && !flags.rebase) {
+    if (flags.check) {
       log.raw()
-      fail('本地与远端都有新提交（历史分叉），请先处理：\n' +
-        '  git pull --rebase   （推荐）\n' +
-        '  或使用 pnpm momo update --rebase')
+      log.dim('（--check：只检查版本，未下载任何文件）')
+      log.info(c.gray('执行 pnpm momo update 直接更新，或用 pnpm momo update --dry-run 预览变更'))
+      return
+    }
+
+    // 1) 下载并解压目标版本源码
+    const dir = join(tmpdir(), `momo-update-${Date.now()}`)
+    await ensureDir(dir)
+    let source
+    try {
+      log.raw()
+      source = await downloadRelease({ release: target, token, dir, onStatus: (text) => log.step(text) })
+    } catch (error) {
+      await rm(dir, { recursive: true, force: true })
+      throw error
+    }
+
+    if (source.version && compareVersions(source.version, target.version) !== 0) {
+      await rm(dir, { recursive: true, force: true })
+      fail(`源码包里的版本（${source.version}）与标签（${target.tag}）不一致，可能下载到了错误的分支，请稍后重试`)
+    }
+
+    // 2) 生成变更清单（保留用户内容）
+    const keep = [...DEFAULT_KEEP]
+    if (flags['keep-config']) keep.push(...CONFIG_PATHS)
+    if (flags.keep) {
+      keep.push(
+        ...String(flags.keep)
+          .split(',')
+          .map((item) => item.trim().replace(/^\.?[\\/]/, ''))
+          .filter(Boolean),
+      )
+    }
+
+    const plan = await planChanges(dir, { root: fromRoot('.'), preserve: keep, skip: ALWAYS_SKIP })
+    const writes = [...plan.added, ...plan.modified]
+
+    log.raw()
+    log.title('变更预览')
+    printList('新增：', plan.added, c.green)
+    printList('修改：', plan.modified, c.yellow)
+    if (!writes.length) log.info(c.gray('没有需要写入的文件（本地内容与 release 一致）'))
+
+    log.raw()
+    log.info(`保留自己的文件：${c.gray(keep.join('、'))}`)
+    if (plan.preserved.length) {
+      log.info(c.gray(`  （release 中有 ${plan.preserved.length} 个同名文件被跳过，属于你自己的内容）`))
+    }
+
+    const configChanged = writes.filter((file) => CONFIG_PATHS.some((p) => file === p || file.startsWith(`${p}/`)))
+    if (configChanged.length) {
+      log.raw()
+      log.warn(`本次更新改动了 ${configChanged.length} 个配置文件，更新后请按更新说明检查是否需要手工合并：`)
+      for (const file of configChanged) log.info(`  ${c.yellow('•')} ${file}`)
     }
 
     if (flags['dry-run']) {
+      await rm(dir, { recursive: true, force: true })
       log.raw()
-      log.dim('（--dry-run：未做任何修改）')
+      log.dim('（--dry-run：未写入任何文件）')
       return
     }
 
-    // 工作区改动：默认中止，--stash 自动暂存，--force 忽略
-    const dirty = (git(['status', '--porcelain']) ?? '') !== ''
-    let stashed = false
-    if (dirty) {
-      if (flags.stash) {
-        log.raw()
-        log.step('工作区有改动，暂存中…')
-        run('git', ['stash', 'push', '--include-untracked', '-m', `momo update ${new Date().toISOString()}`])
-        stashed = true
-      } else if (!flags.force) {
-        log.raw()
-        fail('工作区有未提交的改动，请先提交，或使用：\n' +
-          '  pnpm momo update --stash   自动暂存并在更新后恢复\n' +
-          '  pnpm momo update --force   忽略改动直接更新（有风险）')
-      }
+    if (!writes.length) {
+      await rm(dir, { recursive: true, force: true })
+      log.raw()
+      log.ok('代码已是最新，无需写入')
+      return
     }
 
+    // 3) 确认
     if (!flags.yes) {
       log.raw()
-      const ok = await confirm(`确认更新到 ${short(after)}？`, { default: true })
+      const ok = await confirm(`确认写入 ${writes.length} 个文件（版本 ${localVersion ?? '未知'} → ${target.version}）？`, {
+        default: true,
+      })
       if (!ok) {
-        if (stashed) run('git', ['stash', 'pop'], { allowFail: true })
+        await rm(dir, { recursive: true, force: true })
         log.dim('已取消')
         return
       }
     }
 
-    // 1) 更新前备份配置（默认只备份用户自己修改的 src/config.ts）
+    // 4) 备份：配置文件走 backup 命令，被覆盖的文件另存到同一个备份目录下
+    let backupName = null
     if (flags.backup) {
       log.raw()
-      log.step('备份 src/config.ts…')
-      // out/name 传 undefined 以使用 backup 命令的默认值
-      await backupCommand.run({
-        flags: { all: false, config: false, list: false, name: undefined, out: undefined },
+      backupName = await nextBackupName()
+      const backupDir = join(fromRoot(BACKUP_DIR), backupName)
+
+      log.step('备份配置文件…')
+      await backupCommand.run({ flags: { all: false, config: true, list: false, name: backupName, out: undefined } })
+
+      log.step(`备份将被覆盖的 ${writes.length} 个文件…`)
+      for (const file of writes) {
+        if (!(await pathExists(fromRoot(file)))) continue // 新增文件无需备份
+        await copyPath(fromRoot(file), join(backupDir, 'overwritten', ...file.split('/')))
+      }
+      await writeJson(join(backupDir, 'update.json'), {
+        tool: 'momo',
+        createdAt: new Date().toISOString(),
+        repo,
+        from: localVersion,
+        to: target.version,
+        tag: target.tag,
+        preservedPaths: keep,
+        added: plan.added,
+        modified: plan.modified,
       })
+      log.ok(`已备份到 ${c.bold(relPath(backupDir))}`)
+    } else {
+      log.raw()
+      log.warn('已跳过备份（--no-backup），被覆盖的文件无法通过 pnpm momo restore 找回')
     }
 
-    // 2) 拉取更新
+    // 5) 写入文件
     log.raw()
-    log.step('拉取更新…')
-    run('git', ['pull', ...(flags.rebase ? ['--rebase'] : ['--ff-only']), remote, branch])
+    log.step(`写入 ${writes.length} 个文件…`)
+    for (const file of writes) {
+      await copyPath(join(dir, ...file.split('/')), fromRoot(file))
+    }
+    await rm(dir, { recursive: true, force: true })
+    log.ok(`代码已更新到 ${c.bold(target.version)}`)
 
-    const pulled = git(['rev-parse', 'HEAD'])
-    log.ok(`已更新到 ${short(pulled)}`)
-
-    // 3) 同步依赖
+    // 6) 同步依赖
     if (flags.install) {
       log.raw()
       log.step('安装依赖…')
       runPnpm(['install'])
       log.ok('依赖已同步')
     } else {
+      log.raw()
       log.warn('已跳过 pnpm install（--no-install），依赖可能不一致')
     }
 
-    // 4) 提示需要手工合并的配置文件
-    const changed = (git(['diff', '--name-only', before, pulled]) ?? '').split('\n').filter(Boolean)
-    const configChanged = changed.filter(isConfigFile)
-    if (configChanged.length) {
-      log.raw()
-      log.warn(`本次更新改动了 ${configChanged.length} 个配置文件，可能需要按更新说明手工合并：`)
-      for (const file of configChanged) log.info(`  ${c.yellow('•')} ${file}`)
-      log.info(c.gray('参考 doc/release_zh-cn.md，或执行 pnpm momo restore 回滚更新前的 src/config.ts'))
+    // 7) 更新说明：优先用 release 自带说明，缺失时读更新后的 doc/release_zh-cn.md
+    const localNotes = await readFile(fromRoot('doc/release_zh-cn.md'), 'utf8').catch(() => null)
+    const sections = []
+    for (const item of pending) {
+      const text = item.body || notesFrom(localNotes, item.version)
+      if (text) sections.push({ version: item.version, text })
     }
-
-    const notes = await releaseNotes(newVersion)
-    if (notes && newVersion !== oldVersion) {
+    if (sections.length) {
       log.raw()
-      log.title(`更新说明 ${newVersion}`)
-      log.raw(notes)
-    }
-
-    // 5) 恢复暂存的改动
-    if (stashed) {
-      log.raw()
-      log.step('恢复暂存的改动…')
-      const status = run('git', ['stash', 'pop'], { allowFail: true })
-      if (status !== 0) {
-        log.warn('恢复暂存失败（可能有冲突），改动仍保存在 git stash 中，请手动处理：git stash list')
-      } else {
-        log.ok('已恢复暂存改动')
+      log.title('更新说明')
+      for (const section of sections) {
+        log.raw(c.bold(`### ${section.version}`))
+        log.raw(section.text)
+        log.raw()
       }
     }
 
+    if (gitInfo()?.dirty) log.info(c.gray('工作区有未提交改动，可用 git diff 查看本次更新带来的变化'))
+
     log.raw()
-    log.ok(`更新完成：${short(before)} → ${short(pulled)}`)
-    log.info(c.gray('可执行 pnpm build 验证构建，或 pnpm dev 本地预览'))
+    log.ok(`更新完成：${localVersion ?? '未知'} → ${target.version}`)
+    if (backupName) log.info(c.gray(`回滚：pnpm momo restore ${backupName}`))
+    log.info(c.gray('建议执行 pnpm build 验证构建，或 pnpm dev 本地预览'))
   },
 }

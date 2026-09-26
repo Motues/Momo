@@ -44,7 +44,7 @@ Site information, theme switches, languages and the Cover text of each page are 
 
 Refer to the [Update Guide](./release_en.md) for instructions on updating your project. Visit [Momo](https://momo.motues.top/en/intro/release) for detailed information.
 
-Run `pnpm momo update` to do it automatically: it backs up your config, pulls the update and installs dependencies, then lists the config files that need manual merging.
+Run `pnpm momo update` to do it automatically: it checks the GitHub releases, downloads the new source, backs up, overwrites the code and installs dependencies, then lists the config files that need manual merging. Your own posts and images (`src/content`, `src/assets`, `public`) and `src/config.ts` are always kept; add `--dry-run` to preview the changes without writing anything.
 
 ## 🍃 Branch
 
@@ -68,7 +68,7 @@ All commands below can be executed in the root directory
 | `pnpm momo new [path]` | Create a new post; the path defaults to a date based one, e.g. `pnpm momo new docs/test` |
 | `pnpm momo backup` | Back up `src/config.ts` to `.backup/` (add `--config` for every config file, `--all` to also include posts and images) |
 | `pnpm momo restore [name]` | Restore from a backup (the latest one by default) |
-| `pnpm momo update` | Pull the repository update and sync dependencies (backs up `src/config.ts` first) |
+| `pnpm momo update` | Update the template code from the [GitHub releases](https://github.com/Motues/Momo/releases) and sync dependencies (keeps your own posts and images; `--dry-run` previews the changes) |
 | `pnpm momo clean` | Remove build output and caches (add `--all` to also remove `node_modules`) |
 | `pnpm momo doctor` | Check the environment, dependencies and project status |
 | `pnpm momo --help` | Show every momo command and option |

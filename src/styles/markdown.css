@@ -14,6 +14,14 @@
   line-height: 1.75;
 }
 
+.markdown-content > figure,
+.markdown-content > .image-collage,
+.markdown-content > pre,
+.markdown-content > table {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 16rem;
+}
+
 .markdown-content h1 {
   padding: 0.5rem 0;
   font-size: 2rem;
@@ -251,6 +259,79 @@
   margin: 1rem auto;
   display: block;
   border-radius: 6px;
+}
+
+/* 连续图片自动拼图（插件 src/plugins/rehype-image-collage.mjs，开关见 siteConfig.theme.imageCollage）
+   --cols 是每行张数（插件按图片数量智能选择），--span 让最后一行的图片补满整行 */
+.markdown-content .image-collage {
+  --collage-gap: 8px;
+  --collage-row-height: clamp(110px, 16vw, 200px);
+  display: grid;
+  grid-template-columns: repeat(var(--cols, 2), minmax(0, 1fr));
+  gap: var(--collage-gap);
+  margin: 1.5rem 0;
+}
+
+.markdown-content .image-collage .collage-item {
+  grid-column: span var(--span, 1);
+}
+
+.markdown-content .image-collage figure {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  margin: 0;
+}
+
+/* 图片裁切铺满格子（点开灯箱仍可看完整大图），高度固定以便同一行对齐 */
+.markdown-content .image-collage .collage-media {
+  position: relative;
+  flex: none;
+  height: var(--collage-row-height);
+  overflow: hidden;
+  border-radius: 10px;
+  background: var(--button-hover-color);
+}
+
+.markdown-content .image-collage .collage-media img {
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  border-radius: 0;
+  object-fit: cover;
+  transition: transform 0.35s ease;
+}
+
+.markdown-content .image-collage .collage-item:hover .collage-media img {
+  transform: scale(1.05);
+}
+
+/* 图注：和普通图片一样显示在图片下方，最多两行 */
+.markdown-content .image-collage figcaption {
+  margin-top: 6px;
+  font-size: 0.875rem;
+  line-height: 1.5;
+  text-align: center;
+  color: var(--text-color-70);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+@media (max-width: 776px) {
+  .markdown-content .image-collage {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .markdown-content .image-collage .collage-item {
+    grid-column: auto;
+  }
+
+  /* 移动端每行最多 2 张，总数为奇数时最后一张补满整行 */
+  .markdown-content .image-collage .collage-item:last-child:nth-child(odd) {
+    grid-column: span 2;
+  }
 }
 
 .markdown-content hr {

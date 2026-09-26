@@ -22,6 +22,10 @@ export type SiteConfig = {
         AOS: boolean;
         LQIP: boolean;
         PhotoSwipe: boolean;
+        imageCollage: {
+            enable: boolean;
+            maxColumns: number;
+        };
         postCard: {
             imageMode: "top" | "background"; 
         };
