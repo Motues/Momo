@@ -311,6 +311,7 @@ body {
   margin: 0;
 }
 
+/* 兜底：行内有图片量不出宽高比（远端图片等）时，用固定行高裁切铺满格子，保证行内整齐 */
 .markdown-content .image-collage .collage-media {
   position: relative;
   flex: none;
@@ -320,25 +321,19 @@ body {
   background: var(--code-bg);
 }
 
+/* 行高由该行最宽的图片决定的那些格子：用 aspect-ratio 撑开（值 = 占列数 / 行高因子）
+   最宽的图片完整显示，同行的其它图片正好也是这个高度 */
+.markdown-content .image-collage .collage-media.collage-ratio {
+  height: auto;
+  aspect-ratio: var(--ratio);
+}
+
 .markdown-content .image-collage .collage-media img {
   width: 100%;
   height: 100%;
   margin: 0;
   border-radius: 0;
   object-fit: cover;
-}
-
-/* 图注：和普通图片一样显示在图片下方，最多两行 */
-.markdown-content .image-collage figcaption {
-  margin-top: 6px;
-  font-size: 0.875rem;
-  line-height: 1.5;
-  text-align: center;
-  color: var(--text-sub);
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
 }
 
 @media (max-width: 776px) {
@@ -352,5 +347,16 @@ body {
 
   .markdown-content .image-collage .collage-item:last-child:nth-child(odd) {
     grid-column: span 2;
+  }
+
+  /* 桌面端算出的行高在 2 列布局下不适用，退回固定行高；改用插件为移动端算出的 .collage-ratio-sm */
+  .markdown-content .image-collage .collage-media.collage-ratio {
+    height: var(--collage-row-height);
+    aspect-ratio: auto;
+  }
+
+  .markdown-content .image-collage .collage-media.collage-ratio-sm {
+    height: auto;
+    aspect-ratio: var(--ratio-sm);
   }
 }

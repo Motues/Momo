@@ -29,6 +29,19 @@ Below are general modification suggestions.
 
 > Version numbers follow the `YY.MM.DD` format
 
+### 26.9.27
+
+> Only `astro.config.mjs` changed (the collage gained the `public` directory lookup); simply overwrite it.
+
+* The collage row height is now **computed per row**: the widest image (largest aspect ratio) decides it and is shown in full, while the other images of the row are cropped to that height; a row whose images share one aspect ratio is shown without any cropping
+* Collages **no longer show the caption under each image**; the lightbox now reads the image `title` instead
+* The collage reads image aspect ratios at build time: relative paths and `/public` paths are read from disk, while **remote images are fetched as a header only** (512 KB max, 5 s timeout, 6 concurrent); on timeout or failure the row height comes from the other images of the row
+* The **lightbox can now shrink images down to 50%** (wheel / buttons / pinch; 100% fits the screen), and the matching buttons are disabled at 50% and 800%
+* `pnpm momo update` no longer updates `.github`, `.vscode` or `.idea`, so your own repo config stays untouched
+* Fixed cover images with an uppercase extension (e.g. `.JPG`) not being found
+* Configuration files involved in this update:
+    * `astro.config.mjs`: passes `publicDir` to the collage for paths like `/xxx.png`; simply overwrite it
+
 ### 26.9.26
 
 > `src/config.ts` is the only file that needs merging by hand; everything else can simply be overwritten. See the notes below.

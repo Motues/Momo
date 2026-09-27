@@ -38,6 +38,16 @@ Below are general modification suggestions.
 
 > Version numbers follow the `YY.MM.DD` format
 
+### 26.9.27
+
+* The collage row height is now **computed per row**: the widest image (largest aspect ratio) decides it and is shown in full, while the other images of the row are cropped to that height
+* Collages **no longer show the caption under each image**; the lightbox now reads the image `title` instead
+* The collage reads image aspect ratios at build time: relative paths and `/public` paths are read from disk, while remote images are fetched as a header only (512 KB max, 5 s timeout, 6 concurrent); on failure the row height comes from the other images
+* The **lightbox can now shrink images down to 50%**, and the matching buttons are disabled at 50% and 800%
+* `pnpm momo update` no longer updates `.github`, `.vscode` or `.idea`
+* Fixed cover images with an uppercase extension (e.g. `.JPG`) not being found
+* This update only changes `astro.config.mjs` (the collage gained the `public` directory lookup), so simply overwrite it
+
 ### 26.9.26
 
 * New **automatic image collage**: consecutive images in the content are laid out as a grid and still open full size in the lightbox

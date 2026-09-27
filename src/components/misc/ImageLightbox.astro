@@ -2,7 +2,7 @@
 /**
  * ImageLightbox —— 自研图片灯箱（替代 photoswipe 依赖）
  *
- * 支持：点击全屏、滚轮 / 按钮 / 双击 / 双指缩放、拖拽平移、
+ * 支持：点击全屏、滚轮 / 按钮 / 双击 / 双指缩放（50% - 800%，100% 为适应屏幕）、拖拽平移、
  *       前后切换（按钮 / 方向键 / 左右滑动 / 点击两侧）、Esc 关闭、说明文字与计数。
  * 只作用于 .markdown-content 里的正文图片（链接内的图片除外）。
  */
@@ -132,8 +132,11 @@
   }
 
   .lightbox-btn { width: 34px; height: 34px; }
-  .lightbox-btn:hover,
-  .lightbox-nav:hover { background: rgba(255, 255, 255, 0.26); }
+  .lightbox-btn:not([disabled]):hover,
+  .lightbox-nav:not([disabled]):hover { background: rgba(255, 255, 255, 0.26); }
+
+  /* 缩小到 50% / 放大到 800%、或已经在 100% 时，对应按钮置灰 */
+  .lightbox-btn[disabled] { opacity: 0.3; cursor: default; }
 
   .lightbox-btn svg { width: 18px; height: 18px; }
   .lightbox-nav svg { width: 26px; height: 26px; }
@@ -147,7 +150,7 @@
     opacity: 0.65;
   }
 
-  .lightbox-nav:hover { opacity: 1; }
+  .lightbox-nav:not([disabled]):hover { opacity: 1; }
   .lightbox-prev { left: 16px; }
   .lightbox-next { right: 16px; }
 
@@ -178,7 +181,9 @@
 </style>
 
 <script>
-  const MIN_SCALE = 1
+  // 100% = 图片适应屏幕（灯箱里的基准大小）：缩小最多到 50%，放大最多到 800%
+  const BASE_SCALE = 1
+  const MIN_SCALE = 0.5
   const MAX_SCALE = 8
   const DOUBLE_TAP_SCALE = 2.5
 
@@ -206,7 +211,11 @@
     return {
       src: img.currentSrc || img.getAttribute('src') || '',
       alt: img.getAttribute('alt') || '',
-      caption: figure?.querySelector('figcaption')?.textContent?.trim() || '',
+      // 拼图（image-collage）不再输出 figcaption，图注改从图片自己的 title 上取
+      caption:
+        figure?.querySelector('figcaption')?.textContent?.trim() ||
+        img.getAttribute('title')?.trim() ||
+        '',
     }
   }
 
@@ -224,10 +233,13 @@
     const zoomLabel = root.querySelector('#lb-zoom') as HTMLElement
     const caption = root.querySelector('#lb-caption') as HTMLElement
     const bar = root.querySelector('.lightbox-bar') as HTMLElement
+    const zoomOutBtn = root.querySelector('[data-act="zoom-out"]') as HTMLButtonElement | null
+    const zoomInBtn = root.querySelector('[data-act="zoom-in"]') as HTMLButtonElement | null
+    const resetBtn = root.querySelector('[data-act="reset"]') as HTMLButtonElement | null
 
     let items: LbItem[] = []
     let index = 0
-    let scale = MIN_SCALE
+    let scale = BASE_SCALE
     let x = 0
     let y = 0
     let open = false
@@ -242,7 +254,7 @@
     let startX = 0
     let startY = 0
     let pinchStart = 0
-    let pinchScale = MIN_SCALE
+    let pinchScale = BASE_SCALE
     // 打开前的 body overflow，关闭动画结束后再还原（见 restoreScroll）
     let lockedOverflow: string | null = null
 
@@ -276,12 +288,21 @@
 
     function render(animate = false) {
       stage.classList.toggle('is-animating', animate)
-      stage.classList.toggle('is-zoomed', scale > MIN_SCALE)
+      // 只有放大到 100% 以上才有可平移的内容，缩小状态下光标保持默认（grab 用于左右滑动切换）
+      stage.classList.toggle('is-zoomed', scale > BASE_SCALE)
       img.style.transform = transformOf()
       zoomLabel.textContent = `${Math.round(scale * 100)}%`
+      syncZoomButtons()
       if (animate) {
         window.setTimeout(() => stage.classList.remove('is-animating'), 240)
       }
+    }
+
+    // 让缩放边界（50% / 800%）和「回到 100%」在按钮上可见
+    function syncZoomButtons() {
+      if (zoomOutBtn) zoomOutBtn.disabled = scale <= MIN_SCALE
+      if (zoomInBtn) zoomInBtn.disabled = scale >= MAX_SCALE
+      if (resetBtn) resetBtn.disabled = scale === BASE_SCALE
     }
 
     function applyScale(next: number, originX = 0, originY = 0, animate = false) {
@@ -292,7 +313,8 @@
       x = originX - (originX - x) * ratio
       y = originY - (originY - y) * ratio
       scale = clamped
-      if (scale === MIN_SCALE) {
+      // 缩到 100% 及以下时图片不会超出舞台，直接回到居中
+      if (scale <= BASE_SCALE) {
         x = 0
         y = 0
       } else {
@@ -350,7 +372,7 @@
     }
 
     function applyImage(item: LbItem) {
-      scale = MIN_SCALE
+      scale = BASE_SCALE
       x = 0
       y = 0
       img.src = item.src
@@ -482,7 +504,7 @@
       const next = (index + delta + items.length) % items.length
       const reduced = reducedMotion()
 
-      scale = MIN_SCALE
+      scale = BASE_SCALE
       x = 0
       y = 0
 
@@ -548,7 +570,7 @@
         else if (act === 'zoom-in') applyScale(scale * 1.6, 0, 0, true)
         else if (act === 'zoom-out') applyScale(scale / 1.6, 0, 0, true)
         else if (act === 'reset') {
-          scale = MIN_SCALE
+          scale = BASE_SCALE
           x = 0
           y = 0
           render(true)
@@ -578,7 +600,7 @@
         startX = event.clientX
         startY = event.clientY
         stage.setPointerCapture(event.pointerId)
-        if (scale > MIN_SCALE) stage.classList.add('is-dragging')
+        if (scale > BASE_SCALE) stage.classList.add('is-dragging')
       } else if (pointers.size === 2) {
         const [a, b] = [...pointers.values()]
         pinchStart = Math.hypot(a.x - b.x, a.y - b.y)
@@ -603,7 +625,7 @@
 
       if (!dragging) return
       if (Math.abs(event.clientX - startX) > 4 || Math.abs(event.clientY - startY) > 4) moved = true
-      if (scale > MIN_SCALE) {
+      if (scale > BASE_SCALE) {
         x += dx
         y += dy
         clampPan()
@@ -618,7 +640,8 @@
       if (pointers.size > 0) return
 
       stage.classList.remove('is-dragging')
-      if (dragging && scale === MIN_SCALE) {
+      // 没有放大（100% 或更小）时，左右滑动用来切换上/下一张
+      if (dragging && scale <= BASE_SCALE) {
         const dx = event.clientX - startX
         const dy = event.clientY - startY
         if (Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy)) go(dx < 0 ? 1 : -1)
@@ -648,8 +671,9 @@
       const now = Date.now()
       if (now - lastTap < 320) {
         lastTap = 0
-        if (scale > MIN_SCALE) {
-          scale = MIN_SCALE
+        // 只要不是 100%（放大过或缩小过），双击都先回到 100%
+        if (scale !== BASE_SCALE) {
+          scale = BASE_SCALE
           x = 0
           y = 0
           render(true)
@@ -677,7 +701,7 @@
         case '=': applyScale(scale * 1.6, 0, 0, true); break
         case '-':
         case '_': applyScale(scale / 1.6, 0, 0, true); break
-        case '0': scale = MIN_SCALE; x = 0; y = 0; render(true); break
+        case '0': scale = BASE_SCALE; x = 0; y = 0; render(true); break
         default: return
       }
       event.preventDefault()

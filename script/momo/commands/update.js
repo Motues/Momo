@@ -38,8 +38,14 @@ import {
 } from '../release.js'
 import backupCommand from './backup.js'
 
-// 这些目录/文件永远不参与覆盖（release 里本来也不会有，属于双保险）
-const ALWAYS_SKIP = ['node_modules', 'dist', '.astro', '.backup', '.git']
+// 构建产物与依赖：release 源码包里本来也没有，属于双保险
+const BUILD_SKIP = ['node_modules', 'dist', '.astro', '.backup', '.git']
+
+// 用户自己的仓库配置：release 源码包里带着模板的版本，但覆盖会丢掉自己改过的工作流、
+// 编辑器设置等，因此永远不参与更新（需要新模板内容时请手动对比）
+const REPO_SKIP = ['.github', '.vscode', '.idea']
+
+const ALWAYS_SKIP = [...BUILD_SKIP, ...REPO_SKIP]
 
 // 默认保留的用户内容：文章与图片、用户自己的配置、本地 AI 工具说明与环境变量
 const DEFAULT_KEEP = [
@@ -113,6 +119,7 @@ export default {
     '',
     '更新时保留用户自己的内容：',
     `  ${[...CONTENT_PATHS, ...USER_CONFIG_PATHS].join('、')}`,
+    `以下目录永远不更新（保留你自己的仓库配置）：${REPO_SKIP.join('、')}`,
     '其余文件按 release 覆盖；被覆盖的旧文件备份到 .backup/update-<时间戳>/overwritten/，配置文件另有一份完整备份。',
     '注意：release 中已删除的文件不会自动删除，需要时请手动清理。',
   ].join('\n'),
@@ -228,6 +235,7 @@ export default {
     if (plan.preserved.length) {
       log.info(c.gray(`  （release 中有 ${plan.preserved.length} 个同名文件被跳过，属于你自己的内容）`))
     }
+    log.info(c.gray(`不参与更新的目录：${REPO_SKIP.join('、')}`))
 
     const configChanged = writes.filter((file) => CONFIG_PATHS.some((p) => file === p || file.startsWith(`${p}/`)))
     if (configChanged.length) {

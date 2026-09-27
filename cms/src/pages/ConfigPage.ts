@@ -94,7 +94,7 @@ function buildSections(values: ConfigValues): SectionDef[] {
           path: ['siteConfig', 'theme', 'imageCollage', 'enable'],
           label: '连续图片自动拼图 imageCollage',
           type: 'bool',
-          hint: '正文里连续放置的多张图片自动排成网格（需重新构建博客）',
+          hint: '正文里连续放置的多张图片自动排成网格（不显示图注；每行高度由该行最宽的图片决定并让它完整显示，其余按这个高度裁切）（需重新构建博客）',
         },
         {
           path: ['siteConfig', 'theme', 'imageCollage', 'maxColumns'],
