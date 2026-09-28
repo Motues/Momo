@@ -9,18 +9,18 @@ import rehypeKatex from 'rehype-katex';
 import remarkDirective from 'remark-directive';
 import rehypeComponents from "rehype-components";
 
-import { admonition } from "./src/plugins/rehype-component-admonition.mjs";
-import { parseDirectiveNode } from "./src/plugins/remark-directive-rehype.js";
-import { MusicCardComponent } from "./src/plugins/rehype-component-music-card.mjs";
-import { GithubCardComponent } from './src/plugins/rehype-component-github-card.mjs';
-import { QuoteComponent } from "./src/plugins/rehype-component-quote.mjs"
-import { customFigurePlugin } from "./src/plugins/rehype-figure-plugin.mjs";
-import { rehypeLinkTarget } from "./src/plugins/rehype-link-target.mjs";
-import { rehypeImageCollage } from "./src/plugins/rehype-image-collage.mjs";
-import { remarkCombined } from './src/plugins/remark-combined.mjs';
-import { remarkTypst } from './src/plugins/remark-typst.mjs';
-import { remarkReadingTime } from './src/plugins/remark-reading-time.mjs';
-import { remarkLqip } from './src/plugins/remark-lqip.js';
+import { admonition } from "./src/plugins/rehype-component-admonition.ts";
+import { parseDirectiveNode } from "./src/plugins/remark-directive-rehype.ts";
+import { MusicCardComponent } from "./src/plugins/rehype-component-music-card.ts";
+import { GithubCardComponent } from './src/plugins/rehype-component-github-card.ts';
+import { QuoteComponent } from "./src/plugins/rehype-component-quote.ts"
+import { customFigurePlugin } from "./src/plugins/rehype-figure-plugin.ts";
+import { rehypeLinkTarget } from "./src/plugins/rehype-link-target.ts";
+import { rehypeImageCollage } from "./src/plugins/rehype-image-collage.ts";
+import { remarkCombined } from './src/plugins/remark-combined.ts';
+import { remarkTypst } from './src/plugins/remark-typst.ts';
+import { remarkReadingTime } from './src/plugins/remark-reading-time.ts';
+import { remarkLqip } from './src/plugins/remark-lqip.ts';
 
 import svelte from "@astrojs/svelte";
 

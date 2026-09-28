@@ -1,16 +1,16 @@
 import { visit } from 'unist-util-visit';
+import type { Element, Root } from 'hast';
 
+/** 给带 title 的图片套上 <figure> 与 <figcaption>（title 作为图注） */
 export function customFigurePlugin() {
-  return (tree) => {
+  return (tree: Root) => {
     visit(tree, { type: 'element', tagName: 'img' }, (node, index, parent) => {
-      // 检查是否存在 title 属性
+      if (index === undefined || !parent) return;
+
       const title = node.properties?.title;
-      // if (!title) return;
+      const figureChildren: Element['children'] = [node];
 
-      const figureChildren = [node];
-
-      // 如果有标题，则添加 figcaption
-      if (title) {
+      if (typeof title === 'string' && title) {
         figureChildren.push({
           type: 'element',
           tagName: 'figcaption',
@@ -21,16 +21,13 @@ export function customFigurePlugin() {
         });
       }
 
-      // 构造 figure 节点
-      const figure = {
+      // 用 figure 替换原有的 img
+      parent.children[index] = {
         type: 'element',
         tagName: 'figure',
         properties: { style: 'text-align: center;' },
         children: figureChildren,
       };
-
-      // 用 figure 替换原有的 img
-      parent.children[index] = figure;
     });
   };
 }

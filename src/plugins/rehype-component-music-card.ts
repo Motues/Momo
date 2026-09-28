@@ -1,58 +1,51 @@
-/// <reference types="mdast" />
-import { h } from "hastscript";
+import { h } from 'hastscript';
+import type { Element, ElementContent, Properties } from 'hast';
 
-/**
- * Creates a NetEase Music Card.
- *
- * @param {Object} properties - The properties of the component.
- * @param {string} properties.id - The NetEase Music song ID.
- * @param {import('mdast').RootContent[]} children - The children elements of the component.
- * @returns {import('mdast').Parent} The created NetEase Music Card component.
- */
-export function MusicCardComponent(properties, children) {
-    if (Array.isArray(children) && children.length !== 0)
-        return h("div", { class: "hidden" }, [
-            'Invalid directive. ("music" directive must be leaf type "::music{id="songId"}")',
-        ]);
+/** 网易云音乐卡片（::music{id="songId"}），数据由卡片内的脚本异步获取 */
+export function MusicCardComponent(
+  properties: Properties,
+  children: ElementContent[],
+): Element {
+  if (Array.isArray(children) && children.length !== 0) {
+    return h('div', { class: 'hidden' }, [
+      'Invalid directive. ("music" directive must be leaf type "::music{id="songId"}")',
+    ]);
+  }
 
-    if (!properties.id)
-        return h(
-            "div",
-            { class: "hidden" },
-            'Invalid song id. ("id" attribute must be provided)',
-        );
+  const songId = typeof properties.id === 'string' ? properties.id : '';
+  if (!songId) {
+    return h('div', { class: 'hidden' }, [
+      'Invalid song id. ("id" attribute must be provided)',
+    ]);
+  }
 
-    const songId = properties.id;
-    const cardUuid = `MC${Math.random().toString(36).slice(-6)}`;
+  const cardUuid = `MC${Math.random().toString(36).slice(-6)}`;
 
-    const nCover = h(`div#${cardUuid}-cover`, { class: "music-cover" });
-    const nTitle = h(`div#${cardUuid}-title`, { class: "music-title" }, "Waiting for API...");
-    const nArtist = h(`div#${cardUuid}-artist`, { class: "music-artist" }, "Waiting...");
+  const nCover = h(`div#${cardUuid}-cover`, { class: 'music-cover' });
+  const nTitle = h(`div#${cardUuid}-title`, { class: 'music-title' }, 'Waiting for API...');
+  const nArtist = h(`div#${cardUuid}-artist`, { class: 'music-artist' }, 'Waiting...');
 
-    const nScript = h(
-        `script#${cardUuid}-script`,
-        { type: "text/javascript" },
-        `
+  const nScript = h(
+    `script#${cardUuid}-script`,
+    { type: 'text/javascript' },
+    `
         (function() {
             const initMusicCard = () => {
                 const card = document.getElementById('${cardUuid}-card');
-                // 幂等性检查：如果卡片不存在，或已经标记为加载完成，则不再执行
+                // 卡片不存在或已加载过就跳过（astro:page-load 会重复触发）
                 if (!card || card.dataset.loaded === "true") return;
 
                 fetch('https://open.motues.top/music?server=netease&type=details&id=${songId}', { referrerPolicy: "no-referrer" })
                     .then(response => response.json())
                     .then(data => {
                         if (data && data.id) {
-                            // 更新标题
                             const titleEl = document.getElementById('${cardUuid}-title');
                             if (titleEl) titleEl.innerText = data.name || "未知曲目";
-                            
-                            // 更新艺术家
+
                             const artistEl = document.getElementById('${cardUuid}-artist');
                             const artistName = Array.isArray(data.artist) ? data.artist.join(', ') : (data.artist || '未知艺术家');
                             if (artistEl) artistEl.innerText = artistName;
-                            
-                            // 更新封面 - 先获取封面 URL
+
                             const coverEl = document.getElementById('${cardUuid}-cover');
                             if (coverEl) {
                                 fetch('https://open.motues.top/music?server=netease&type=cover&id=${songId}', { referrerPolicy: "no-referrer" })
@@ -68,7 +61,6 @@ export function MusicCardComponent(properties, children) {
                                     });
                             }
 
-                            // 移除等待状态并加锁
                             card.classList.remove("fetch-waiting");
                             card.dataset.loaded = "true";
                             console.log("[MUSIC-CARD] Loaded: ${songId}");
@@ -84,33 +76,24 @@ export function MusicCardComponent(properties, children) {
             initMusicCard();
             document.addEventListener('astro:page-load', initMusicCard);
         })();
-        `
-    );
+        `,
+  );
 
-    return h(
-        `a#${cardUuid}-card`,
-        {
-            class: "card-music fetch-waiting no-styling",
-            "data-song-id": songId,
-            href: `https://music.163.com/#/song?id=${songId}`, 
-            target: "_blank", 
-            rel: "noopener noreferrer" 
-        },
-        [
-            h("div", { class: "music-card" }, [
-                // 左侧封面图
-                h("div", { class: "music-cover-wrapper", id: `${cardUuid}-cover-wrapper` }, [
-                    nCover,
-                ]),
-                // 右侧信息区
-                h("div", { class: "music-info" }, [
-                    h("div", { class: "music-header" }, [
-                        nTitle,
-                        nArtist,
-                    ]),
-                ])
-            ]),
-            nScript,
-        ],
-    );
+  return h(
+    `a#${cardUuid}-card`,
+    {
+      class: 'card-music fetch-waiting no-styling',
+      'data-song-id': songId,
+      href: `https://music.163.com/#/song?id=${songId}`,
+      target: '_blank',
+      rel: 'noopener noreferrer',
+    },
+    [
+      h('div', { class: 'music-card' }, [
+        h('div', { class: 'music-cover-wrapper', id: `${cardUuid}-cover-wrapper` }, [nCover]),
+        h('div', { class: 'music-info' }, [h('div', { class: 'music-header' }, [nTitle, nArtist])]),
+      ]),
+      nScript,
+    ],
+  );
 }

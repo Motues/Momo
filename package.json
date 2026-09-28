@@ -1,13 +1,12 @@
 {
   "name": "momo",
   "type": "module",
-  "version": "26.9.27",
+  "version": "26.9.29",
   "scripts": {
     "dev": "astro dev",
     "build": "astro build && pagefind --site dist",
     "preview": "astro preview",
     "astro": "astro",
-    "newpost": "node script/newpost.js",
     "momo": "node script/momo/index.js",
     "cms": "cd cms && pnpm dev"
   },
@@ -52,6 +51,11 @@
     "@iconify-json/fluent": "^1.2.45",
     "@iconify-json/material-symbols": "^1.2.35",
     "@iconify-json/simple-icons": "^1.2.48",
-    "@iconify-json/vscode-icons": "^1.2.29"
+    "@iconify-json/vscode-icons": "^1.2.29",
+    "@types/hast": "^3.0.5",
+    "@types/mdast": "^4.0.4",
+    "@types/node": "^22.20.4",
+    "@types/unist": "^3.0.3",
+    "vfile": "^6.0.3"
   }
 }

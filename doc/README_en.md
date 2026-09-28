@@ -13,18 +13,21 @@ Momo originates from Xiaohongshu📕, serving as the default nickname for every 
 
 * **Minimalist Design**: Clean page layout with black and white as primary colors, accented by blue
 * **Dark Mode**: Supports manual switching or automatic system adaptation
-* **Article Search**: Implements localized search using [pagefind](https://pagefind.app/)
-* **Internationalization (i18n)**: Supports multilingual switching, currently available in Simplified Chinese and English
 * **Mobile Adaptation**: Components optimized for mobile devices, delivering the same experience as desktop browsers
+* **Image experience**: Click any image to open the lightbox; consecutive images are automatically laid out as a grid; images inside posts support an LQIP gradient placeholder
+* **Extensive Markdown syntax**: KaTeX, Typst (compiled to SVG at build time), Alert components, GitHub / NetEase Music cards, quote component, ruby annotations, spoilers, rainbow text, underline, new-tab links, Expressive Code and more
+* **Local search**: Localized search built with [pagefind](https://pagefind.app/), no external service required
+* **Internationalization (i18n)**: Supports multilingual switching, currently available in Simplified Chinese and English
 * **Commenting**: Supports local deployment and Cloudflare deployment. See [Backend](https://github.com/Motues/Momo-Backend) for details
-* **Extensive Markdown syntax**: Supports Katex, Typst, and Alert components, GitHub cards, custom syntax, and more
-* **Local CMS**: Start it with `pnpm cms` to edit posts with live preview instead of editing Markdown by hand
+* **SEO**: canonical URLs, hreflang alternates, Open Graph / Twitter Cards, structured data, `sitemap.xml` and `robots.txt`
+* **Local CMS**: Start it with `pnpm cms` to edit posts with live preview (sharing the same Markdown pipeline as the blog) instead of editing Markdown by hand
 * **Command line tool**: `pnpm momo` provides config backup/restore, one-command updates, new post creation and environment checks
+* **TypeScript**: The site source and the custom `src/plugins/` pipeline are both written in TypeScript
 * Other core features: Article categories, directory, RSS subscription, text statistics, reading time
 
 ## 🚀 Quick Start
 
-> Requirements: Node.js **>= 22** (24 LTS recommended) and [pnpm](https://pnpm.io/)
+> Requirements: Node.js **>= 22** (24 LTS recommended; the local CMS needs **>= 22.18**) and [pnpm](https://pnpm.io/)
 
 1. Clone this project
     ```bash

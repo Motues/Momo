@@ -12,7 +12,7 @@ Blog text, images, and other content are stored in the `src/content/`, `src/asse
 
 You can directly clone this project, then overwrite the new project with your original configuration files. Run `pnpm install` to install dependencies, followed by `pnpm build` for local compilation. Finally, execute `pnpm preview` to preview the compiled project.
 
-When updating inside this repository, run `pnpm momo update`: it reads the latest [release](https://github.com/Motues/Momo/releases), compares it with the version in `package.json`, downloads the new source, **keeps your own posts and images** (`src/content`, `src/assets`, `public`) and `src/config.ts`, overwrites the rest of the code and installs dependencies, then lists the **configuration files that need to be merged by hand**. Run `pnpm momo update --dry-run` first to preview the changes without writing anything; the files that get overwritten are saved under `.backup/update-<timestamp>/overwritten/`, and `pnpm momo restore <backup name>` rolls the config back.
+When updating inside this repository, run `pnpm momo update`: it reads the latest [release](https://github.com/Motues/Momo/releases), compares it with the version in `package.json`, downloads that version's source, **keeps your own posts and images** (`src/content`, `src/assets`, `public`) and `src/config.ts`, overwrites the rest of the code and installs dependencies, then lists the **configuration files that need to be merged by hand**. Run `pnpm momo update --dry-run` first to preview the changes; overwritten files are saved under `.backup/update-<timestamp>/overwritten/`, and `pnpm momo restore <backup name>` rolls the configuration back.
 
 ## Version Number Changed
 
@@ -29,46 +29,41 @@ Below are general modification suggestions.
 
 > Version numbers follow the `YY.MM.DD` format
 
+### 26.9.29
+
+* New **new-tab link syntax**: put `{target="_blank"}` straight after a link to open it in a new tab, with an arrow icon appended after the link; only `target` / `rel` / `class` are recognised, `rel` always keeps `noopener` / `noreferrer`, and links holding only an image get no icon
+* **Reworked content link styling**: links now carry a thin solid underline and turn theme-blue with slight transparency on hover, and the link colour follows its container (so syntax with a colour of its own, such as blockquotes or rainbow text, wins)
+* **Image lightbox zoom improvements**: the lightbox opens at 86% on desktop (100% on mobile) and double-click / image switching / the "default scale" button all return to that baseline; fly-in and fly-out use the unscaled, untranslated rect so the animation starts exactly on the thumbnail, and switching images while zoomed no longer jumps back to the default scale first
+* Every remark / rehype plugin under `src/plugins/` **moved from `.mjs` to `.ts`** (proper types, trimmed comments), and relative imports between plugins now need an explicit `.ts` extension; the CMS preview loads `.ts` natively in Node, so it needs **Node ≥ 22.18**
+* Removed the obsolete `script/newpost.js` and the `pnpm newpost` script (it wrote frontmatter with the long out-of-date `date` / `slug` fields; create posts with `pnpm momo new` or the CMS instead)
+* This update modifies the configuration files `astro.config.mjs` (plugin imports use `.ts`) and `package.json` (adds the `@types/hast`, `@types/mdast`, `@types/unist`, `@types/node` and `vfile` dev-dependencies and drops the `newpost` script); overwrite them, run `pnpm install`, and delete the leftover `.mjs` / `.js` files in `src/plugins/`
+
 ### 26.9.27
 
-> Only `astro.config.mjs` changed (the collage gained the `public` directory lookup); simply overwrite it.
-
-* The collage row height is now **computed per row**: the widest image (largest aspect ratio) decides it and is shown in full, while the other images of the row are cropped to that height; a row whose images share one aspect ratio is shown without any cropping
+* The collage row height is now **computed per row**: the widest image (largest aspect ratio) decides it and is shown in full, while the other images of the row are cropped to that height
 * Collages **no longer show the caption under each image**; the lightbox now reads the image `title` instead
-* The collage reads image aspect ratios at build time: relative paths and `/public` paths are read from disk, while **remote images are fetched as a header only** (512 KB max, 5 s timeout, 6 concurrent); on timeout or failure the row height comes from the other images of the row
-* The **lightbox can now shrink images down to 50%** (wheel / buttons / pinch; 100% fits the screen), and the matching buttons are disabled at 50% and 800%
-* `pnpm momo update` no longer updates `.github`, `.vscode` or `.idea`, so your own repo config stays untouched
+* The collage reads image aspect ratios at build time: relative paths and `/public` paths are read from disk, while remote images are fetched as a header only (512 KB max, 5 s timeout, 6 concurrent); on failure the row height comes from the other images
+* The **lightbox can now shrink images down to 50%**, and the matching buttons are disabled at 50% and 800%
+* `pnpm momo update` no longer updates `.github`, `.vscode` or `.idea`
 * Fixed cover images with an uppercase extension (e.g. `.JPG`) not being found
-* Configuration files involved in this update:
-    * `astro.config.mjs`: passes `publicDir` to the collage for paths like `/xxx.png`; simply overwrite it
+* This update only changes `astro.config.mjs` (the collage gained the `public` directory lookup), so simply overwrite it
 
 ### 26.9.26
 
-> `src/config.ts` is the only file that needs merging by hand; everything else can simply be overwritten. See the notes below.
-
-* New **automatic image collage**: consecutive images are laid out as a grid (2 per row on mobile) and still open full size in the lightbox
-* `pnpm momo update` is now **release-based**: it no longer depends on local git, keeps your posts, images and `src/config.ts`, and gains `--check` / `--dry-run` / `--version` / `--keep` / `--keep-config` / `--repo`
-* Front-end smoothness work: reduced the home page's blocking stylesheet, enabled Astro prefetch and a persisted header, fixed the listener pile-up and the entrance animation dying after a client-side navigation, and made scrolling rAF-throttled with an always-mounted table of contents, narrowed `transition-all`, a higher-priority LCP cover image, idle Pagefind prefetch and no sideways shift when the mobile drawer locks scrolling
+* New **automatic image collage**: consecutive images in the content are laid out as a grid and still open full size in the lightbox
+* `pnpm momo update` is now **release-based**: it no longer depends on local git and keeps your own posts, images and `src/config.ts`
+* Front-end smoothness work: reduced the home page's blocking stylesheet and fixed the listener pile-up and the entrance animation dying after a client-side navigation
 * New `pnpm momo audit` command for re-measuring the first-paint cost of a build
 * The CMS "Site config" page gained the collage switch and the per-row limit
-* Configuration files involved in this update:
-    * `src/config.ts`: `siteConfig.theme` gains `imageCollage` (the collage switch and per-row limit)
+* This update modifies the `src/config.ts` configuration file by adding the `theme.imageCollage` field; you must add this new field when updating, while every other file can simply be overwritten
 
 ### 26.9.25
 
-> This update modifies `astro.config.mjs`, adds the new config file `ec.config.mjs`, and changes dependencies. Please read the notes below.
-
-* Code blocks now use the official **Expressive Code** integration (`astro-expressive-code`): title frames, line highlighting, diff markers, line numbers, collapsible sections, word wrap and terminal frames; the copy button and collapse interaction are provided by Expressive Code itself. The switch and the code theme live in `siteConfig.expressiveCode` of `src/config.ts` (`enable` / `theme`; when disabled, code blocks fall back to plain text), all other options live in the new `ec.config.mjs`, which the CMS live preview shares (same config and renderer)
-* The image lightbox is now a built-in implementation (the `photoswipe` package is no longer used): wheel / button / double-click / pinch zoom, drag to pan, arrow keys or swipe to switch, Esc to close, with a smooth fly-in from the thumbnail and a fly-back animation on close
-* New CMS "Site config" page (`#/config`): edit `src/config.ts` visually — only the fields you actually changed are rewritten, comments and formatting are preserved. The article editor also gained an "Open folder" button
-* SEO improvements: canonical URLs, hreflang alternates, Open Graph / Twitter Cards, WebSite + BlogPosting structured data, `sitemap.xml` and `robots.txt`; the archive page is server-rendered and every page has a single `<h1>`
-* When `siteConfig.subTitle` is empty, the browser tab title and RSS title show `title` only
-* Configuration files involved in this update:
-    * `astro.config.mjs`: adds the `astro-expressive-code` integration (including `getBlockLocale` so code block texts follow the article language, and using `siteConfig.expressiveCode` to decide whether it is enabled and which theme to use) and removes the now ineffective `markdown.shikiConfig`; simply overwrite it
-    * `ec.config.mjs` (new): Expressive Code plugins, default props, styles and texts (the code theme is not here, it comes from `src/config.ts`); copy it to your project root
-    * `src/config.ts`: adds `siteConfig.expressiveCode` (the `enable` switch and the `theme`, e.g. `"one-dark-pro"`); add it as needed — without it the defaults are used (enabled + `one-dark-pro`)
-    * `package.json`: adds `astro-expressive-code`, `@expressive-code/plugin-collapsible-sections` and `@expressive-code/plugin-line-numbers`, removes `photoswipe`
-* After updating, clear caches and reinstall dependencies: `pnpm momo clean --all` → `pnpm install` → `pnpm build`
+* Code blocks switched to the official **Expressive Code** integration, with title bars, line highlighting, diff markers, line numbers, collapsible sections and a copy button; the switch and code theme live in `siteConfig.expressiveCode` in `src/config.ts`
+* The image lightbox is now self-built (no longer depending on `photoswipe`): wheel / button / double-click / pinch zoom, drag to pan, arrow keys or swipe to switch, Esc to close, with fly-in and fly-out animations
+* The CMS gained a "Site config" page (`#/config`) for editing `src/config.ts` visually; the archive page is now server-rendered
+* SEO improvements: canonical, hreflang, Open Graph / Twitter Cards, structured data, `sitemap.xml` and `robots.txt`
+* This update modifies the `astro.config.mjs` configuration file, adds the new config file `ec.config.mjs` and adds `siteConfig.expressiveCode` to `src/config.ts`; it also changes the dependencies (adds `astro-expressive-code`, removes `photoswipe`), so add the new fields and run `pnpm install` when updating
 
 ### 26.9.10
 
@@ -110,7 +105,7 @@ Below are general modification suggestions.
 ### 26.5.6
 
 * Added the `LQIP` low-quality image placeholder feature
-* Added support for a new Markdown style: the underscore syntax (++)
+* Added support for a new Markdown style: ++the underscore syntax++
 * Added style configuration options
 * This update modifies the `astro.config.mjs` configuration file to include the `remarkLqip` plugin; it also modifies the `config.ts` configuration file by adding fields such as `theme.LQIP`. When updating, you must add these new fields.
 

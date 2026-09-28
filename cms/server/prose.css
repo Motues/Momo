@@ -56,12 +56,21 @@ body {
 
 /* 段落 / 链接（链接样式与博客 src/styles/markdown.css 保持一致） */
 .markdown-content p { margin: 1em 0; }
+/* 链接颜色用 inherit 跟随所在容器：引用块、彩虹文字、admonition 标题等自带颜色的语法优先 */
 .markdown-content p a,
 .markdown-content li a,
+.markdown-content blockquote a,
+.markdown-content h1 a,
 .markdown-content h2 a,
 .markdown-content h3 a,
-.markdown-content table a {
-  color: var(--text);
+.markdown-content h4 a,
+.markdown-content h5 a,
+.markdown-content h6 a,
+.markdown-content table a,
+.markdown-content figcaption a,
+.markdown-content .quote a,
+.markdown-content .admonition-title a {
+  color: inherit;
   text-decoration: underline;
   text-decoration-color: currentColor;
   text-underline-offset: 4px;
@@ -69,9 +78,19 @@ body {
 }
 .markdown-content p a:hover,
 .markdown-content li a:hover,
+.markdown-content blockquote a:hover,
+.markdown-content h1 a:hover,
 .markdown-content h2 a:hover,
 .markdown-content h3 a:hover,
-.markdown-content table a:hover { color: var(--link); opacity: 0.8; }
+.markdown-content h4 a:hover,
+.markdown-content h5 a:hover,
+.markdown-content h6 a:hover,
+.markdown-content table a:hover,
+.markdown-content figcaption a:hover,
+.markdown-content .quote a:hover,
+.markdown-content .admonition-title a:hover { color: var(--link); opacity: 0.8; }
+/* 彩虹文字里的链接：文字保持透明以露出渐变，下划线单独给主题蓝（放在链接规则之后） */
+.markdown-content .rainbow-text a { text-decoration-color: var(--link); }
 
 /* 脚注引用与回跳链接不套用正文链接样式（博客里由 Markdown.astro 的 !important 规则覆盖） */
 .markdown-content sup a[data-footnote-ref],

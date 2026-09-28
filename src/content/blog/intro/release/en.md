@@ -38,6 +38,15 @@ Below are general modification suggestions.
 
 > Version numbers follow the `YY.MM.DD` format
 
+### 26.9.29
+
+* New **new-tab link syntax**: put `{target="_blank"}` straight after a link to open it in a new tab, with an arrow icon appended after the link; only `target` / `rel` / `class` are recognised, `rel` always keeps `noopener` / `noreferrer`, and links holding only an image get no icon
+* **Reworked content link styling**: links now carry a thin solid underline and turn theme-blue with slight transparency on hover, and the link colour follows its container (so syntax with a colour of its own, such as blockquotes or rainbow text, wins)
+* **Image lightbox zoom improvements**: the lightbox opens at 86% on desktop (100% on mobile) and double-click / image switching / the "default scale" button all return to that baseline; fly-in and fly-out use the unscaled, untranslated rect so the animation starts exactly on the thumbnail, and switching images while zoomed no longer jumps back to the default scale first
+* Every remark / rehype plugin under `src/plugins/` **moved from `.mjs` to `.ts`** (proper types, trimmed comments), and relative imports between plugins now need an explicit `.ts` extension; the CMS preview loads `.ts` natively in Node, so it needs **Node ≥ 22.18**
+* Removed the obsolete `script/newpost.js` and the `pnpm newpost` script (it wrote frontmatter with the long out-of-date `date` / `slug` fields; create posts with `pnpm momo new` or the CMS instead)
+* This update modifies the configuration files `astro.config.mjs` (plugin imports use `.ts`) and `package.json` (adds the `@types/hast`, `@types/mdast`, `@types/unist`, `@types/node` and `vfile` dev-dependencies and drops the `newpost` script); overwrite them, run `pnpm install`, and delete the leftover `.mjs` / `.js` files in `src/plugins/`
+
 ### 26.9.27
 
 * The collage row height is now **computed per row**: the widest image (largest aspect ratio) decides it and is shown in full, while the other images of the row are cropped to that height

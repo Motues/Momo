@@ -39,6 +39,15 @@ pinTop: 1
 
 > 版本号采用 `YY.MM.DD` 的格式
 
+### 26.9.29
+
+* 新增**新标签页链接语法**：在链接后面紧跟 `{target="_blank"}` 即在新标签页打开，并在链接后面追加一个右上箭头图标；只识别 `target` / `rel` / `class` 三个属性，`rel` 始终保留 `noopener` / `noreferrer`，链接里只有图片时不加图标
+* **正文链接样式重做**：链接日常显示细实线下划线，悬停时连同下划线变为主题蓝并略微透明，链接颜色跟随所在容器（引用块、彩虹文字等自带颜色的语法优先）
+* **图片灯箱缩放优化**：桌面端打开时默认 86%，移动端保持 100%，双击 / 切图 /「默认比例」按钮都回到这个基准；飞入飞回改用未缩放、未平移的原始框计算，起点与缩略图完全重合；放大状态下切图不再先跳回默认比例
+* `src/plugins/` 下的 remark / rehype 插件**全部由 `.mjs` 改为 `.ts`**（补齐类型、精简注释），插件之间的相对导入要写显式 `.ts` 扩展名；CMS 预览由 Node 原生加载 `.ts`，因此需要 **Node ≥ 22.18**
+* 移除已废弃的 `script/newpost.js` 与 `pnpm newpost` 脚本（它写出的 frontmatter 使用早已过期的 `date` / `slug` 字段，新建文章请改用 `pnpm momo new` 或 CMS）
+* 本次更新对配置文件 `astro.config.mjs`（插件 import 改为 `.ts`）与 `package.json`（新增 `@types/hast`、`@types/mdast`、`@types/unist`、`@types/node`、`vfile` 开发依赖，移除 `newpost` 脚本）进行了修改，覆盖后运行 `pnpm install`，并删除 `src/plugins/` 里残留的 `.mjs` / `.js` 文件
+
 ### 26.9.27
 
 * 图片拼图的行高改为**按行计算**：由该行最宽（宽高比最大）的图片决定并让它完整显示，同行的其它图片按这个高度裁切

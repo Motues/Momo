@@ -12,7 +12,7 @@
 
 可以直接克隆本项目，然后将自己原本的配置文件覆盖到新项目，然后运行 `pnpm install` 安装依赖，然后运行 `pnpm build` 本地编译，然后运行 `pnpm preview` 预览编译后的项目。
 
-在本仓库内更新时，可以直接执行 `pnpm momo update`：它会读取 [Release](https://github.com/Motues/Momo/releases) 里的最新版本，与 `package.json` 的版本号对比后下载新版本源码，**保留你自己的文章与图片**（`src/content`、`src/assets`、`public`）和 `src/config.ts`，覆盖其余代码并安装依赖，最后列出本次更新中**需要手工合并的配置文件**。更新前可以先用 `pnpm momo update --dry-run` 预览将要变更的文件（不写入任何文件）；被覆盖的旧文件保存在 `.backup/update-<时间戳>/overwritten/` 里，配置出问题可以用 `pnpm momo restore <备份名>` 回滚。
+在本仓库内更新时，可以直接执行 `pnpm momo update`：它会读取 [Release](https://github.com/Motues/Momo/releases) 里的最新版本，与 `package.json` 的版本号对比后下载该版本源码，**保留你自己的文章与图片**（`src/content`、`src/assets`、`public`）和 `src/config.ts`，覆盖其余代码并安装依赖，最后列出本次更新中**需要手工合并的配置文件**。更新前可以先用 `pnpm momo update --dry-run` 预览将要变更的文件；被覆盖的旧文件保存在 `.backup/update-<时间戳>/overwritten/` 里，配置出问题可以用 `pnpm momo restore <备份名>` 回滚。
 
 ## 版本号改变
 
@@ -23,52 +23,47 @@
 * **`astro.config.mjs` 修改**：一般直接覆盖即可，其中的 `site` 与 `i18n` 会自动读取 `src/config.ts` 的 `siteConfig.rootSiteUrl`、`i18nConfig.defaultLanguage`、`i18nConfig.supportedLanguages`
 * **`config.ts` 修改**：需要按照要求更新填写 `config.ts` 中新添加或修改的配置信息
 * **`content.config.ts` 修改**：一般为文章添加了新的 frontmatter 配置，需要按照要求对文章添加新的配置项
-* **`src/i18n/` 修改**：一般为添加了新的国际化翻译，直接覆盖即可。
+* **`src/i18n/` 修改**：一般为添加了新的国际化翻译，直接覆盖即可。注意各页面的 Cover 文案（`cover.title` / `cover.subTitle`）已迁移到 `src/config.ts` 的 `i18nConfig.translations` 中，请在那里修改为自己的信息
 
 ## 版本信息
 
 > 版本号采用 `YY.MM.DD` 的格式
 
+### 26.9.29
+
+* 新增**新标签页链接语法**：在链接后面紧跟 `{target="_blank"}` 即在新标签页打开，并在链接后面追加一个右上箭头图标；只识别 `target` / `rel` / `class` 三个属性，`rel` 始终保留 `noopener` / `noreferrer`，链接里只有图片时不加图标
+* **正文链接样式重做**：链接日常显示细实线下划线，悬停时连同下划线变为主题蓝并略微透明，链接颜色跟随所在容器（引用块、彩虹文字等自带颜色的语法优先）
+* **图片灯箱缩放优化**：桌面端打开时默认 86%，移动端保持 100%，双击 / 切图 /「默认比例」按钮都回到这个基准；飞入飞回改用未缩放、未平移的原始框计算，起点与缩略图完全重合；放大状态下切图不再先跳回默认比例
+* `src/plugins/` 下的 remark / rehype 插件**全部由 `.mjs` 改为 `.ts`**（补齐类型、精简注释），插件之间的相对导入要写显式 `.ts` 扩展名；CMS 预览由 Node 原生加载 `.ts`，因此需要 **Node ≥ 22.18**
+* 移除已废弃的 `script/newpost.js` 与 `pnpm newpost` 脚本（它写出的 frontmatter 使用早已过期的 `date` / `slug` 字段，新建文章请改用 `pnpm momo new` 或 CMS）
+* 本次更新对配置文件 `astro.config.mjs`（插件 import 改为 `.ts`）与 `package.json`（新增 `@types/hast`、`@types/mdast`、`@types/unist`、`@types/node`、`vfile` 开发依赖，移除 `newpost` 脚本）进行了修改，覆盖后运行 `pnpm install`，并删除 `src/plugins/` 里残留的 `.mjs` / `.js` 文件
+
 ### 26.9.27
 
-> 本次更新只有 `astro.config.mjs` 有改动（拼图新增 public 目录定位），直接覆盖即可。
-
-* 图片拼图的行高改为**按行计算**：行高由该行最宽（宽高比最大）的图片决定并让它完整显示，同行的其它图片按这个高度裁切；同行图片宽高比一致时整行都不裁切
+* 图片拼图的行高改为**按行计算**：由该行最宽（宽高比最大）的图片决定并让它完整显示，同行的其它图片按这个高度裁切
 * 拼图**不再显示图片下方的图注**，灯箱改为读取图片的 `title` 作为说明文字
-* 拼图在构建时读取图片宽高比：相对路径与 `/public` 路径直接读文件，**网络图片只抓头部字节**（最多 512 KB、超时 5 秒、并发 6），超时或失败时用同行其它图片定行高
-* **图片灯箱支持缩小到 50%**（滚轮 / 按钮 / 双指，100% 为适应屏幕），到达 50% 或 800% 时对应按钮置灰
-* `pnpm momo update` 不再更新 `.github`、`.vscode`、`.idea`，自己的仓库配置保持原样
+* 拼图在构建时读取图片宽高比：相对路径与 `/public` 路径直接读文件，网络图片只抓头部字节（最多 512 KB、超时 5 秒、并发 6），失败时用同行其它图片定行高
+* **图片灯箱支持缩小到 50%**，到达 50% 或 800% 时对应按钮置灰
+* `pnpm momo update` 不再更新 `.github`、`.vscode`、`.idea`
 * 修复封面图片使用大写后缀（如 `.JPG`）时找不到图片的问题
-* 本次更新涉及的配置文件：
-    * `astro.config.mjs`：拼图为 `/xxx.png` 这类路径传入 `publicDir`，直接覆盖即可
+* 本次更新仅 `astro.config.mjs` 有改动（拼图新增 `public` 目录定位），直接覆盖即可
 
 ### 26.9.26
 
-> 本次更新只有 `src/config.ts` 需要手工合并，其余文件直接覆盖即可，详见下面的更新说明。
-
-* 新增**连续图片自动拼图**：正文里连续放置的多张图片会自动排成网格（移动端固定每行 2 张），点击仍由灯箱打开大图
-* `pnpm momo update` 改为**基于 GitHub Release 更新**：不再依赖本地 git，保留你的文章、图片与 `src/config.ts`，并新增 `--check` / `--dry-run` / `--version` / `--keep` / `--keep-config` / `--repo`
-* 前端流畅度优化：优化首页阻塞样式表，并开启 Astro prefetch、顶栏 `transition:persist`，修复事件监听器成倍累积与客户端跳转后入场动画失效问题，滚动加 rAF 节流、目录改为常驻 + CSS 过渡、`transition-all` 收窄、LCP 封面图提升优先级、Pagefind 空闲预取索引、移动端抽屉锁定滚动不再偏移
+* 新增**连续图片自动拼图**：正文里连续放置的多张图片会自动排成网格，点击仍由灯箱打开大图
+* `pnpm momo update` 改为**基于 GitHub Release 更新**，不再依赖本地 git，并保留你自己的文章、图片与 `src/config.ts`
+* 前端流畅度优化：优化首页阻塞样式表，修复事件监听器成倍累积与客户端跳转后入场动画失效等问题
 * 新增 `pnpm momo audit` 命令，用于复测构建产物的首屏开销
 * CMS 的「网站配置」页新增拼图开关与每行上限
-* 本次更新涉及的配置文件：
-    * `src/config.ts`：`siteConfig.theme` 新增 `imageCollage` 拼图开关与每行上限
+* 本次更新对配置文件 `src/config.ts` 进行了修改，添加了 `theme.imageCollage` 字段，更新时需要添加新的字段；其余文件直接覆盖即可
 
 ### 26.9.25
 
-> 本次更新修改了 `astro.config.mjs`，并新增配置文件 `ec.config.mjs`、调整了依赖，请阅读下面的更新说明。
-
-* 代码块改用官方的 **Expressive Code** 集成（`astro-expressive-code`）：支持标题栏、行高亮、diff 标记、行号、折叠代码段、自动换行与终端窗口，复制按钮与折叠交互由 Expressive Code 自带；开关与代码主题在 `src/config.ts` 的 `siteConfig.expressiveCode` 中配置（`enable` / `theme`，关闭后代码块回退为纯文本），其余选项集中在新增的 `ec.config.mjs`，CMS 实时预览复用同一份配置与渲染器
-* 图片灯箱改为自研实现（不再依赖 `photoswipe` 包）：滚轮 / 按钮 / 双击 / 双指缩放，拖拽平移，方向键或左右滑动切换，Esc 关闭；打开时从缩略图平滑飞入、关闭时飞回原位
-* CMS 新增「网站配置」页面（`#/config`）：可视化修改 `src/config.ts`，保存时只改写真正改动过的字段，注释与排版保持不变；文章编辑页右上角新增「在文件夹中打开」
-* SEO 增强：canonical、hreflang 多语言对照、Open Graph / Twitter Card、WebSite + BlogPosting 结构化数据、`sitemap.xml`、`robots.txt`；归档页改为服务端渲染，每个页面保证唯一 `<h1>`
-* `siteConfig.subTitle` 为空时，浏览器标签栏标题与 RSS 标题只显示 `title`
-* 本次更新涉及的配置文件：
-    * `astro.config.mjs`：新增 `astro-expressive-code` 集成（含按文章语言切换代码块文案的 `getBlockLocale`，并按 `siteConfig.expressiveCode` 决定是否启用与使用哪个主题），移除已无效的 `markdown.shikiConfig`，直接覆盖即可
-    * `ec.config.mjs`（新增）：Expressive Code 的插件、默认属性、样式与文案（代码主题不在这里，由 `src/config.ts` 决定），复制到项目根目录即可
-    * `src/config.ts`：新增 `siteConfig.expressiveCode`（`enable` 开关与 `theme` 代码主题，如 `"one-dark-pro"`），可以按需补上；不补时按默认值处理（启用 + `one-dark-pro`）
-    * `package.json`：新增依赖 `astro-expressive-code`、`@expressive-code/plugin-collapsible-sections`、`@expressive-code/plugin-line-numbers`，移除 `photoswipe`
-* 更新后请清除缓存并重新安装依赖：`pnpm momo clean --all` → `pnpm install` → `pnpm build`
+* 代码块改用官方的 **Expressive Code** 集成，支持标题栏、行高亮、diff 标记、行号、折叠代码段与复制按钮，开关与代码主题在 `src/config.ts` 的 `siteConfig.expressiveCode` 中配置
+* 图片灯箱改为自研实现（不再依赖 `photoswipe`）：滚轮 / 按钮 / 双击 / 双指缩放、拖拽平移、方向键或左右滑动切换，Esc 关闭，打开与关闭带飞入飞出动画
+* CMS 新增「网站配置」页面（`#/config`），可视化修改 `src/config.ts`；归档页改为服务端渲染
+* SEO 增强：canonical、hreflang 多语言对照、Open Graph / Twitter Card、结构化数据、`sitemap.xml`、`robots.txt`
+* 本次更新对配置文件 `astro.config.mjs` 进行了修改，新增配置文件 `ec.config.mjs`，并对 `src/config.ts` 添加了 `siteConfig.expressiveCode` 字段；同时调整了依赖（新增 `astro-expressive-code`，移除 `photoswipe`），更新时需要添加对应字段并运行 `pnpm install`
 
 ### 26.9.10
 
@@ -110,7 +105,7 @@
 ### 26.5.6
 
 * 添加 `LQIP` 低质量图像占位符功能
-* 增加新的 Markdown 样式支持：下划线语法（++）
+* 增加新的 Markdown 样式支持：++下划线语法++
 * 添加样式配置选项
 * 本次更新对配置文件 `astro.config.mjs` 进行了修改，引入 `remarkLqip` 插件；对配置文件 `config.ts` 进行了修改，添加了 `theme.LQIP` 等字段，更新时需要添加新的字段
 

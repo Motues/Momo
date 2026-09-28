@@ -12,18 +12,21 @@ Momo 取自小红书📕，每个新用户最初的昵称，象征着初始新�
 
 * **极简设计**：页面设计简约，黑白为主色调，蓝色进行点缀
 * **深色模式**：支持手动切换或自动跟随系统
-* **文章搜索功能**：使用 [pagefind](https://pagefind.app/) 实现本地化搜索功能
-* **国际化（i18n）**：支持多语言切换，目前支持简体中文、英文
 * **移动端适配**：组件针对移动端进行优化，拥有和电脑浏览器一样的流畅体验
+* **图片体验**：点击图片打开灯箱；连续放置的多张图片自动拼成网格；文章内图片支持 LQIP 弥散渐变占位
+* **丰富的 Markdown 语法**：KaTeX、Typst（构建期编译为 SVG）、Alert 提示块、GitHub / 网易云音乐卡片、引用组件、注音（Ruby）、折叠、彩虹文字、下划线、新标签页链接，Expressive Code 等
+* **本地搜索**：使用 [pagefind](https://pagefind.app/) 实现本地化搜索，无需外部服务
+* **国际化（i18n）**：支持多语言切换，目前支持简体中文、英文
 * **评论功能**：支持本地部署和 Cloudflare 部署，具体参考 [Backend](https://github.com/Motues/Momo-Backend)
-* **丰富的Markdown语法**：支持 KaTex，Typst，Alert 组件，GitHub 卡片，自定义语法等
-* **本地 CMS 管理后台**：`pnpm cms` 启动，可视化编辑文章与实时预览，无需手动改 Markdown
+* **SEO**：canonical、hreflang 多语言对照、Open Graph / Twitter Card、结构化数据、`sitemap.xml` 与 `robots.txt`
+* **本地 CMS 管理后台**：`pnpm cms` 启动，可视化编辑文章与实时预览（与博客共用同一条 Markdown 管线），无需手动改 Markdown
 * **命令行工具**：`pnpm momo` 提供配置备份/恢复、一键更新、新建文章、环境检查等能力
+* **TypeScript**：站点源码与 `src/plugins/` 自定义插件链均使用 TypeScript 编写
 * 其他基本功能：文章分类，目录，RSS订阅，字数统计，阅读时间
 
 ## 🚀 快速开始
 
-> 环境要求：Node.js **>= 22**（推荐 24 LTS），包管理使用 [pnpm](https://pnpm.io/zh/)
+> 环境要求：Node.js **>= 22**（推荐 24 LTS；本地 CMS 管理后台需要 **>= 22.18**），包管理使用 [pnpm](https://pnpm.io/zh/)
 
 1. 克隆本项目
     ```bash

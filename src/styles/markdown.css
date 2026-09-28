@@ -72,15 +72,26 @@
 }
 
 /* 正文链接：文字下方常显细实线下划线（不设 text-decoration-thickness，用浏览器默认线宽），
-   颜色默认跟随正文字色（--text-color）；悬停时整条链接连同下划线变为主题蓝并略微透明。
+   颜色用 inherit 跟随所在容器的文字色：普通正文就是 --text-color，而自带颜色的语法
+   （引用块 #666 / 暗色 #aaa、彩虹文字 transparent、admonition 标题等）会自然生效，
+   不会被这里的规则覆盖；悬停时整条链接连同下划线变为主题蓝并略微透明。
    用 text-decoration 实现（不用伪元素）：下划线随文字换行自然断开，字号变化也跟着走。
-   注：脚注引用 / 回跳等自身带 text-decoration: none !important 的链接不受影响（见 Markdown.astro）。 */
+   注：脚注引用 / 回跳等自身带 !important 的链接不受影响（见 Markdown.astro）；
+   卡片类链接（.card-github / .card-music）带 .no-styling，不在下面的选择器范围内。 */
 .markdown-content p a,
 .markdown-content li a,
+.markdown-content blockquote a,
+.markdown-content h1 a,
 .markdown-content h2 a,
 .markdown-content h3 a,
-.markdown-content table a {
-  color: var(--text-color);
+.markdown-content h4 a,
+.markdown-content h5 a,
+.markdown-content h6 a,
+.markdown-content table a,
+.markdown-content figcaption a,
+.markdown-content .quote a,
+.markdown-content .admonition-title a {
+  color: inherit;
   text-decoration: underline;
   text-decoration-color: currentColor;
   text-underline-offset: 4px;
@@ -89,11 +100,25 @@
 
 .markdown-content p a:hover,
 .markdown-content li a:hover,
+.markdown-content blockquote a:hover,
+.markdown-content h1 a:hover,
 .markdown-content h2 a:hover,
 .markdown-content h3 a:hover,
-.markdown-content table a:hover {
+.markdown-content h4 a:hover,
+.markdown-content h5 a:hover,
+.markdown-content h6 a:hover,
+.markdown-content table a:hover,
+.markdown-content figcaption a:hover,
+.markdown-content .quote a:hover,
+.markdown-content .admonition-title a:hover {
   color: var(--link-color);
   opacity: 0.8;
+}
+
+/* 彩虹文字里的链接：文字必须保持透明才能露出渐变，所以下划线单独给主题蓝，避免整条链接
+   看起来跟旁边的普通文字一样（这条要放在上面链接规则之后，两者优先级相同靠顺序取胜） */
+.markdown-content .rainbow-text a {
+  text-decoration-color: var(--link-color);
 }
 
 /* 新标签页链接（[文字](url){target="_blank"}）后面追加的右上箭头图标：
