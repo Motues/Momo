@@ -54,10 +54,31 @@ body {
 .markdown-content h3 { font-size: 1.2em; }
 .markdown-content h4, .markdown-content h5, .markdown-content h6 { font-size: 1.05em; }
 
-/* 段落 / 链接 */
+/* 段落 / 链接（链接样式与博客 src/styles/markdown.css 保持一致） */
 .markdown-content p { margin: 1em 0; }
-.markdown-content a { color: var(--link); text-decoration: none; }
-.markdown-content a:hover { text-decoration: underline; }
+.markdown-content p a,
+.markdown-content li a,
+.markdown-content h2 a,
+.markdown-content h3 a,
+.markdown-content table a {
+  color: var(--text);
+  text-decoration: underline;
+  text-decoration-color: currentColor;
+  text-underline-offset: 4px;
+  transition: opacity 0.3s ease, color 0.3s ease;
+}
+.markdown-content p a:hover,
+.markdown-content li a:hover,
+.markdown-content h2 a:hover,
+.markdown-content h3 a:hover,
+.markdown-content table a:hover { color: var(--link); opacity: 0.8; }
+
+/* 脚注引用与回跳链接不套用正文链接样式（博客里由 Markdown.astro 的 !important 规则覆盖） */
+.markdown-content sup a[data-footnote-ref],
+.markdown-content section[data-footnotes] a[data-footnote-backref] {
+  color: var(--link);
+  text-decoration: none;
+}
 
 /* 新标签页链接（[文字](url){target="_blank"}）后面的右上箭头图标（与博客 markdown.css 一致）：
    图标在 <a> 外面，不受链接样式影响；viewBox 已收紧，width / height 即箭头实际大小 */

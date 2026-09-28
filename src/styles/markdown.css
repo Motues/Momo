@@ -71,56 +71,34 @@
   color: var(--text-color);
 }
 
+/* 正文链接：文字下方常显细实线下划线（不设 text-decoration-thickness，用浏览器默认线宽），
+   颜色默认跟随正文字色（--text-color）；悬停时整条链接连同下划线变为主题蓝并略微透明。
+   用 text-decoration 实现（不用伪元素）：下划线随文字换行自然断开，字号变化也跟着走。
+   注：脚注引用 / 回跳等自身带 text-decoration: none !important 的链接不受影响（见 Markdown.astro）。 */
 .markdown-content p a,
 .markdown-content li a,
 .markdown-content h2 a,
 .markdown-content h3 a,
 .markdown-content table a {
-  color: inherit;
-  /* transition: color 0.3s ease; */
-  text-decoration: none;
-  position: relative;
-  display: inline-block;
+  color: var(--text-color);
+  text-decoration: underline;
+  text-decoration-color: currentColor;
+  text-underline-offset: 4px;
+  transition: opacity 0.3s ease, color 0.3s ease;
 }
-    
-.markdown-content p a::before,
-.markdown-content li a::before,
-.markdown-content h2 a::before,
-.markdown-content h3 a::before,
-.markdown-content table a::before {
-  content: "";
-  position: absolute;
-  bottom: 2px;
-  left: 0;
-  width: 100%;
-  border-bottom-style: dotted;
-  border-bottom-width: 2px;
-  /* background: currentColor; */
-  transition: transform 0.3s ease;
-  transform-origin: right;
-  transform: scaleX(1);
-}
-    
+
 .markdown-content p a:hover,
 .markdown-content li a:hover,
 .markdown-content h2 a:hover,
 .markdown-content h3 a:hover,
 .markdown-content table a:hover {
   color: var(--link-color);
-}
-    
-.markdown-content p a:hover::before,
-.markdown-content li a:hover::before,
-.markdown-content h2 a:hover::before,
-.markdown-content h3 a:hover::before,
-.markdown-content table a:hover::before {
-  transform-origin: right;
-  transform: scaleX(0);
+  opacity: 0.8;
 }
 
 /* 新标签页链接（[文字](url){target="_blank"}）后面追加的右上箭头图标：
-   图标由插件输出在 <a> 外面（链接的下一个兄弟节点），所以链接的虚线下划线、
-   悬停变色 / 位移都不会作用到它；颜色跟随正文（stroke="currentColor"）。
+   图标由插件输出在 <a> 外面（链接的下一个兄弟节点），所以链接的下划线与悬停变色
+   都不会作用到它；颜色跟随正文（stroke="currentColor"）。
    插件的 viewBox 已收紧到箭头自身边界，所以这里的 width / height 就是箭头实际大小，
    想调大小只改下面这一个值即可（描边粗细在插件里：rehype-link-target.mjs 的 stroke-width）。 */
 .markdown-content .newtab-icon {
