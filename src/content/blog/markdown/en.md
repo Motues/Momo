@@ -283,6 +283,17 @@ Welcome to Motues' [Blog](https://motues.top “Motues' Blog”)!
 Displayed as:  
 Welcome to Motues' [Blog](https://motues.top “Motues' Blog”)!
 
+### Opening in a New Tab
+
+Links open in the current tab by default. Write `{target="_blank"}` immediately after a link to open it in a new tab; a small arrow icon is appended to the link text.
+
+```markdown
+Welcome to Motues' [Blog](https://motues.top){target="_blank"}!
+```
+
+Displayed as:  
+Welcome to Motues' [Blog](https://motues.top){target="_blank"}!
+
 ## Images
 
 Start with an exclamation mark (!), then add alternative text in parentheses. Include the image resource path or URL within the parentheses. Optionally, add a title after the URL in the parentheses.The title will be displayed below the image.

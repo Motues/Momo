@@ -4,6 +4,8 @@
  *
  * 支持：点击全屏、滚轮 / 按钮 / 双击 / 双指缩放（50% - 800%，100% 为适应屏幕）、拖拽平移、
  *       前后切换（按钮 / 方向键 / 左右滑动 / 点击两侧）、Esc 关闭、说明文字与计数。
+ * 基准比例按设备区分：桌面端打开时默认 86%，移动端（≤776px）保持 100%（适应屏幕）；
+ * 切图 / 双击复位 /「默认比例」按钮都回到该基准（见 baseScale / DESKTOP_BASE_SCALE）。
  * 只作用于 .markdown-content 里的正文图片（链接内的图片除外）。
  */
 ---
@@ -32,7 +34,7 @@
     <button class="lightbox-btn" data-act="zoom-in" type="button" aria-label="放大" title="放大 (+)">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><line x1="20" y1="20" x2="16.2" y2="16.2"></line><line x1="8" y1="11" x2="14" y2="11"></line><line x1="11" y1="8" x2="11" y2="14"></line></svg>
     </button>
-    <button class="lightbox-btn" data-act="reset" type="button" aria-label="原始大小" title="原始大小 (0)">
+    <button class="lightbox-btn" data-act="reset" type="button" aria-label="默认比例" title="默认比例 (0)">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 9V5a2 2 0 0 1 2-2h4"></path><path d="M21 9V5a2 2 0 0 0-2-2h-4"></path><path d="M3 15v4a2 2 0 0 0 2 2h4"></path><path d="M21 15v4a2 2 0 0 1-2 2h-4"></path></svg>
     </button>
     <button class="lightbox-btn lightbox-close" data-act="close" type="button" aria-label="关闭" title="关闭 (Esc)">
@@ -182,10 +184,16 @@
 
 <script>
   // 100% = 图片适应屏幕（灯箱里的基准大小）：缩小最多到 50%，放大最多到 800%
-  const BASE_SCALE = 1
+  // 桌面端打开时默认缩到 86%（比「适应屏幕」略小一点），移动端保持 100%
+  const DESKTOP_BASE_SCALE = 0.86
   const MIN_SCALE = 0.5
   const MAX_SCALE = 8
   const DOUBLE_TAP_SCALE = 2.5
+
+  // 移动端判定与样式的 @media (max-width: 776px) 对齐（777px 起算桌面端）
+  const isMobileViewport = () => window.matchMedia('(max-width: 776px)').matches
+  // 基准比例：打开、切换上/下一张、双击复位、「默认比例」按钮都回到这里
+  const baseScale = () => (isMobileViewport() ? 1 : DESKTOP_BASE_SCALE)
 
   interface LbItem { src: string; alt: string; caption: string }
 
@@ -239,7 +247,7 @@
 
     let items: LbItem[] = []
     let index = 0
-    let scale = BASE_SCALE
+    let scale = baseScale()
     let x = 0
     let y = 0
     let open = false
@@ -254,11 +262,16 @@
     let startX = 0
     let startY = 0
     let pinchStart = 0
-    let pinchScale = BASE_SCALE
+    let pinchScale = baseScale()
     // 打开前的 body overflow，关闭动画结束后再还原（见 restoreScroll）
     let lockedOverflow: string | null = null
 
     const clamp = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value))
+
+    // 缩放是乘除算出来的浮点数（0.86 * 1.6 / 1.6 并不精确等于 0.86），
+    // 判断「是否处于基准比例」都要留一点误差，否则按钮置灰、双击复位会失灵
+    const SCALE_EPSILON = 0.001
+    const atBase = () => Math.abs(scale - baseScale()) < SCALE_EPSILON
 
     function cancelAnimations(elements: Element[]) {
       elements.forEach((element) => {
@@ -288,8 +301,8 @@
 
     function render(animate = false) {
       stage.classList.toggle('is-animating', animate)
-      // 只有放大到 100% 以上才有可平移的内容，缩小状态下光标保持默认（grab 用于左右滑动切换）
-      stage.classList.toggle('is-zoomed', scale > BASE_SCALE)
+      // 只有比基准比例更大时才有可平移的内容，缩小状态下光标保持默认（grab 用于左右滑动切换）
+      stage.classList.toggle('is-zoomed', scale > baseScale() + SCALE_EPSILON)
       img.style.transform = transformOf()
       zoomLabel.textContent = `${Math.round(scale * 100)}%`
       syncZoomButtons()
@@ -298,11 +311,11 @@
       }
     }
 
-    // 让缩放边界（50% / 800%）和「回到 100%」在按钮上可见
+    // 让缩放边界（50% / 800%）和「回到默认比例」在按钮上可见
     function syncZoomButtons() {
       if (zoomOutBtn) zoomOutBtn.disabled = scale <= MIN_SCALE
       if (zoomInBtn) zoomInBtn.disabled = scale >= MAX_SCALE
-      if (resetBtn) resetBtn.disabled = scale === BASE_SCALE
+      if (resetBtn) resetBtn.disabled = atBase()
     }
 
     function applyScale(next: number, originX = 0, originY = 0, animate = false) {
@@ -313,8 +326,8 @@
       x = originX - (originX - x) * ratio
       y = originY - (originY - y) * ratio
       scale = clamped
-      // 缩到 100% 及以下时图片不会超出舞台，直接回到居中
-      if (scale <= BASE_SCALE) {
+      // 缩到基准比例及以下时图片不会超出舞台，直接回到居中
+      if (scale <= baseScale() + SCALE_EPSILON) {
         x = 0
         y = 0
       } else {
@@ -336,6 +349,23 @@
       const dy = from.top + from.height / 2 - (to.top + to.height / 2)
       const ratio = Math.min(from.width / to.width, from.height / to.height)
       return `translate3d(${dx}px, ${dy}px, 0) scale(${clamp(ratio, 0.05, 8)})`
+    }
+
+    // 动画里的起点 / 终点必须用「没有缩放、没有平移」的原始框来算：
+    // getBoundingClientRect() 会把当前的 scale 与位移算进去（桌面端基准是 86%，不再等于 1，
+    // 直接拿它算 FLIP 会让飞入/飞回的目标尺寸和位置都对不上）。
+    // 变换以元素中心为原点（transform-origin: center center），所以反推：
+    //   原始尺寸 = 渲染尺寸 / scale，原始中心 = 渲染中心 - 位移
+    function baseRect(): DOMRect {
+      const rect = img.getBoundingClientRect()
+      const width = rect.width / scale
+      const height = rect.height / scale
+      return new DOMRect(
+        rect.left + (rect.width - width) / 2 - x,
+        rect.top + (rect.height - height) / 2 - y,
+        width,
+        height,
+      )
     }
 
     // 原缩略图当前是否还可见（用于关闭动画）
@@ -372,9 +402,12 @@
     }
 
     function applyImage(item: LbItem) {
-      scale = BASE_SCALE
+      scale = baseScale()
       x = 0
       y = 0
+      // 新图先按住不显示，等飞入 / 淡入动画来驱动 opacity：
+      // 否则图片还没解码完时它会以不透明状态短暂出现在最终位置（切图时会闪一下）
+      img.style.opacity = '0'
       img.src = item.src
       img.alt = item.alt
       counter.textContent = `${index + 1} / ${items.length}`
@@ -412,7 +445,10 @@
       const reduced = reducedMotion()
       // 清掉上一次快速开关残留的动画（尤其是 fill: backwards 的工具栏动画）
       cancelAnimations([img, root, bar, caption])
-      const to = img.getBoundingClientRect()
+      // 交回给动画驱动 opacity（见 applyImage）：没有动画时（reduced / 未知尺寸）要把新图显示出来
+      img.style.opacity = ''
+      // 用原始框算 FLIP（见 baseRect）：桌面端基准 86% 时它才是缩略图的放大目标
+      const to = baseRect()
       const duration = reduced || !to.width ? 0 : 340
 
       if (duration && thumbRect) {
@@ -477,13 +513,14 @@
         return
       }
 
-      const from = img.getBoundingClientRect()
+      // 起点是当前画面（含放大 / 平移），终点用原始框算，飞回缩略图才精确
+      const natural = baseRect()
       const duration = 280
       animations.push(
         img.animate(
           [
             { transform: transformOf(), opacity: 1 },
-            { transform: flipTransform(thumbRect, from), opacity: 0.35 },
+            { transform: flipTransform(thumbRect, natural), opacity: 0.35 },
           ],
           { duration, easing: 'cubic-bezier(0.4, 0, 0.2, 1)', fill: 'forwards' },
         ),
@@ -503,17 +540,17 @@
       const seq = ++transitionSeq
       const next = (index + delta + items.length) % items.length
       const reduced = reducedMotion()
-
-      scale = BASE_SCALE
-      x = 0
-      y = 0
+      // 注意：这里不能先把 scale / x / y 复位成基准比例，
+      // 否则下面第一帧 transformOf() 会变成「默认比例」，画面会先从当前缩放突跳一下再开始切换。
+      // 复位统一交给 applyImage（换成新图时）。
+      const outScale = scale * 0.97
 
       if (!reduced) {
         await img
           .animate(
             [
               { transform: transformOf(), opacity: 1 },
-              { transform: `translate3d(${-delta * 44}px, 0, 0) scale(0.97)`, opacity: 0 },
+              { transform: `translate3d(${x - delta * 44}px, ${y}px, 0) scale(${outScale})`, opacity: 0 },
             ],
             { duration: 150, easing: 'ease-in' },
           )
@@ -521,16 +558,18 @@
         if (seq !== transitionSeq || !open) return
       }
 
+      // 换图：applyImage 会把缩放 / 平移复位到基准比例，新图从基准比例滑入
       index = next
       applyImage(items[index])
       await waitForImage()
       if (seq !== transitionSeq || !open) return
       preloadNeighbours()
+      img.style.opacity = ''
 
       if (!reduced) {
         img.animate(
           [
-            { transform: `translate3d(${delta * 44}px, 0, 0) scale(0.97)`, opacity: 0 },
+            { transform: `translate3d(${delta * 44}px, 0, 0) scale(${scale * 0.97})`, opacity: 0 },
             { transform: transformOf(), opacity: 1 },
           ],
           { duration: 230, easing: 'cubic-bezier(0.22, 0.61, 0.36, 1)' },
@@ -570,7 +609,7 @@
         else if (act === 'zoom-in') applyScale(scale * 1.6, 0, 0, true)
         else if (act === 'zoom-out') applyScale(scale / 1.6, 0, 0, true)
         else if (act === 'reset') {
-          scale = BASE_SCALE
+          scale = baseScale()
           x = 0
           y = 0
           render(true)
@@ -600,7 +639,7 @@
         startX = event.clientX
         startY = event.clientY
         stage.setPointerCapture(event.pointerId)
-        if (scale > BASE_SCALE) stage.classList.add('is-dragging')
+        if (scale > baseScale() + SCALE_EPSILON) stage.classList.add('is-dragging')
       } else if (pointers.size === 2) {
         const [a, b] = [...pointers.values()]
         pinchStart = Math.hypot(a.x - b.x, a.y - b.y)
@@ -625,7 +664,7 @@
 
       if (!dragging) return
       if (Math.abs(event.clientX - startX) > 4 || Math.abs(event.clientY - startY) > 4) moved = true
-      if (scale > BASE_SCALE) {
+      if (scale > baseScale() + SCALE_EPSILON) {
         x += dx
         y += dy
         clampPan()
@@ -640,8 +679,8 @@
       if (pointers.size > 0) return
 
       stage.classList.remove('is-dragging')
-      // 没有放大（100% 或更小）时，左右滑动用来切换上/下一张
-      if (dragging && scale <= BASE_SCALE) {
+      // 没有放大（基准比例或更小）时，左右滑动用来切换上/下一张
+      if (dragging && scale <= baseScale() + SCALE_EPSILON) {
         const dx = event.clientX - startX
         const dy = event.clientY - startY
         if (Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy)) go(dx < 0 ? 1 : -1)
@@ -671,9 +710,9 @@
       const now = Date.now()
       if (now - lastTap < 320) {
         lastTap = 0
-        // 只要不是 100%（放大过或缩小过），双击都先回到 100%
-        if (scale !== BASE_SCALE) {
-          scale = BASE_SCALE
+        // 只要不是基准比例（放大过或缩小过），双击都先回到基准比例
+        if (!atBase()) {
+          scale = baseScale()
           x = 0
           y = 0
           render(true)
@@ -701,7 +740,7 @@
         case '=': applyScale(scale * 1.6, 0, 0, true); break
         case '-':
         case '_': applyScale(scale / 1.6, 0, 0, true); break
-        case '0': scale = BASE_SCALE; x = 0; y = 0; render(true); break
+        case '0': scale = baseScale(); x = 0; y = 0; render(true); break
         default: return
       }
       event.preventDefault()

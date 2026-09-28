@@ -59,6 +59,18 @@ body {
 .markdown-content a { color: var(--link); text-decoration: none; }
 .markdown-content a:hover { text-decoration: underline; }
 
+/* 新标签页链接（[文字](url){target="_blank"}）后面的右上箭头图标（与博客 markdown.css 一致）：
+   图标在 <a> 外面，不受链接样式影响；viewBox 已收紧，width / height 即箭头实际大小 */
+.markdown-content .newtab-icon {
+  display: inline-block;
+  width: 0.64em;
+  height: 0.64em;
+  margin-left: 0.12em;
+  vertical-align: 0.02em;
+  overflow: visible;
+  user-select: none;
+}
+
 /* 行内代码 / 代码块 */
 .markdown-content code {
   font-family: ui-monospace, "JetBrains Mono", "Cascadia Code", Consolas, monospace;

@@ -15,6 +15,7 @@ import { MusicCardComponent } from "./src/plugins/rehype-component-music-card.mj
 import { GithubCardComponent } from './src/plugins/rehype-component-github-card.mjs';
 import { QuoteComponent } from "./src/plugins/rehype-component-quote.mjs"
 import { customFigurePlugin } from "./src/plugins/rehype-figure-plugin.mjs";
+import { rehypeLinkTarget } from "./src/plugins/rehype-link-target.mjs";
 import { rehypeImageCollage } from "./src/plugins/rehype-image-collage.mjs";
 import { remarkCombined } from './src/plugins/remark-combined.mjs';
 import { remarkTypst } from './src/plugins/remark-typst.mjs';
@@ -81,6 +82,8 @@ export default defineConfig({
       rehypePlugins: [
         rehypeKatex,
         customFigurePlugin,
+        // [文字](url){target="_blank"}：新标签页打开 + 右上箭头图标
+        rehypeLinkTarget,
         [rehypeImageCollage, {
           enable: collageSettings.enable !== false,
           maxColumns: collageSettings.maxColumns ?? 4,

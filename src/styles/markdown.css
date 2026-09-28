@@ -118,6 +118,22 @@
   transform: scaleX(0);
 }
 
+/* 新标签页链接（[文字](url){target="_blank"}）后面追加的右上箭头图标：
+   图标由插件输出在 <a> 外面（链接的下一个兄弟节点），所以链接的虚线下划线、
+   悬停变色 / 位移都不会作用到它；颜色跟随正文（stroke="currentColor"）。
+   插件的 viewBox 已收紧到箭头自身边界，所以这里的 width / height 就是箭头实际大小，
+   想调大小只改下面这一个值即可（描边粗细在插件里：rehype-link-target.mjs 的 stroke-width）。 */
+.markdown-content .newtab-icon {
+  display: inline-block;
+  width: 0.64em;
+  height: 0.64em;
+  margin-left: 0.12em;
+  vertical-align: 0.02em;
+  /* 描边不会被可视区裁掉 */
+  overflow: visible;
+  user-select: none;
+}
+
 .markdown-content strong {
   font-weight: 700;
 }

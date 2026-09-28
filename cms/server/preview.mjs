@@ -23,6 +23,7 @@ import { remarkTypst } from '../../src/plugins/remark-typst.mjs'
 import { parseDirectiveNode } from '../../src/plugins/remark-directive-rehype.js'
 import { remarkCombined } from '../../src/plugins/remark-combined.mjs'
 import { customFigurePlugin } from '../../src/plugins/rehype-figure-plugin.mjs'
+import { rehypeLinkTarget } from '../../src/plugins/rehype-link-target.mjs'
 import { rehypeImageCollage } from '../../src/plugins/rehype-image-collage.mjs'
 import { admonition } from '../../src/plugins/rehype-component-admonition.mjs'
 import { GithubCardComponent } from '../../src/plugins/rehype-component-github-card.mjs'
@@ -135,6 +136,8 @@ function createProcessor(base, locale, ec, collage) {
     .use(remarkRehype, { allowDangerousHtml: true })
     .use(rehypeKatex)
     .use(customFigurePlugin)
+    // [文字](url){target="_blank"}：新标签页打开 + 右上箭头图标（与博客同一插件）
+    .use(rehypeLinkTarget)
     // 连续放置的多张图片自动拼图（与博客使用同一插件与同一份配置）
     // 预览没有真正的 markdown 文件路径，图片目录由 base（文章目录）推出来，
     // /xxx.png 按 public 目录定位；插件才能读到宽高比（网络图片抓头部）

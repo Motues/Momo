@@ -284,6 +284,17 @@ echo "more"
 显示如下:  
 欢迎访问Motues的[Blog](https://motues.top "Motues's Blog")！
 
+### 在新标签页打开
+
+链接默认在当前标签页打开。在链接后面紧接着写 `{target="_blank"}`，链接就会在新标签页打开，并在文字后面追加一个右上箭头图标。
+
+```markdown
+欢迎访问Motues的[Blog](https://motues.top){target="_blank"}！
+```
+
+显示如下:  
+欢迎访问Motues的[Blog](https://motues.top){target="_blank"}！
+
 ## 图片
 
 先感叹号（!），然后在括号中添加替代文本，并在括号中添加图像资源的路径或URL，也可以选择在括号中的URL之后添加标题，标题会显示在图片下方。
