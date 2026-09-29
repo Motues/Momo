@@ -16,6 +16,7 @@ import {
 const CACHE_TARGETS = [
   { path: 'dist', desc: 'Astro 构建产物' },
   { path: '.astro', desc: 'Astro 生成的类型与内容缓存' },
+  { path: 'node_modules/.astro', desc: 'Astro 内容层缓存（markdown 的渲染结果，改了 remark / rehype 插件必须清）' },
   { path: 'node_modules/.vite', desc: 'Vite 依赖预构建缓存' },
   { path: 'cms/dist', desc: 'CMS 构建产物' },
   { path: 'cms/node_modules/.vite', desc: 'CMS 的 Vite 缓存' },
