@@ -303,6 +303,35 @@ export async function removePath(target) {
   await rm(target, { recursive: true, force: true })
 }
 
+/**
+ * 删除若干相对路径的文件后，自底向上清理留下的空目录（不会删除 root 本身）
+ * @param {string[]} rels 已删除文件的相对路径（/ 分隔）
+ * @returns {Promise<string[]>} 实际删掉的空目录
+ */
+export async function pruneEmptyDirs(rels, root = ROOT) {
+  const dirs = new Set()
+  for (const rel of rels) {
+    const parts = String(rel).split('/').filter(Boolean)
+    parts.pop()
+    while (parts.length) {
+      dirs.add(parts.join('/'))
+      parts.pop()
+    }
+  }
+
+  // 越深的目录越先判断：只有子目录先空掉，父目录才可能变空
+  const ordered = [...dirs].sort((a, b) => b.split('/').length - a.split('/').length)
+  const removed = []
+  for (const dir of ordered) {
+    const full = join(root, ...dir.split('/'))
+    const entries = await readdir(full).catch(() => null)
+    if (!entries || entries.length > 0) continue
+    await rm(full, { recursive: true, force: true })
+    removed.push(dir)
+  }
+  return removed
+}
+
 /** 相对仓库根目录的路径（统一用 / 分隔，便于展示与比较） */
 export function relPath(target) {
   return relative(ROOT, target).split(sep).join('/')

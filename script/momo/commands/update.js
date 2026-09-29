@@ -23,8 +23,10 @@ import {
   gitInfo,
   log,
   pathExists,
+  pruneEmptyDirs,
   readJson,
   relPath,
+  removePath,
   runPnpm,
   writeJson,
 } from '../lib.js'
@@ -34,6 +36,7 @@ import {
   downloadRelease,
   findRelease,
   listReleases,
+  listTreeFiles,
   planChanges,
 } from '../release.js'
 import backupCommand from './backup.js'
@@ -45,7 +48,12 @@ const BUILD_SKIP = ['node_modules', 'dist', '.astro', '.backup', '.git']
 // 编辑器设置等，因此永远不参与更新（需要新模板内容时请手动对比）
 const REPO_SKIP = ['.github', '.vscode', '.idea']
 
-const ALWAYS_SKIP = [...BUILD_SKIP, ...REPO_SKIP]
+const ALWAYS_SKIP = [...BUILD_SKIP, ...REPO_SKIP, '.momo']
+
+// 模板文件清单：记录一次更新后 release 里的文件列表（每次更新后重写）。
+// 下次更新读它来判断「哪些文件在新版本里已经被删掉」，用户自己新增的文件不在清单里，不会被误删。
+// 属于本机的状态，已加入 .gitignore，不进版本库。
+const MANIFEST_FILE = '.momo/manifest.json'
 
 // 默认保留的用户内容：文章与图片、用户自己的配置、本地 AI 工具说明与环境变量
 const DEFAULT_KEEP = [
@@ -110,18 +118,63 @@ async function nextBackupName() {
   return name
 }
 
+/**
+ * 取「上一版模板」的文件清单，用于判断哪些文件在新版本里被删掉了。
+ * 优先读上次更新写下的本地清单；没有清单（第一次用 momo update 的项目）时，
+ * 退回读取当前版本 tag 在 GitHub 上的文件树（一次轻量 API 调用，不下载文件内容）。
+ */
+async function previousTemplateFiles({ repo, version, releases, token }) {
+  const manifest = await readJson(fromRoot(MANIFEST_FILE), null)
+  if (Array.isArray(manifest?.files) && manifest.files.length) {
+    const tag = manifest.tag ?? manifest.version ?? '未知版本'
+    return { files: manifest.files, label: `本地清单（${tag}）`, truncated: false }
+  }
+
+  if (!version) return { files: [], label: null, truncated: false }
+
+  // 优先用 Release 列表里的正式标签，其次按常见写法猜 tag
+  const candidates = []
+  const hit = releases.find((item) => String(item.version) === String(version))
+  if (hit) candidates.push(hit.tag)
+  candidates.push(`v${version}`, String(version))
+
+  for (const ref of [...new Set(candidates)]) {
+    try {
+      const { files, truncated } = await listTreeFiles({ repo, ref, token })
+      if (files.length) return { files, label: `远端文件树（${ref}）`, truncated }
+    } catch {
+      // 该 ref 不存在或接口不可用：换下一个候选，全部失败时按「没有清单」处理
+    }
+  }
+  return { files: [], label: null, truncated: false }
+}
+
+/** 记下本次更新后 release 里的文件清单，供下次更新判断删除 */
+async function writeManifest({ repo, tag, version, files }) {
+  await writeJson(fromRoot(MANIFEST_FILE), {
+    tool: 'momo',
+    repo,
+    tag,
+    version,
+    updatedAt: new Date().toISOString(),
+    files,
+  })
+}
+
 export default {
   name: 'update',
   summary: '从 GitHub Release 更新模板代码（保留自己的文章与图片）',
-  usage: 'pnpm momo update [--check] [--dry-run] [--version <标签>] [--keep <路径>] [--keep-config]',
+  usage: 'pnpm momo update [--check] [--dry-run] [--version <标签>] [--keep <路径>] [--keep-config] [--no-delete]',
   details: [
     `数据源：https://github.com/${DEFAULT_REPO}/releases（用 package.json 的版本号对比，不需要本地 git）。`,
     '',
     '更新时保留用户自己的内容：',
     `  ${[...CONTENT_PATHS, ...USER_CONFIG_PATHS].join('、')}`,
     `以下目录永远不更新（保留你自己的仓库配置）：${REPO_SKIP.join('、')}`,
-    '其余文件按 release 覆盖；被覆盖的旧文件备份到 .backup/update-<时间戳>/overwritten/，配置文件另有一份完整备份。',
-    '注意：release 中已删除的文件不会自动删除，需要时请手动清理。',
+    '其余文件按 release 覆盖（新增 + 修改 + 删除）；被覆盖或被删除的旧文件备份到 .backup/update-<时间戳>/overwritten/，配置文件另有一份完整备份。',
+    '删除只针对「上一版模板里有、新版本已移除」的文件：依据上次更新写下的 .momo/manifest.json，',
+    '第一次更新时改为读取当前版本 tag 的文件树，你自己新增的文件不在任何清单里，不会被删除。',
+    '没有把握时可以先执行 pnpm momo update --dry-run 预览，或用 --no-delete 只覆盖不删除。',
   ].join('\n'),
   options: {
     check: { type: 'boolean', desc: '只检查是否有新版本，不下载' },
@@ -130,6 +183,7 @@ export default {
     repo: { type: 'string', desc: `数据源仓库，默认 ${DEFAULT_REPO}（也可用环境变量 MOMO_REPO）` },
     keep: { type: 'string', desc: '额外保留的路径，逗号分隔，如 src/components/Header.astro' },
     'keep-config': { type: 'boolean', desc: '保留全部配置文件，只更新代码与文档（自己按说明合并配置）' },
+    delete: { type: 'boolean', default: true, desc: '删除 release 中已移除的旧文件（--no-delete 保留它们）' },
     backup: { type: 'boolean', default: true, desc: '更新前备份配置与被覆盖的文件（--no-backup 关闭）' },
     install: { type: 'boolean', default: true, desc: '更新后自动 pnpm install（--no-install 关闭）' },
     yes: { alias: 'y', type: 'boolean', desc: '跳过确认' },
@@ -221,21 +275,45 @@ export default {
       )
     }
 
-    const plan = await planChanges(dir, { root: fromRoot('.'), preserve: keep, skip: ALWAYS_SKIP })
+    // 上一版模板的文件清单：用于判断新版本删掉了哪些文件
+    const previous = await previousTemplateFiles({ repo, version: localVersion, releases, token })
+
+    const plan = await planChanges(dir, {
+      root: fromRoot('.'),
+      preserve: keep,
+      skip: ALWAYS_SKIP,
+      previous: previous.files,
+    })
     const writes = [...plan.added, ...plan.modified]
+    // --no-delete 时只在预览里列出，不真正删除
+    const removals = flags.delete ? plan.removed : []
+    const keptRemovals = flags.delete ? [] : plan.removed
 
     log.raw()
     log.title('变更预览')
     printList('新增：', plan.added, c.green)
     printList('修改：', plan.modified, c.yellow)
-    if (!writes.length) log.info(c.gray('没有需要写入的文件（本地内容与 release 一致）'))
+    printList('删除：', plan.removed, c.red)
+    if (!writes.length && !plan.removed.length) log.info(c.gray('没有需要改动的文件（本地内容与 release 一致）'))
 
     log.raw()
+    if (previous.label) {
+      log.info(`删除判断依据：${c.gray(previous.label)}`)
+      log.info(c.gray(`  （上一版模板有 ${previous.files.length} 个文件，只有这份清单里的路径才可能被删除）`))
+      if (previous.truncated) log.warn('文件清单被 GitHub 截断，个别删除可能被漏掉，可稍后再执行一次 update')
+    } else {
+      log.info(`删除判断依据：${c.gray('无')}`)
+      log.warn('读取不到上一版模板的文件清单（首次使用 momo update，或远端文件树暂时不可用），本次不删除任何文件；更新后会自动记录，下次更新起生效')
+    }
+    if (keptRemovals.length) {
+      log.warn(`已按 --no-delete 保留 ${keptRemovals.length} 个 release 中已移除的文件（下次更新仍会再次提示，想永久保留请用 --keep <路径>）`)
+    }
+
     log.info(`保留自己的文件：${c.gray(keep.join('、'))}`)
     if (plan.preserved.length) {
       log.info(c.gray(`  （release 中有 ${plan.preserved.length} 个同名文件被跳过，属于你自己的内容）`))
     }
-    log.info(c.gray(`不参与更新的目录：${REPO_SKIP.join('、')}`))
+    log.info(c.gray(`不参与更新的目录：${[...REPO_SKIP, '.momo'].join('、')}`))
 
     const configChanged = writes.filter((file) => CONFIG_PATHS.some((p) => file === p || file.startsWith(`${p}/`)))
     if (configChanged.length) {
@@ -251,17 +329,26 @@ export default {
       return
     }
 
-    if (!writes.length) {
+    // 本次要写进清单的文件：release 的文件列表；--no-delete 保留下来的文件继续留在清单里，
+    // 这样下次更新还会把它们列出来提醒你，而不是悄悄变成「你自己的文件」
+    const manifestFiles = keptRemovals.length
+      ? [...new Set([...plan.files, ...keptRemovals])].sort()
+      : plan.files
+
+    if (!writes.length && !removals.length) {
+      await writeManifest({ repo, tag: target.tag, version: target.version, files: manifestFiles })
       await rm(dir, { recursive: true, force: true })
       log.raw()
-      log.ok('代码已是最新，无需写入')
+      log.ok(keptRemovals.length ? `代码已是最新（已保留 ${keptRemovals.length} 个已移除的文件）` : '代码已是最新，无需写入')
       return
     }
 
     // 3) 确认
     if (!flags.yes) {
       log.raw()
-      const ok = await confirm(`确认写入 ${writes.length} 个文件（版本 ${localVersion ?? '未知'} → ${target.version}）？`, {
+      const todo = [`写入 ${writes.length} 个文件`]
+      if (removals.length) todo.push(`删除 ${removals.length} 个文件`)
+      const ok = await confirm(`确认${todo.join('、')}（版本 ${localVersion ?? '未知'} → ${target.version}）？`, {
         default: true,
       })
       if (!ok) {
@@ -271,7 +358,7 @@ export default {
       }
     }
 
-    // 4) 备份：配置文件走 backup 命令，被覆盖的文件另存到同一个备份目录下
+    // 4) 备份：配置文件走 backup 命令，被覆盖 / 被删除的文件另存到同一个备份目录下
     let backupName = null
     if (flags.backup) {
       log.raw()
@@ -281,8 +368,9 @@ export default {
       log.step('备份配置文件…')
       await backupCommand.run({ flags: { all: false, config: true, list: false, name: backupName, out: undefined } })
 
-      log.step(`备份将被覆盖的 ${writes.length} 个文件…`)
-      for (const file of writes) {
+      const risky = [...writes, ...removals]
+      log.step(`备份将被覆盖或删除的 ${risky.length} 个文件…`)
+      for (const file of risky) {
         if (!(await pathExists(fromRoot(file)))) continue // 新增文件无需备份
         await copyPath(fromRoot(file), join(backupDir, 'overwritten', ...file.split('/')))
       }
@@ -294,13 +382,15 @@ export default {
         to: target.version,
         tag: target.tag,
         preservedPaths: keep,
+        previousFiles: previous.label,
         added: plan.added,
         modified: plan.modified,
+        removed: plan.removed,
       })
       log.ok(`已备份到 ${c.bold(relPath(backupDir))}`)
     } else {
       log.raw()
-      log.warn('已跳过备份（--no-backup），被覆盖的文件无法通过 pnpm momo restore 找回')
+      log.warn('已跳过备份（--no-backup），被覆盖或被删除的文件无法通过 pnpm momo restore 找回')
     }
 
     // 5) 写入文件
@@ -309,6 +399,18 @@ export default {
     for (const file of writes) {
       await copyPath(join(dir, ...file.split('/')), fromRoot(file))
     }
+
+    // 5.1) 删除 release 中已移除的旧文件（只删上面认定的模板文件）
+    if (removals.length) {
+      log.step(`删除 ${removals.length} 个 release 中已移除的文件…`)
+      for (const file of removals) await removePath(fromRoot(file))
+      await pruneEmptyDirs(removals, fromRoot('.'))
+      for (const file of removals.slice(0, LIST_LIMIT)) log.info(`  ${c.red('•')} ${file}`)
+      if (removals.length > LIST_LIMIT) log.info(c.gray(`  …还有 ${removals.length - LIST_LIMIT} 个`))
+    }
+
+    // 记下本次的文件清单，供下次更新判断删除
+    await writeManifest({ repo, tag: target.tag, version: target.version, files: manifestFiles })
     await rm(dir, { recursive: true, force: true })
     log.ok(`代码已更新到 ${c.bold(target.version)}`)
 
@@ -344,7 +446,10 @@ export default {
 
     log.raw()
     log.ok(`更新完成：${localVersion ?? '未知'} → ${target.version}`)
-    if (backupName) log.info(c.gray(`回滚：pnpm momo restore ${backupName}`))
+    if (backupName) log.info(c.gray(`回滚配置：pnpm momo restore ${backupName}`))
+    if (backupName && removals.length) {
+      log.info(c.gray(`已删除的 ${removals.length} 个文件也备份在 .backup/${backupName}/overwritten/ 下，需要时可以手动复制回来`))
+    }
     log.info(c.gray('建议执行 pnpm build 验证构建，或 pnpm dev 本地预览'))
   },
 }

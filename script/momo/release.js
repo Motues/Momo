@@ -8,6 +8,7 @@
 // 仓库默认取 Motues/Momo，可用环境变量 MOMO_REPO 或 --repo 覆盖（便于测试或使用自己的 fork）。
 import { gunzip } from 'node:zlib'
 import { promisify } from 'node:util'
+import { statSync } from 'node:fs'
 import { mkdir, readFile, readdir, writeFile } from 'node:fs/promises'
 import { dirname, join } from 'node:path'
 
@@ -104,6 +105,20 @@ export async function findRelease({ repo = DEFAULT_REPO, version, releases, toke
     prerelease: false,
     publishedAt: null,
     tarballUrl: `${API}/repos/${repo}/tarball/${tag}`,
+  }
+}
+
+/**
+ * 拉取某个 ref（tag / 分支 / commit）下的文件清单。
+ * 用途：本地没有模板文件清单时（首次用 momo update），用它推断「上一版模板有哪些文件」，
+ * 从而知道新版本删掉了哪些文件。git/trees 一次就能拿到全部路径，且不下载文件内容。
+ */
+export async function listTreeFiles({ repo = DEFAULT_REPO, ref, token } = {}) {
+  const data = await request(`${API}/repos/${repo}/git/trees/${encodeURIComponent(ref)}?recursive=1`, { token })
+  const entries = Array.isArray(data?.tree) ? data.tree : []
+  return {
+    files: entries.filter((item) => item.type === 'blob' && item.path).map((item) => item.path),
+    truncated: Boolean(data?.truncated),
   }
 }
 
@@ -226,8 +241,8 @@ export async function collectFiles(dir, { skip = new Set() } = {}) {
   return out
 }
 
-/** 比对源码目录与项目目录，得到「新增 / 修改 / 保留」三个清单 */
-export async function planChanges(sourceDir, { root, preserve = [], skip = [] }) {
+/** 比对源码目录与项目目录，得到「新增 / 修改 / 保留 / 删除」四个清单 */
+export async function planChanges(sourceDir, { root, preserve = [], skip = [], previous = [] }) {
   const skipSet = new Set([...skip, '.momo-release.json'])
   const paths = (await collectFiles(sourceDir, { skip: skipSet })).sort()
   const added = []
@@ -248,5 +263,22 @@ export async function planChanges(sourceDir, { root, preserve = [], skip = [] })
     else same.push(rel)
   }
 
-  return { added, modified, same, preserved, total: paths.length }
+  // 删除：只认 previous（上一版模板的文件清单）里有、而新版本已经移除的路径。
+  // 用户自己新增的文件不在任何模板清单里，因此永远不会被这条规则删掉；
+  // 保留目录（文章、图片、src/config.ts 等）与不参与更新的目录也一律跳过。
+  const current = new Set(paths)
+  const removed = []
+  for (const rel of previous) {
+    if (current.has(rel)) continue
+    // 清单理论上只来自仓库，这里仍然挡一次越界路径
+    if (rel.startsWith('/') || rel.split('/').includes('..')) continue
+    if (isPreserved(rel, preserve)) continue
+    if (skipSet.has(rel) || skipSet.has(rel.split('/')[0])) continue
+    // 同名目录不动：只删模板留下的普通文件，避免把用户自己的目录整棵删掉
+    if (!statSync(join(root, ...rel.split('/')), { throwIfNoEntry: false })?.isFile()) continue
+    removed.push(rel)
+  }
+  removed.sort()
+
+  return { added, modified, same, preserved, removed, files: paths, total: paths.length }
 }

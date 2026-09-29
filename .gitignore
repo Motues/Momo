@@ -7,6 +7,9 @@ dist/
 # local backups created by `pnpm momo backup`
 .backup/
 
+# local state written by `pnpm momo update` (template file manifest)
+.momo/
+
 # dependencies
 node_modules/
 

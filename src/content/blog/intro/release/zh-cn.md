@@ -22,7 +22,7 @@ pinTop: 1
 
 可以直接克隆本项目，然后将自己原本的配置文件覆盖到新项目，然后运行 `pnpm install` 安装依赖，然后运行 `pnpm build` 本地编译，然后运行 `pnpm preview` 预览编译后的项目。
 
-在本仓库内更新时，可以直接执行 `pnpm momo update`：它会读取 [Release](https://github.com/Motues/Momo/releases) 里的最新版本，与 `package.json` 的版本号对比后下载该版本源码，**保留你自己的文章与图片**（`src/content`、`src/assets`、`public`）和 `src/config.ts`，覆盖其余代码并安装依赖，最后列出本次更新中**需要手工合并的配置文件**。更新前可以先用 `pnpm momo update --dry-run` 预览将要变更的文件；被覆盖的旧文件保存在 `.backup/update-<时间戳>/overwritten/` 里，配置出问题可以用 `pnpm momo restore <备份名>` 回滚。
+在本仓库内更新时，可以直接执行 `pnpm momo update`：它会读取 [Release](https://github.com/Motues/Momo/releases) 里的最新版本，与 `package.json` 的版本号对比后下载该版本源码，**保留你自己的文章与图片**（`src/content`、`src/assets`、`public`）和 `src/config.ts`，覆盖其余代码，**删除新版本已经移除的旧文件**并安装依赖，最后列出本次更新中**需要手工合并的配置文件**。删除只针对「上一版模板里有、新版本已移除」的文件（依据更新时写下的 `.momo/manifest.json`，首次更新时读取当前版本 tag 的文件列表），你自己新增的文件不受影响；被删除的文件会和被覆盖的文件一起备份在 `.backup/update-<时间戳>/overwritten/` 里。更新前可以先用 `pnpm momo update --dry-run` 预览将要变更的文件，加 `--no-delete` 则只覆盖不删除；配置出问题可以用 `pnpm momo restore <备份名>` 回滚。
 
 ## 版本号改变
 
