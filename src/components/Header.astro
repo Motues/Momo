@@ -43,6 +43,23 @@ const archivesPage = getRelativeLocaleUrl(currentLang, "/archives/");
 const friendsPage = getRelativeLocaleUrl(currentLang, "/friends/");
 const aboutPage = getRelativeLocaleUrl(currentLang, "/about/");
 
+// 当前页判定：桌面端顶栏与移动端侧边栏共用同一套逻辑。
+// 统一去掉末尾斜杠再比较，/archives 与 /archives/ 都能算作当前页。
+const normalizePath = (path: string) => {
+    const value = String(path || "/");
+    return value.length > 1 ? value.replace(/\/+$/, "") : value;
+};
+const currentPath = normalizePath(Astro.url.pathname);
+const isCurrentPage = (path: string) => normalizePath(path) === currentPath;
+
+// 移动端侧边栏链接：当前页加上背景色与主题色文字，其余保持悬停效果
+const mobileNavLinkClass = (path: string) =>
+    `flex items-center gap-3 px-4 py-3 rounded-lg transition-colors active:bg-[var(--button-hover-color)] active:text-[var(--link-color)] ${
+        isCurrentPage(path)
+            ? "bg-[var(--button-hover-color)] text-[var(--link-color)]"
+            : "hover:bg-[var(--button-hover-color)] hover:text-[var(--link-color)]"
+    }`;
+
 let introPage : string;
 
 if (profileConfig.indexPage) {
@@ -114,7 +131,7 @@ if (profileConfig.indexPage) {
         <div id="nav-bar-list" class="transition relative z-10 flex max-w-max flex-1 items-center justify-center rounded-outer p-2 backdrop-blur rounded-xl bg-[color:var(--bg-color)]/20 border border-[var(--bg-color)]">
           <!-- 首页链接 -->
           <a href={ indexPage } class={`transition-colors rounded-lg px-3 py-1 mx-1 hover:text-current ${
-              Astro.url.pathname === indexPage 
+              isCurrentPage(indexPage)
                   ? 'bg-[var(--button-hover-color)]' 
                   : 'hover:bg-[var(--button-hover-color)]'
               }`}>
@@ -122,7 +139,7 @@ if (profileConfig.indexPage) {
           </a>
           <!-- 归档链接 -->
           <a href={ archivesPage } class={`transition-colors rounded-lg px-3 py-1 mx-1 hover:text-current ${
-              Astro.url.pathname === archivesPage 
+              isCurrentPage(archivesPage)
                   ? 'bg-[var(--button-hover-color)]' 
                   : 'hover:bg-[var(--button-hover-color)]'
               }`}>
@@ -130,7 +147,7 @@ if (profileConfig.indexPage) {
           </a>
           <!-- 关于链接 -->
           <a href={ aboutPage } class={`transition-colors rounded-lg px-3 py-1 mx-1 hover:text-current ${
-              Astro.url.pathname === aboutPage 
+              isCurrentPage(aboutPage)
                   ? 'bg-[var(--button-hover-color)]' 
                   : 'hover:bg-[var(--button-hover-color)]'
               }`}>
@@ -138,7 +155,7 @@ if (profileConfig.indexPage) {
           </a>
           <!-- 友链链接 -->
           <a href={ friendsPage } class={`transition-colors rounded-lg px-3 py-1 mx-1 hover:text-current ${
-              Astro.url.pathname === friendsPage 
+              isCurrentPage(friendsPage)
                   ? 'bg-[var(--button-hover-color)]' 
                   : 'hover:bg-[var(--button-hover-color)]'
               }`}>
@@ -162,19 +179,19 @@ if (profileConfig.indexPage) {
         </div>
 
         <nav class="flex flex-col py-4 px-2">
-            <a href={ indexPage } class="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-[var(--button-hover-color)] hover:text-[var(--link-color)] transition-colors active:bg-[var(--button-hover-color)] active:text-[var(--link-color)]">
+            <a href={ indexPage } class={mobileNavLinkClass(indexPage)}>
                 <Icon name="fa6-solid:house" class="w-4 h-4 opacity-70" />
                 <span>{t("header.home")}</span>
             </a>
-            <a href={ archivesPage } class="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-[var(--button-hover-color)] hover:text-[var(--link-color)] transition-colors active:bg-[var(--button-hover-color)] active:text-[var(--link-color)]">
+            <a href={ archivesPage } class={mobileNavLinkClass(archivesPage)}>
                 <Icon name="fa6-solid:book-bookmark" class="w-4 h-4 opacity-70" />
                 <span>{t("header.archive")}</span>
             </a>
-            <a href={ aboutPage } class="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-[var(--button-hover-color)] hover:text-[var(--link-color)] transition-colors active:bg-[var(--button-hover-color)] active:text-[var(--link-color)]">
+            <a href={ aboutPage } class={mobileNavLinkClass(aboutPage)}>
                 <Icon name="fa6-solid:user" class="w-4 h-4 opacity-70" />
                 <span>{t("header.about")}</span>
             </a>
-            <a href={ friendsPage } class="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-[var(--button-hover-color)] hover:text-[var(--link-color)] transition-colors active:bg-[var(--button-hover-color)] active:text-[var(--link-color)]">
+            <a href={ friendsPage } class={mobileNavLinkClass(friendsPage)}>
                 <Icon name="fa6-solid:link" class="w-4 h-4 opacity-70" />
                 <span>{t("header.friends")}</span>
             </a>
@@ -193,15 +210,24 @@ if (profileConfig.indexPage) {
                 <Icon id="mobile-category-chevron" name="fa6-solid:chevron-down" class="w-4 h-4 opacity-70 transition-transform duration-300" />
             </button>
 
-            <div id="mobile-category-list" class="overflow-hidden transition-[max-height] duration-300 ease-in-out" style="max-height: 0px">
+            <!-- data-archives：同步脚本要用它拼「取消筛选」的链接（要带当前语言前缀） -->
+            <div id="mobile-category-list" data-archives={archivesPage} class="overflow-hidden transition-[max-height] duration-300 ease-in-out" style="max-height: 0px">
                 <ul class="flex flex-wrap gap-2 px-3 pt-3 pb-1">
-                    {categories.map(cat => (
+                    {categories.map(cat => {
+                        const value = cat === 'undefined' ? 'undefined' : cat;
+                        return (
                         <li>
-                            <a href={getRelativeLocaleUrl(currentLang, `/archives/?category=${encodeURIComponent(cat)}`)} class="inline-flex items-center px-3 py-1.5 text-sm rounded-md border border-[var(--button-border-color)] text-[var(--text-color)] transition duration-200 hover:border-[var(--link-color)] hover:bg-[var(--button-hover-color)] active:bg-[var(--button-hover-color)] active:text-[var(--link-color)] active:scale-95">
+                            <a
+                                data-category={value}
+                                aria-current="false"
+                                href={getRelativeLocaleUrl(currentLang, `/archives/?category=${encodeURIComponent(value)}`)}
+                                class="inline-flex items-center px-3 py-1.5 text-sm rounded-md border border-[var(--button-border-color)] text-[var(--text-color)] transition duration-200 hover:border-[var(--link-color)] hover:bg-[var(--button-hover-color)] active:bg-[var(--button-hover-color)] active:text-[var(--link-color)] active:scale-95"
+                            >
                                 {cat === 'undefined' ? t("pagecard.uncategorized") : cat}
                             </a>
                         </li>
-                    ))}
+                        );
+                    })}
                 </ul>
             </div>
         </div>
@@ -247,6 +273,15 @@ if (profileConfig.indexPage) {
         backdrop-filter: none;
       }
     }
+  }
+
+  /* 移动端侧边栏的分类：选中的用桌面端归档页同款样式标记（蓝底白字）。
+     写在这里而不是 Tailwind 的 aria-[current=true]: 变体，是为了确定地压过
+     hover / active 的悬停样式——普通样式优先于 utilities 层。 */
+  #mobile-category-list a[aria-current="true"] {
+    background-color: var(--link-color);
+    color: #fff;
+    border-color: var(--link-color);
   }
 
   /* 当手指上滑时，JS 会给这个 ID 添加该类来隐藏 Header */
@@ -375,6 +410,51 @@ function initCategoryAccordion() {
   };
 }
 document.addEventListener('astro:page-load', initCategoryAccordion);
+
+/**
+ * 移动端侧边栏的分类筛选（与归档页的地址参数保持同步）。
+ * - 一次只筛一个分类：点 B 就从 A 切到 B，而不是把分类追加进地址；
+ * - 归档页桌面端是多选（?category=A,B），此时点其中任意一个会收窄成只筛它；
+ * - 唯一选中的分类再点一次 = 取消筛选、回到全部文章（链接指向不带参数的归档页）。
+ * 静态构建时拿不到查询参数，所以选中态只能在这里按 location.search 重算。
+ */
+function syncMobileCategoryFilter() {
+  const list = document.getElementById('mobile-category-list');
+  if (!list) return;
+
+  const archives = list.dataset.archives || '/archives/';
+  const selected = (new URLSearchParams(window.location.search).get('category') ?? '')
+    .split(',')
+    .filter(Boolean);
+
+  list.querySelectorAll('a[data-category]').forEach((chip) => {
+    const value = chip.dataset.category ?? '';
+    const isSelected = selected.includes(value);
+    chip.setAttribute('aria-current', isSelected ? 'true' : 'false');
+    chip.setAttribute(
+      'href',
+      isSelected && selected.length === 1
+        ? archives
+        : `${archives}?category=${encodeURIComponent(value)}`,
+    );
+  });
+}
+
+function initMobileCategoryFilter() {
+  // 侧边栏每个页面都会重建，但 window 上的监听必须解绑，避免成倍累积
+  window.__momoMobileCategory?.cleanup?.();
+
+  const onResize = () => syncMobileCategoryFilter();
+  window.addEventListener('resize', onResize);
+  window.__momoMobileCategory = {
+    cleanup() {
+      window.removeEventListener('resize', onResize);
+    },
+  };
+
+  syncMobileCategoryFilter();
+}
+document.addEventListener('astro:page-load', initMobileCategoryFilter);
 
 // 顶栏是 transition:persist 的：页面切换后它的 DOM 不会更新，
 // 需要按当前地址重算语言切换链接与选中态（logo 链接同理）。
