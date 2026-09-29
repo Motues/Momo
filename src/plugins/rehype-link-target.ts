@@ -22,24 +22,21 @@ function straightenQuotes(text: string): string {
   return text.replace(/[\u2018\u2019]/g, "'").replace(/[\u201c\u201d\u201e\u201f]/g, '"');
 }
 
-// 右上箭头（Feather 的 arrow-up-right）：viewBox 收紧到箭头自身边界，
-// 这样 CSS 里的 width / height 就是箭头本身的大小（改 stroke-width 时要同步 viewBox）
+// 右上箭头（Remix Icon 的 arrow-up-right，实心）：viewBox 沿用原来那圈 12×12 的紧凑裁剪，
+// 这样图标自身的可视边界就等于 CSS 里的 width / height（换图标时注意同步 viewBox）。
 function newtabIcon(): Element {
   return h(
     'svg.newtab-icon',
     {
       viewBox: '6 6 12 12',
-      fill: 'none',
-      stroke: 'currentColor',
-      'stroke-width': 2,
-      'stroke-linecap': 'round',
-      'stroke-linejoin': 'round',
       'aria-hidden': 'true',
       focusable: 'false',
     },
     [
-      h('line', { x1: 7, y1: 17, x2: 17, y2: 7 }),
-      h('polyline', { points: '9 7 17 7 17 15' }),
+      h('path', {
+        fill: 'currentColor',
+        d: 'm16.004 9.414l-8.607 8.607l-1.414-1.414L14.59 8H7.003V6h11v11h-2z',
+      }),
     ],
   );
 }

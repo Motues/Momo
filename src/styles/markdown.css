@@ -71,7 +71,7 @@
   color: var(--text-color);
 }
 
-/* 正文链接：文字下方常显细实线下划线（不设 text-decoration-thickness，用浏览器默认线宽），
+/* 正文链接：文字下方常显细实线下划线（固定 1px，比浏览器默认的线宽更细；下划线也上提了一些），
    颜色用 inherit 跟随所在容器的文字色：普通正文就是 --text-color，而自带颜色的语法
    （引用块 #666 / 暗色 #aaa、彩虹文字 transparent、admonition 标题等）会自然生效，
    不会被这里的规则覆盖；悬停时整条链接连同下划线变为主题蓝并略微透明。
@@ -94,7 +94,8 @@
   color: inherit;
   text-decoration: underline;
   text-decoration-color: currentColor;
-  text-underline-offset: 4px;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 2px;
   transition: opacity 0.3s ease, color 0.3s ease;
 }
 
@@ -123,18 +124,29 @@
 
 /* 新标签页链接（[文字](url){target="_blank"}）后面追加的右上箭头图标：
    图标由插件输出在 <a> 外面（链接的下一个兄弟节点），所以链接的下划线与悬停变色
-   都不会作用到它；颜色跟随正文（stroke="currentColor"）。
+   都不会作用到它；颜色默认跟随正文（fill="currentColor"），悬停链接时由下面那条
+   `a:hover + .newtab-icon` 单独染成主题蓝——两者之间隔着插件插入的 word joiner 文本节点，
+   而 `+` 只算元素兄弟，所以照样命中。
    插件的 viewBox 已收紧到箭头自身边界，所以这里的 width / height 就是箭头实际大小，
-   想调大小只改下面这一个值即可（描边粗细在插件里：rehype-link-target.mjs 的 stroke-width）。 */
+   想调大小只改下面这一个值即可（换图标时要同步插件里的 viewBox：rehype-link-target.ts）。 */
 .markdown-content .newtab-icon {
   display: inline-block;
-  width: 0.64em;
-  height: 0.64em;
-  margin-left: 0.12em;
-  vertical-align: 0.02em;
-  /* 描边不会被可视区裁掉 */
+  width: 0.56em;
+  height: 0.56em;
+  /* 箭头左右各留一点空隙：左边和链接文字分开，右边不贴住后面的标点或文字 */
+  margin-left: 0.18em;
+  margin-right: 0.08em;
+  vertical-align: 0.03em;
+  /* 图形略微超出收紧后的 viewBox（不到 0.03 个单位），这里不裁掉 */
   overflow: visible;
   user-select: none;
+  transition: color 0.3s ease, opacity 0.3s ease;
+}
+
+/* 悬停链接时箭头跟着一起变色（并和文字一样略微透明） */
+.markdown-content a:hover + .newtab-icon {
+  color: var(--link-color);
+  opacity: 0.8;
 }
 
 .markdown-content strong {

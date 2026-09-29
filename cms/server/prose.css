@@ -73,7 +73,8 @@ body {
   color: inherit;
   text-decoration: underline;
   text-decoration-color: currentColor;
-  text-underline-offset: 4px;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 2px;
   transition: opacity 0.3s ease, color 0.3s ease;
 }
 .markdown-content p a:hover,
@@ -100,15 +101,24 @@ body {
 }
 
 /* 新标签页链接（[文字](url){target="_blank"}）后面的右上箭头图标（与博客 markdown.css 一致）：
-   图标在 <a> 外面，不受链接样式影响；viewBox 已收紧，width / height 即箭头实际大小 */
+   图标在 <a> 外面，链接的下划线不作用到它；悬停链接时用 a:hover + .newtab-icon 单独变色
+   （中间隔着插件插入的 word joiner 文本节点，+ 只算元素兄弟，照样命中）。
+   Remix 的实心箭头，viewBox 已收紧到箭头自身边界，width / height 即箭头实际大小 */
 .markdown-content .newtab-icon {
   display: inline-block;
-  width: 0.64em;
-  height: 0.64em;
-  margin-left: 0.12em;
-  vertical-align: 0.02em;
+  width: 0.56em;
+  height: 0.56em;
+  margin-left: 0.18em;
+  margin-right: 0.08em;
+  vertical-align: 0.03em;
   overflow: visible;
   user-select: none;
+  transition: color 0.3s ease, opacity 0.3s ease;
+}
+
+.markdown-content a:hover + .newtab-icon {
+  color: var(--link);
+  opacity: 0.8;
 }
 
 /* 行内代码 / 代码块 */
