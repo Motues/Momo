@@ -63,6 +63,26 @@ $E = mc^2$
 
 这是一个!!==模糊并且带{拼音}(pīn|yīn)的{彩虹}(cǎi|hóng)==!!
 
+### 链接跳转
+
+正文里的链接默认在当前标签页打开。在链接后面**紧跟**一段属性块 `{target="_blank"}`，链接就会在新标签页打开，并在文字后面追加一个右上箭头图标：
+
+```markdown
+欢迎访问 Motues 的 [Blog](https://motues.top){target="_blank"}！
+```
+
+显示如下：
+
+欢迎访问 Motues 的 [Blog](https://motues.top){target="_blank"}！
+
+属性块里只识别 `target`、`rel`、`class` 三个属性，写别的属性会整体放弃、按普通文字留在正文里；`rel` 始终会保留 `noopener` 与 `noreferrer`。链接里只有图片时不追加图标，避免箭头压在图片上：
+
+```markdown
+[![封面](./cover.jpg)](https://motues.top "点击查看大图"){target="_blank"}
+```
+
+> 也可以用来跳转到站内页面，例如 `[Markdown 基本功能](/blog/markdown){target="_blank"}`，写法完全一样。
+
 ## 脚注
 
 这是文章中的一句话，我需要在这里添加一个引用上标[^1]。

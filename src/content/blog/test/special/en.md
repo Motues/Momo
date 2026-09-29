@@ -59,6 +59,26 @@ The above styles can be nested, such as:
 
 !!==Do you like the movie {君の名は}(きみ||な|)==!!
 
+### Link Jump
+
+Content links open in the current tab by default. Put an attribute block `{target="_blank"}` **immediately after** a link to open it in a new tab, with a small arrow icon appended after the link text:
+
+```markdown
+Welcome to Motues' [Blog](https://motues.top){target="_blank"}!
+```
+
+Result:
+
+Welcome to Motues' [Blog](https://motues.top){target="_blank"}!
+
+Only `target`, `rel` and `class` are recognised inside the attribute block; anything else makes the whole block stay in the text as-is. `rel` always keeps `noopener` and `noreferrer`. Links holding only an image get no icon, so the arrow never sits on top of the image:
+
+```markdown
+[![Cover](./cover.jpg)](https://motues.top "Click to enlarge"){target="_blank"}
+```
+
+> It works for in-site pages too, e.g. `[Markdown Basics](/en/blog/markdown){target="_blank"}`.
+
 ## Footnotes
 
 This is a sentence in the article; I need to add a superscript reference [^1] here.

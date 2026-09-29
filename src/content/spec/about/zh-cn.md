@@ -5,18 +5,21 @@ Momo 取自小红书📕，每个新用户最初的昵称，象征着初始新�
 
 * **极简设计**：页面设计简约，黑白为主色调，蓝色进行点缀
 * **深色模式**：支持手动切换或自动跟随系统
-* **文章搜索功能**：使用 [pagefind](https://pagefind.app/) 实现本地化搜索功能
-* **国际化（i18n）**：支持多语言切换，目前支持简体中文、英文
 * **移动端适配**：组件针对移动端进行优化，拥有和电脑浏览器一样的流畅体验
+* **图片体验**：点击图片打开灯箱；连续放置的多张图片自动拼成网格；文章内图片支持 LQIP 弥散渐变占位
+* **丰富的 Markdown 语法**：KaTeX、Typst（构建期编译为 SVG）、Alert 提示块、GitHub / 网易云音乐卡片、引用组件、注音（Ruby）、折叠、彩虹文字、下划线、新标签页链接，Expressive Code 等
+* **本地搜索**：使用 [pagefind](https://pagefind.app/) 实现本地化搜索，无需外部服务
+* **国际化（i18n）**：支持多语言切换，目前支持简体中文、英文
 * **评论功能**：支持本地部署和 Cloudflare 部署，具体参考 [Backend](https://github.com/Motues/Momo-Backend)
-* **丰富的Markdown语法**：支持 KaTex，Typst，Alert 组件，GitHub 卡片，自定义语法等
-* **本地 CMS 管理后台**：`pnpm cms` 启动，可视化编辑文章与实时预览，无需手动改 Markdown
+* **SEO**：canonical、hreflang 多语言对照、Open Graph / Twitter Card、结构化数据、`sitemap.xml` 与 `robots.txt`
+* **本地 CMS 管理后台**：`pnpm cms` 启动，可视化编辑文章与实时预览（与博客共用同一条 Markdown 管线），无需手动改 Markdown
 * **命令行工具**：`pnpm momo` 提供配置备份/恢复、一键更新、新建文章、环境检查等能力
+* **TypeScript**：站点源码与 `src/plugins/` 自定义插件链均使用 TypeScript 编写
 * 其他基本功能：文章分类，目录，RSS订阅，字数统计，阅读时间
 
 ## 🚀 快速开始
 
-> 环境要求：Node.js **>= 22**（推荐 24 LTS），包管理使用 [pnpm](https://pnpm.io/zh/)
+> 环境要求：Node.js **>= 22**（推荐 24 LTS；本地 CMS 管理后台需要 **>= 22.18**），包管理使用 [pnpm](https://pnpm.io/zh/)
 
 1. 克隆本项目
     ```bash
@@ -36,7 +39,7 @@ Momo 取自小红书📕，每个新用户最初的昵称，象征着初始新�
 
 参考 [更新指南](./doc/release_zh-cn.md)，介绍如何更新项目，详细信息可以访问 [Momo](https://momo.motues.top/intro/release)。
 
-执行 `pnpm momo update` 可以自动完成「备份配置 → 拉取更新 → 安装依赖」，并提示本次更新中需要手工合并的配置文件。
+执行 `pnpm momo update` 可以自动完成「检查 GitHub Release → 下载新版本源码 → 备份 → 覆盖代码 → 删除新版本已移除的旧文件 → 安装依赖」，并提示本次更新中需要手工合并的配置文件。你自己的文章与图片（`src/content`、`src/assets`、`public`）和 `src/config.ts` 会原样保留；删除只针对上一版模板里有、而新版本已移除的文件（依据更新时写下的 `.momo/manifest.json`，你自己新增的文件不受影响，加 `--no-delete` 可只覆盖不删除）。先加 `--dry-run` 可以只预览变更、不写入任何文件。
 
 ## 🍃 分支
 
@@ -60,7 +63,7 @@ Momo 取自小红书📕，每个新用户最初的昵称，象征着初始新�
 | `pnpm momo new [path]` | 新建文章，路径省略时按日期自动生成，例如 `pnpm momo new docs/test` |
 | `pnpm momo backup` | 备份 `src/config.ts` 到 `.backup/`（加 `--config` 备份全部配置文件，加 `--all` 再连同文章内容与图片） |
 | `pnpm momo restore [名称]` | 从备份恢复（默认最近一次） |
-| `pnpm momo update` | 拉取仓库更新并同步依赖（更新前自动备份 `src/config.ts`） |
+| `pnpm momo update` | 从 [GitHub Release](https://github.com/Motues/Momo/releases) 更新模板代码并同步依赖（保留自己的文章与图片，删除新版本已移除的文件；`--dry-run` 预览变更，`--no-delete` 只覆盖不删除） |
 | `pnpm momo clean` | 清理构建产物与缓存（加 `--all` 连同 `node_modules`） |
 | `pnpm momo doctor` | 检查环境、依赖与项目状态 |
 | `pnpm momo --help` | 查看全部 momo 命令与选项 |

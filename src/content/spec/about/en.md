@@ -5,18 +5,21 @@ Momo originates from Xiaohongshu's 📕, serving as every new user's initial nic
 
 * **Minimalist Design**: Clean page layout with black and white as primary colors, accented by blue
 * **Dark Mode**: Supports manual switching or automatic system adaptation
-* **Article Search**: Implements localized search using [pagefind](https://pagefind.app/)
-* **Internationalization (i18n)**: Supports multilingual switching, currently available in Simplified Chinese and English
 * **Mobile Adaptation**: Components optimized for mobile devices, delivering the same experience as desktop browsers
+* **Image experience**: Click any image to open the lightbox; consecutive images are automatically laid out as a grid; images inside posts support an LQIP gradient placeholder
+* **Extensive Markdown syntax**: KaTeX, Typst (compiled to SVG at build time), Alert components, GitHub / NetEase Music cards, quote component, ruby annotations, spoilers, rainbow text, underline, new-tab links, Expressive Code and more
+* **Local search**: Localized search built with [pagefind](https://pagefind.app/), no external service required
+* **Internationalization (i18n)**: Supports multilingual switching, currently available in Simplified Chinese and English
 * **Commenting**: Supports local deployment and Cloudflare deployment. See [Backend](https://github.com/Motues/Momo-Backend) for details
-* **Extensive Markdown syntax**: Supports Katex, Typst, and Alert components, GitHub cards, custom syntax, and more
-* **Local CMS**: Start it with `pnpm cms` to edit posts with live preview instead of editing Markdown by hand
+* **SEO**: canonical URLs, hreflang alternates, Open Graph / Twitter Cards, structured data, `sitemap.xml` and `robots.txt`
+* **Local CMS**: Start it with `pnpm cms` to edit posts with live preview (sharing the same Markdown pipeline as the blog) instead of editing Markdown by hand
 * **Command line tool**: `pnpm momo` provides config backup/restore, one-command updates, new post creation and environment checks
+* **TypeScript**: The site source and the custom `src/plugins/` pipeline are both written in TypeScript
 * Other core features: Article categories, directory, RSS subscription, text statistics, reading time
 
 ## 🚀 Quick Start
 
-> Requirements: Node.js **>= 22** (24 LTS recommended) and [pnpm](https://pnpm.io/)
+> Requirements: Node.js **>= 22** (24 LTS recommended; the local CMS needs **>= 22.18**) and [pnpm](https://pnpm.io/)
 
 1. Clone this project
     ```bash
@@ -36,7 +39,7 @@ Site information, theme switches, languages and the Cover text of each page are 
 
 Refer to the [Update Guide](./release_en.md) for instructions on updating your project. Visit [Momo](https://momo.motues.top/en/intro/release) for detailed information.
 
-Run `pnpm momo update` to do it automatically: it backs up your config, pulls the update and installs dependencies, then lists the config files that need manual merging.
+Run `pnpm momo update` to do it automatically: it checks the GitHub releases, downloads the new source, backs up, overwrites the code, deletes files the new version no longer ships and installs dependencies, then lists the config files that need manual merging. Your own posts and images (`src/content`, `src/assets`, `public`) and `src/config.ts` are always kept; deletion only covers files that existed in the previous template but were removed upstream (tracked in `.momo/manifest.json`, so files you added yourself are never touched — add `--no-delete` to keep them and only overwrite). Add `--dry-run` to preview the changes without writing anything.
 
 ## 🍃 Branch
 
@@ -60,7 +63,7 @@ All commands below can be executed in the root directory
 | `pnpm momo new [path]` | Create a new post; the path defaults to a date based one, e.g. `pnpm momo new docs/test` |
 | `pnpm momo backup` | Back up `src/config.ts` to `.backup/` (add `--config` for every config file, `--all` to also include posts and images) |
 | `pnpm momo restore [name]` | Restore from a backup (the latest one by default) |
-| `pnpm momo update` | Pull the repository update and sync dependencies (backs up `src/config.ts` first) |
+| `pnpm momo update` | Update the template code from the [GitHub releases](https://github.com/Motues/Momo/releases) and sync dependencies (keeps your own posts and images, deletes files dropped by the new version; `--dry-run` previews the changes, `--no-delete` only overwrites) |
 | `pnpm momo clean` | Remove build output and caches (add `--all` to also remove `node_modules`) |
 | `pnpm momo doctor` | Check the environment, dependencies and project status |
 | `pnpm momo --help` | Show every momo command and option |
