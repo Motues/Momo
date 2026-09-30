@@ -1,4 +1,5 @@
 // doctor.js — pnpm momo doctor：检查本地环境与项目状态
+import { readFile } from 'node:fs/promises'
 import {
   CONFIG_PATHS,
   c,
@@ -28,6 +29,19 @@ async function countArticles() {
   })
   const paths = new Set(files.map((f) => f.slice(base.length).replace(/\\/g, '/').replace(/\/[^/]+\.md$/, '')))
   return { articles: paths.size, files: files.length, bytes: await pathSize(base) }
+}
+
+/** 找出还在用 <ClientRouter />（Astro View Transitions）的模板文件 */
+async function findClientRouter() {
+  const base = fromRoot('src')
+  if (!(await pathExists(base))) return []
+  const files = (await listFiles(base)).filter((f) => f.endsWith('.astro') || f.endsWith('.ts'))
+  const hits = []
+  for (const file of files) {
+    const text = await readFile(file, 'utf8').catch(() => '')
+    if (/<ClientRouter\b/.test(text)) hits.push(file.slice(base.length + 1).replace(/\\/g, '/'))
+  }
+  return hits
 }
 
 export default {
@@ -85,6 +99,21 @@ export default {
     // 版本信息：顺便提示是否有新版本（离线时静默跳过）
     const pkg = await readJson(fromRoot('package.json'), {})
     if (pkg.version) add('ok', `项目版本 ${pkg.version}`)
+
+    // 客户端路由（swup）：只在 package.json 里声明了这个依赖时才检查，
+    // 免得给「还没执行 pnpm momo update」的旧站点报无意义的警告
+    const deps = { ...(pkg.dependencies ?? {}), ...(pkg.devDependencies ?? {}) }
+    if (deps['@swup/astro']) {
+      if (await pathExists(fromRoot('node_modules/@swup/astro'))) {
+        add('ok', '客户端路由 @swup/astro 已安装', deps['@swup/astro'])
+      } else {
+        add('fail', '@swup/astro 未安装', '执行 pnpm install')
+      }
+      const leftovers = await findClientRouter()
+      if (leftovers.length) add('warn', '仍有 <ClientRouter /> 残留', leftovers.join('、'))
+      else add('ok', '已无 <ClientRouter /> 残留', '客户端路由由 @swup/astro 接管')
+    }
+
     if (flags.check) {
       try {
         const { listReleases, compareVersions } = await import('../release.js')

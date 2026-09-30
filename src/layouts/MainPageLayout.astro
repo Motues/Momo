@@ -52,12 +52,30 @@ const {
   markdownFont={markdownFont}
 >
   <div class="flex flex-col min-h-screen">
+    <!-- 顶栏在 swup 容器之外：换页时不重建（替代原来的 transition:persist），
+         毛玻璃不重绘、没有跳动。它的语言菜单 / logo / 导航链接由 Header 里
+         的 syncPersistedHeader() 在每次换页后按当前地址重算。 -->
     <div>
       <Header />
     </div>
-    <main class="flex-grow">
-      <slot />
+
+    <!-- swup 的替换容器：换页时整段换成新文档里的 main#swup-container。
+         只有它的内容需要「每页都不一样」。
+
+         ⚠️ 淡入淡出的 .transition-swup-fade 只包住正文，不能直接加在 main 上：
+         元素的 opacity 小于 1 时，它内部 position: fixed 的后代会改以它为包含块，
+         而 TOC（TOC.svelte 的 aside）与移动端目录/悬浮按钮（FabMenu）都是 fixed，
+         一旦被包住，过渡的那 200ms 里它们会整体跳位。
+         所以这两块走 overlay 插槽：仍在容器内（每页重建、内容跟着换），
+         但在淡入淡出元素之外（包含块仍是视口）。 -->
+    <main id="swup-container" class="flex-grow">
+      <div class="transition-swup-fade">
+        <slot />
+      </div>
+      <slot name="overlay" />
     </main>
+
+    <!-- 容器外：页脚与搜索弹窗保持存活（搜索索引只建一次） -->
     <Footer />
     <Search />
   </div>

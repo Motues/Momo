@@ -105,8 +105,11 @@ const tocHeadings = headings.filter(h => h.depth > 1 && h.depth < 5);
   )}
 </div>
 
-<script is:inline>
-// 客户端换页时 Astro 会重新执行本脚本，而 DOM 是全新的：
+<script>
+import { registerPageInit } from '@utils/pageInit';
+
+// 本脚本是带 src 的 module（模块表去重 ⇒ 换页不会重跑），而 FabMenu 在 swup 容器内、
+// 每次换页 DOM 都是全新的：初始化统一挂在 registerPageInit 上。
 // 只靠元素上的 dataset 守卫无法回收挂在 window/document 上的旧监听器，
 // 因此统一用全局注册表保存「上一次绑定」，每次初始化先解绑再绑定。
 function initFabMenu() {
@@ -340,7 +343,8 @@ tocLinks.forEach(link => {
   };
 }
 
-document.addEventListener('astro:page-load', initFabMenu);
+// 首屏 + 每次换页（swup 下首屏不会有 astro:page-load，见 @utils/pageInit）
+registerPageInit(initFabMenu);
 </script>
 
 <style is:global>

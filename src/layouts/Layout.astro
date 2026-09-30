@@ -1,6 +1,8 @@
 ---
 import { siteConfig, profileConfig } from '@/config';
 import "@styles/global.css"
+// 客户端换页的淡入淡出（swup 的 animationClass 依赖这里的时长）
+import "@styles/swup-transition.css"
 // KaTeX 的样式移到真正的渲染处（Markdown.astro），不再让每个页面都下载
 // 标题 / 页脚用的 EB Garamond 只有几条 @font-face，保持阻塞，避免首屏字体跳变
 import '@fontsource/eb-garamond';
@@ -12,7 +14,6 @@ import notoSerifSc700 from '@fontsource/noto-serif-sc/700.css?url';
 // 同样只在渲染 Markdown 正文的页面异步加载，见 <head> 里的 markdownFont 分支
 import lxgwBrightCss from '@chinese-fonts/lxgwwenkaibright/dist/LXGWBright-Medium/result.css?url';
 import { i18n } from "astro:config/client";
-import { ClientRouter } from "astro:transitions";
 import { getSiteTitle } from '@utils/siteTitle';
 import {
   absoluteUrl,
@@ -113,7 +114,9 @@ const aosBodyAttrs = siteConfig.theme.AOS
 <html lang={pageLang} class="h-full">
 <head>
     <meta charset="UTF-8">
-    <script is:inline>
+    <!-- data-swup-ignore-script：客户端路由（swup）每次换页会把文档里的内联脚本重放一遍，
+         主题初始化只该跑一次（重复执行本身无害，但没必要，也避免以后改动踩坑） -->
+    <script is:inline data-swup-ignore-script>
         (function() {
         const savedTheme = localStorage.getItem('theme');
         const systemTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
@@ -186,54 +189,132 @@ const aosBodyAttrs = siteConfig.theme.AOS
     {commentOrigin && <link rel="dns-prefetch" href={commentOrigin}>}
     {commentOrigin && <link rel="preconnect" href={commentOrigin} crossorigin>}
 
-    <script defer src={umamiScript} data-hash is:inline></script>
+    <!-- data-swup-ignore-script：umami 的采集脚本只加载一次；
+         换页的 PV 由下面的内联脚本在 astro:page-load 时手动上报 -->
+    <script defer src={umamiScript} data-hash is:inline data-swup-ignore-script></script>
     <title>{pageTitle}</title>
     <script type="application/ld+json" set:html={jsonLd}></script>
-    <ClientRouter />
-    <script is:inline>
-        // 换页相关的两个内联脚本合并成一个：减少解析与执行次数（TODO 第 17 项）。
+    <script is:inline data-swup-ignore-script>
+        // 换页相关的内联脚本合并成一个：减少解析与执行次数（TODO 第 17 项）。
         // 这里只注册事件监听，可以安全地在 <head> 里提前执行。
+        //
+        // data-swup-ignore-script 是必须的：swup 的 ScriptsPlugin 每次换页都会把文档里
+        // 所有内联脚本重放一遍（带 src 的 module 因模块表去重不会重跑，内联脚本会），
+        // 这个脚本只该执行一次，否则监听器成倍累积。
         document.addEventListener('astro:before-swap', (e) => {
             const theme = document.documentElement.getAttribute('data-theme');
             const sysTheme = document.documentElement.classList.contains('system-theme');
+            // 事件来源有两种：
+            // - ClientRouter（Astro 的 View Transitions）会给 e.newDocument；
+            // - swup 下 <html> 是持久的，没有「新文档」这个概念，此时回退到当前文档。
+            // 主题本来就在 <html> 上、不需要搬运，这里只是为了两种形态都能跑。
+            const target = (e && e.newDocument ? e.newDocument : document).documentElement;
             if (theme) {
-                e.newDocument.documentElement.setAttribute('data-theme', theme);
+                target.setAttribute('data-theme', theme);
             }
             if (sysTheme) {
-                e.newDocument.documentElement.classList.add('system-theme');
+                target.classList.add('system-theme');
             }
-            // 前进 / 后退时 ClientRouter 会用 scrollTo({left, top}) 恢复滚动位置，
-            // 如果 html 上还留着 scroll-behavior: smooth，这个恢复过程会被动画拖慢。
-            // 这里临时切成 auto，等新页面稳定后再交还给 CSS（页内锚点仍需要平滑滚动）。
+            // 换页 / 前后退时浏览器会动滚动位置：如果 html 上还留着 scroll-behavior: smooth，
+            // 这些恢复过程会被动画拖慢。这里临时切成 auto，等新页面稳定后再交还给 CSS
+            //（页内锚点仍需要平滑滚动）。
             document.documentElement.style.scrollBehavior = 'auto';
-            e.newDocument.documentElement.style.scrollBehavior = 'auto';
+            target.style.scrollBehavior = 'auto';
+        });
+
+        // ---- 前进 / 后退的滚动恢复（自己接管）----
+        // swup 的 scroll 插件在 popstate 时不做任何滚动（默认交给浏览器的原生恢复），
+        // 但客户端换页是异步的：浏览器恢复滚动时文档里还是**旧页面**，
+        // 位置会被旧页面的高度截断（实测：从长文后退到短文再回来，位置直接变成 0）。
+        // 所以这里按历史条目自己记一份，换页内容就位后再恢复，并关掉原生恢复避免互相打架。
+        if ('scrollRestoration' in window.history) {
+            window.history.scrollRestoration = 'manual';
+        }
+
+        /** 把当前滚动位置写进当前历史条目（保留 swup 自己的 state 标记） */
+        function rememberScrollPosition() {
+            const state = window.history.state;
+            if (!state || typeof state !== 'object') return;
+            const y = Math.round(window.scrollY);
+            if (state.scrollY === y) return;
+            window.history.replaceState({ ...state, scrollY: y }, '');
+        }
+
+        // 滚动过程中节流写；真正离开当前条目之前（点击链接）再补一次
+        let scrollWriteTimer;
+        window.addEventListener('scroll', () => {
+            clearTimeout(scrollWriteTimer);
+            scrollWriteTimer = setTimeout(rememberScrollPosition, 150);
+        }, { passive: true });
+
+        document.addEventListener('swup:visit:start', (event) => {
+            // popstate 时位置可能已经被浏览器截断，写了反而会污染目标条目的记录
+            if (event.detail && event.detail.visit && event.detail.visit.history.popstate) return;
+            clearTimeout(scrollWriteTimer);
+            rememberScrollPosition();
+        });
+
+        // 待恢复的位置：从 popstate 事件自带的 state 里取（不受截断影响）
+        let pendingScrollY = null;
+        window.addEventListener('popstate', (event) => {
+            const y = event.state && typeof event.state.scrollY === 'number' ? event.state.scrollY : null;
+            pendingScrollY = y;
+        });
+
+        document.addEventListener('astro:after-swap', () => {
+            if (pendingScrollY === null) return;
+            document.documentElement.style.scrollBehavior = 'auto';
+            window.scrollTo(0, pendingScrollY);
         });
 
         let loaderTimeout;
 
-        // 1. 开始准备跳转
-        document.addEventListener('astro:before-preparation', () => {
+        const hideLoadingOverlay = () => {
+            clearTimeout(loaderTimeout);
+            const overlay = document.getElementById('loading-overlay');
+            if (overlay) overlay.style.display = 'none';
+        };
+
+        // 1. 开始准备跳转（swup 没有 astro:before-preparation）
+        document.addEventListener('swup:visit:start', () => {
             loaderTimeout = setTimeout(() => {
                 const overlay = document.getElementById('loading-overlay');
                 if (overlay) overlay.style.display = 'flex';
-            }, 500); 
+            }, 500);
         });
 
-        // 2. 页面内容交换完成（DOM 已更新）
-        document.addEventListener('astro:after-swap', () => {
-            clearTimeout(loaderTimeout);
-            
-            const overlay = document.getElementById('loading-overlay');
-            if (overlay) overlay.style.display = 'none';
-        });
+        // 2. 页面内容交换完成（DOM 已更新）——@swup/astro 把 content:replace 派发成 astro:after-swap
+        document.addEventListener('astro:after-swap', hideLoadingOverlay);
 
-        // 3. 兜底方案：页面完全加载完成（包括资源）
+        // 3. 兜底方案：本次访问收尾（page:view -> astro:page-load）
         document.addEventListener('astro:page-load', () => {
-            clearTimeout(loaderTimeout);
-            const overlay = document.getElementById('loading-overlay');
-            if (overlay) overlay.style.display = 'none';
-            // 滚动位置已经恢复完毕，把平滑滚动交还给 CSS（见 before-swap 的说明）
-            document.documentElement.style.scrollBehavior = '';
+            hideLoadingOverlay();
+            // 内容变高后（图片等）再补一次：after-swap 那一刻可能还没到目标位置
+            if (pendingScrollY !== null) {
+                const y = pendingScrollY;
+                pendingScrollY = null;
+                if (Math.abs(window.scrollY - y) > 4) window.scrollTo(0, y);
+            }
+            // 滚动位置恢复完毕，把平滑滚动交还给 CSS（见 before-swap 的说明）。
+            //
+            // ⚠️ 必须晚两帧，不能在这里同步复位：swup 的 ScrollPlugin 是用
+            // requestAnimationFrame 延后执行「回顶部」的，而 astro:page-load 由 page:view
+            // 派发、紧接着 content:scroll 就到了——同一帧里同步复位，插件那次
+            // window.scrollTo(0, 0) 就会带着 CSS 的 scroll-behavior: smooth 执行，
+            // 「瞬时回顶」变成一段几百毫秒的滚动动画（还会跟用户自己的滚动打架）。
+            // 双 rAF：插件先注册、先执行，这里保证它跑完再交还。
+            requestAnimationFrame(() => requestAnimationFrame(() => {
+                document.documentElement.style.scrollBehavior = '';
+            }));
+        });
+
+        // 4. 统计：swup 不会整页刷新，umami 的自动 PV 统计不会触发，这里补一次。
+        //    astro:page-load 只在真实访问时派发（首屏不派发），所以首屏不会重复计数。
+        document.addEventListener('astro:page-load', () => {
+            const url = window.location.pathname + window.location.search;
+            if (window.__momoUmamiUrl === url) return;
+            window.__momoUmamiUrl = url;
+            window.umami?.track?.();
         });
     </script>
 </head>
@@ -286,7 +367,8 @@ const aosBodyAttrs = siteConfig.theme.AOS
   }
 
   /* 页内锚点（脚注、目录）依赖这里的平滑滚动。
-     前进/后退时的滚动恢复由 ClientRouter 接管，并在 before-swap 里临时切成 auto，不受影响。 */
+     换页时的滚动由 swup 的 scroll 插件接管（新页面回顶部、前后退交给浏览器恢复），
+     并在 before-swap 里临时切成 auto，不受这里的平滑滚动影响。 */
   html {
     scroll-behavior: smooth;
   }
@@ -296,6 +378,7 @@ const aosBodyAttrs = siteConfig.theme.AOS
 <script>
   import AOS from 'aos';
   import 'aos/dist/aos.css';
+  import { registerPageInit } from '@utils/pageInit';
 
   function initApp() {
     // AOS 的 init() 每次调用都会往 window 上新增 resize / orientationchange / scroll
@@ -342,8 +425,7 @@ const aosBodyAttrs = siteConfig.theme.AOS
     AOS.refreshHard();
   }
 
-  document.addEventListener('astro:page-load', initApp);
-  // document.addEventListener('astro:after-swap', initApp);
-
+  // 首屏 + 每次换页（swup 下首屏不会有 astro:page-load，见 @utils/pageInit）
+  registerPageInit(initApp);
 </script>
 }

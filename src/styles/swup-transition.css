@@ -1,0 +1,35 @@
+/*
+ * 客户端换页过渡（swup）
+ *
+ * 1. 类名前缀是 transition-swup-（见 astro.config.mjs 的 animationClass）。
+ *    默认前缀 transition- 会命中 Tailwind 的 transition-all / transition-colors，
+ *    swup 会把这些元素的过渡时长当成「页面过渡」来等，每次跳转都被拖慢。
+ * 2. 只做 opacity，不做 transform / filter：这类属性会让元素成为 fixed 子元素的
+ *    包含块。FabMenu 与移动端目录面板都是 fixed 定位，一旦包含块被改掉就会跳位。
+ *    同理，带 fixed 浮层的 TOC / FabMenu 被放在这个淡入淡出元素之外
+ *    （见 MainPageLayout.astro 的 #swup-container 结构）。
+ * 3. 时长 200ms 必须真的存在：swup 靠计算样式读 transition-duration 来决定
+ *    「等过渡结束」要等多久，读不到会在控制台告警。
+ */
+html.is-changing .transition-swup-fade {
+  transition: opacity 200ms ease;
+}
+
+html.is-animating .transition-swup-fade {
+  opacity: 0;
+}
+
+/* 系统/用户要求减弱动画时几乎即时切换。
+   这里不用 transition: none —— 那会让 swup 读不到时长并打印告警，
+   0.01ms 依然会触发 transitionend，只是肉眼不可见。 */
+@media (prefers-reduced-motion: reduce) {
+  html.is-changing .transition-swup-fade {
+    transition-duration: 0.01ms;
+  }
+}
+
+/* swup 的无障碍插件换页后会把焦点移到容器上（preventScroll），
+   容器上的焦点圈没有必要显示 */
+#swup-container {
+  outline: none;
+}

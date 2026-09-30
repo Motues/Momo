@@ -29,6 +29,17 @@
 
 > 版本号采用 `YY.MM.DD` 的格式
 
+### 26.9.30
+
+* **客户端路由改用 [swup](https://swup.js.org/)（替代 Astro 的 View Transitions）**：站内跳转不再整页刷新，保留原来的淡入淡出观感，并新增悬停预取与「前进/后退的滚动位置恢复」（按历史条目自己记录，比浏览器原生恢复更准）。`<ClientRouter />` 与 `transition:persist` 都已移除；禁用 JS 时依旧按普通链接整页跳转（渐进增强）
+* **页面结构**：正文放进唯一的替换容器 `main#swup-container`；顶栏 / 页脚 / 搜索弹窗移到容器之外（换页不重建，替代原来的 `transition:persist`）；TOC 与悬浮菜单（FabMenu）留在容器内、但在淡入淡出元素之外 —— 否则容器 `opacity < 1` 时会成为 `position: fixed` 后代的包含块，过渡那 200ms 里它们会整体跳位
+* 新增 `src/utils/pageInit.ts`：统一「首屏 + 每次换页」的初始化入口 `registerPageInit()`。swup 下**首屏不会派发 `astro:page-load`**，只挂该事件的初始化（语言菜单、搜索、主题、抽屉、灯箱、剧透、TOC 等）在首屏会全部失效
+* **语言同步不再依赖 `<html lang>`**：新增 `src/utils/locale.ts`，当前语言一律从地址推导；顶栏在容器外不重建，它的语言菜单、logo、导航链接、导航文案与选中态都在每次换页后按地址重算
+* 换页时自动收起移动端抽屉与搜索弹窗（它们在容器外不会重建，以前靠整页替换复位）；`ArchivePanel` 的 `history.replaceState` 改为保留已有 state（传 `{}` 会清掉 swup 的历史标记，导致浏览器后退完全失效）
+* 内联脚本按需加 `data-swup-ignore-script` 豁免重放；rehype 注入的 GitHub / 音乐卡片脚本改为「每次执行只跑一遍 + `await` 之后判空」，不再监听 `astro:page-load`（避免监听器与指向旧节点的闭包累积，同时修掉换页后写空节点的控制台告警）
+* 本次**没有新增配置项**，`src/config.ts` 无需改动。会被覆盖的配置文件与代码：`astro.config.mjs`（新增 `@swup/astro` 集成、移除 Astro 自带的 `prefetch`）、`package.json`（新增 `@swup/astro` 依赖）、`src/layouts/Layout.astro`、`src/layouts/MainPageLayout.astro`、`src/components/Header.astro`、`src/components/misc/Search.astro`、`src/components/misc/Markdown.astro`、`src/components/misc/ImageLightbox.astro`、`src/components/control/FabMenu.astro`、`src/components/control/ThemeIcon.astro`、`src/components/comment/thirdparty/twikoo.astro`、`src/components/ArchivePanel.svelte`、`src/plugins/rehype-component-github-card.ts`、`src/plugins/rehype-component-music-card.ts`，以及 `src/pages/[...locale]/` 下用到 TOC / FabMenu 的 4 个页面。新增文件：`src/styles/swup-transition.css`、`src/utils/pageInit.ts`、`src/utils/locale.ts`。**没有文件被删除**
+* 依赖由 `pnpm momo update` 自动安装（默认执行 `pnpm install`）。如果你改过 `Header.astro`、`MainPageLayout.astro` 或文章页里 TOC / FabMenu 的位置，更新后需要手工合并；建议先 `pnpm momo update --dry-run` 预览变更，出问题用 `pnpm momo restore` 回滚
+
 ### 26.9.29
 
 * 新增**新标签页链接语法**：在链接后面紧跟 `{target="_blank"}` 即在新标签页打开，并在链接后面追加一个右上箭头图标；只识别 `target` / `rel` / `class` 三个属性，`rel` 始终保留 `noopener` / `noreferrer`，链接里只有图片时不加图标

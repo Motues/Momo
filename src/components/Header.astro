@@ -43,6 +43,15 @@ const archivesPage = getRelativeLocaleUrl(currentLang, "/archives/");
 const friendsPage = getRelativeLocaleUrl(currentLang, "/friends/");
 const aboutPage = getRelativeLocaleUrl(currentLang, "/about/");
 
+// 顶栏在 swup 容器之外，换页 / 换语言都不会重建：文案与链接只能由脚本按当前语言重算
+// （见脚本里的 syncPersistedHeader）。这里把每种语言的文案一起渲染进 data 属性。
+const localeCodes: string[] = (i18n?.locales ?? [currentLang]).map((l) =>
+  typeof l === 'string' ? l : l.path,
+);
+/** 生成「语言 -> 文案」映射，供 data-i18n-labels 使用（客户端按当前语言查表） */
+const i18nLabels = (key: string) =>
+  Object.fromEntries(localeCodes.map((code) => [code, i18nit(code)(key)]));
+
 // 当前页判定：桌面端顶栏与移动端侧边栏共用同一套逻辑。
 // 统一去掉末尾斜杠再比较，/archives 与 /archives/ 都能算作当前页。
 const normalizePath = (path: string) => {
@@ -70,10 +79,7 @@ if (profileConfig.indexPage) {
 ---
 
 <!-- header -->
-<!-- transition:persist：客户端跳转时复用同一个顶栏，避免重建带来的跳动与毛玻璃重绘。
-     顶栏里唯一随页面变化的是语言切换链接与语言高亮，由下面的 syncPersistedHeader 在
-     astro:page-load 时按当前地址重算。 -->
-<div id="main-header" transition:persist class="fixed top-0 left-0 right-0 z-50 transition-transform duration-300 ease-in-out md:relative md:translate-y-0">
+<div id="main-header" data-pagefind-script={baseUrl('/pagefind/pagefind.js')} class="fixed top-0 left-0 right-0 z-50 transition-transform duration-300 ease-in-out md:relative md:translate-y-0">
 <div class="flex items-center pt-2 md:py-4 text-[var(--text-color)] max-w-[var(--header-width)] mx-auto">
     <!-- logo -->
     <div class="pr-4 py-2 z-30 header-logo">
@@ -130,36 +136,36 @@ if (profileConfig.indexPage) {
     <div id="nav-bar" class="hidden md:flex absolute left-1/2 top-0 transform -translate-x-1/2  justify-center items-center text-lg font-bold my-5 z-100">
         <div id="nav-bar-list" class="transition relative z-10 flex max-w-max flex-1 items-center justify-center rounded-outer p-2 backdrop-blur rounded-xl bg-[color:var(--bg-color)]/20 border border-[var(--bg-color)]">
           <!-- 首页链接 -->
-          <a href={ indexPage } class={`transition-colors rounded-lg px-3 py-1 mx-1 hover:text-current ${
+          <a href={ indexPage } data-i18n-path="/" data-i18n-labels={JSON.stringify(i18nLabels("header.home"))} class={`transition-colors rounded-lg px-3 py-1 mx-1 hover:text-current ${
               isCurrentPage(indexPage)
                   ? 'bg-[var(--button-hover-color)]' 
                   : 'hover:bg-[var(--button-hover-color)]'
               }`}>
-              {t("header.home")}
+              <span data-i18n-text>{t("header.home")}</span>
           </a>
           <!-- 归档链接 -->
-          <a href={ archivesPage } class={`transition-colors rounded-lg px-3 py-1 mx-1 hover:text-current ${
+          <a href={ archivesPage } data-i18n-path="/archives/" data-i18n-labels={JSON.stringify(i18nLabels("header.archive"))} class={`transition-colors rounded-lg px-3 py-1 mx-1 hover:text-current ${
               isCurrentPage(archivesPage)
                   ? 'bg-[var(--button-hover-color)]' 
                   : 'hover:bg-[var(--button-hover-color)]'
               }`}>
-              {t("header.archive")}
+              <span data-i18n-text>{t("header.archive")}</span>
           </a>
           <!-- 关于链接 -->
-          <a href={ aboutPage } class={`transition-colors rounded-lg px-3 py-1 mx-1 hover:text-current ${
+          <a href={ aboutPage } data-i18n-path="/about/" data-i18n-labels={JSON.stringify(i18nLabels("header.about"))} class={`transition-colors rounded-lg px-3 py-1 mx-1 hover:text-current ${
               isCurrentPage(aboutPage)
                   ? 'bg-[var(--button-hover-color)]' 
                   : 'hover:bg-[var(--button-hover-color)]'
               }`}>
-              {t("header.about")}
+              <span data-i18n-text>{t("header.about")}</span>
           </a>
           <!-- 友链链接 -->
-          <a href={ friendsPage } class={`transition-colors rounded-lg px-3 py-1 mx-1 hover:text-current ${
+          <a href={ friendsPage } data-i18n-path="/friends/" data-i18n-labels={JSON.stringify(i18nLabels("header.friends"))} class={`transition-colors rounded-lg px-3 py-1 mx-1 hover:text-current ${
               isCurrentPage(friendsPage)
                   ? 'bg-[var(--button-hover-color)]' 
                   : 'hover:bg-[var(--button-hover-color)]'
               }`}>
-              {t("header.friends")}
+              <span data-i18n-text>{t("header.friends")}</span>
           </a>
         </div>
     </div>
@@ -179,21 +185,21 @@ if (profileConfig.indexPage) {
         </div>
 
         <nav class="flex flex-col py-4 px-2">
-            <a href={ indexPage } class={mobileNavLinkClass(indexPage)}>
+            <a href={ indexPage } data-i18n-path="/" data-i18n-labels={JSON.stringify(i18nLabels("header.home"))} class={mobileNavLinkClass(indexPage)}>
                 <Icon name="fa6-solid:house" class="w-4 h-4 opacity-70" />
-                <span>{t("header.home")}</span>
+                <span data-i18n-text>{t("header.home")}</span>
             </a>
-            <a href={ archivesPage } class={mobileNavLinkClass(archivesPage)}>
+            <a href={ archivesPage } data-i18n-path="/archives/" data-i18n-labels={JSON.stringify(i18nLabels("header.archive"))} class={mobileNavLinkClass(archivesPage)}>
                 <Icon name="fa6-solid:book-bookmark" class="w-4 h-4 opacity-70" />
-                <span>{t("header.archive")}</span>
+                <span data-i18n-text>{t("header.archive")}</span>
             </a>
-            <a href={ aboutPage } class={mobileNavLinkClass(aboutPage)}>
+            <a href={ aboutPage } data-i18n-path="/about/" data-i18n-labels={JSON.stringify(i18nLabels("header.about"))} class={mobileNavLinkClass(aboutPage)}>
                 <Icon name="fa6-solid:user" class="w-4 h-4 opacity-70" />
-                <span>{t("header.about")}</span>
+                <span data-i18n-text>{t("header.about")}</span>
             </a>
-            <a href={ friendsPage } class={mobileNavLinkClass(friendsPage)}>
+            <a href={ friendsPage } data-i18n-path="/friends/" data-i18n-labels={JSON.stringify(i18nLabels("header.friends"))} class={mobileNavLinkClass(friendsPage)}>
                 <Icon name="fa6-solid:link" class="w-4 h-4 opacity-70" />
-                <span>{t("header.friends")}</span>
+                <span data-i18n-text>{t("header.friends")}</span>
             </a>
         </nav>
 
@@ -202,10 +208,10 @@ if (profileConfig.indexPage) {
         <div class="mt-2">
         <div class="w-[90%] mx-auto border-t border-[var(--button-border-color)]"></div>
         <div class="px-2 pt-1 pb-3">
-            <button id="mobile-category-toggle" aria-expanded="false" class="w-full flex items-center justify-between gap-3 px-4 py-3 rounded-lg hover:bg-[var(--button-hover-color)] transition-colors">
+            <button id="mobile-category-toggle" aria-expanded="false" data-i18n-labels={JSON.stringify(i18nLabels("category"))} class="w-full flex items-center justify-between gap-3 px-4 py-3 rounded-lg hover:bg-[var(--button-hover-color)] transition-colors">
                 <span class="flex items-center gap-3 text-[var(--text-color)]">
                     <Icon name="fa6-solid:tags" class="w-4 h-4 opacity-70" />
-                    <span>{t("category")}</span>
+                    <span data-i18n-text>{t("category")}</span>
                 </span>
                 <Icon id="mobile-category-chevron" name="fa6-solid:chevron-down" class="w-4 h-4 opacity-70 transition-transform duration-300" />
             </button>
@@ -221,9 +227,10 @@ if (profileConfig.indexPage) {
                                 data-category={value}
                                 aria-current="false"
                                 href={getRelativeLocaleUrl(currentLang, `/archives/?category=${encodeURIComponent(value)}`)}
+                                data-i18n-labels={value === 'undefined' ? JSON.stringify(i18nLabels("pagecard.uncategorized")) : undefined}
                                 class="inline-flex items-center px-3 py-1.5 text-sm rounded-md border border-[var(--button-border-color)] text-[var(--text-color)] transition duration-200 hover:border-[var(--link-color)] hover:bg-[var(--button-hover-color)] active:bg-[var(--button-hover-color)] active:text-[var(--link-color)] active:scale-95"
                             >
-                                {cat === 'undefined' ? t("pagecard.uncategorized") : cat}
+                                <span data-i18n-text>{cat === 'undefined' ? t("pagecard.uncategorized") : cat}</span>
                             </a>
                         </li>
                         );
@@ -291,7 +298,12 @@ if (profileConfig.indexPage) {
 </style>
 
 <script>
-// 客户端换页时本脚本会重新执行、而 DOM 大多是新的：
+import { registerPageInit } from '@utils/pageInit';
+import { currentLangFromUrl, DEFAULT_LOCALE, LOCALES, syncDocumentLang } from '@utils/locale';
+import { getRelativeLocaleUrl } from '@utils/urlUtils';
+
+// 客户端换页时本脚本只会被执行一次（Astro 产出的是带 src 的 module，模块表去重）；
+// 但每次换页都要重新初始化：统一挂在 registerPageInit（首屏 + 每次 astro:page-load）。
 // 元素级监听一律用 onclick = 赋值（天然幂等），挂在 window / document 上的
 // 监听则存进全局注册表，初始化时先解绑旧的，避免监听器成倍累积。
 function initMobileNav() {
@@ -331,7 +343,7 @@ function initMobileNav() {
     }, 300);
   }
 
-  // 注意：菜单按钮位于 transition:persist 的顶栏里，必须用 onclick 赋值避免重复绑定
+  // 注意：菜单按钮在 swup 容器外的顶栏里、不会被重建，用 onclick 赋值避免重复绑定
   menuButton.onclick = openMenu;
   if (closeButton) closeButton.onclick = closeMenu;
   if (overlay) overlay.onclick = closeMenu;
@@ -379,17 +391,22 @@ function initMobileNav() {
 
   window.addEventListener('scroll', onScroll, { passive: true });
 
+  // 换页开始时收掉抽屉：顶栏在 swup 容器外不会重建，以前靠「整页替换」复位；
+  // 抽屉开着时 body 的滚动还是锁住的，不复位会把新页面一起锁住。
+  const onVisitStart = () => closeMenu();
+  document.addEventListener('swup:visit:start', onVisitStart);
+
   window.__momoMobileNav = {
     cleanup() {
       clearTimeout(closeTimer);
       window.removeEventListener('scroll', onScroll);
+      document.removeEventListener('swup:visit:start', onVisitStart);
     },
   };
 }
 
-// astro:page-load 在首次加载时也会触发，所以不需要再单独监听 DOMContentLoaded
-//（之前两处都注册，导致首屏就绑定了两份监听）
-document.addEventListener('astro:page-load', initMobileNav);
+// 顶栏在 swup 容器之外不会重建：首屏 + 每次换页都要重新绑定（registerPageInit）
+registerPageInit(initMobileNav);
 
 function initCategoryAccordion() {
   const toggle = document.getElementById('mobile-category-toggle');
@@ -409,7 +426,7 @@ function initCategoryAccordion() {
     toggle.setAttribute('aria-expanded', String(collapsed));
   };
 }
-document.addEventListener('astro:page-load', initCategoryAccordion);
+registerPageInit(initCategoryAccordion);
 
 /**
  * 移动端侧边栏的分类筛选（与归档页的地址参数保持同步）。
@@ -422,7 +439,10 @@ function syncMobileCategoryFilter() {
   const list = document.getElementById('mobile-category-list');
   if (!list) return;
 
-  const archives = list.dataset.archives || '/archives/';
+  // 归档页地址按「当前地址推导出的语言」重算：顶栏不重建，语言切换后
+  // 服务端渲染的那份 data-archives 会停留在落地页的语言上
+  const archives = getRelativeLocaleUrl(currentLangFromUrl(), '/archives/');
+  list.dataset.archives = archives;
   const selected = (new URLSearchParams(window.location.search).get('category') ?? '')
     .split(',')
     .filter(Boolean);
@@ -441,7 +461,7 @@ function syncMobileCategoryFilter() {
 }
 
 function initMobileCategoryFilter() {
-  // 侧边栏每个页面都会重建，但 window 上的监听必须解绑，避免成倍累积
+  // 侧边栏在容器外不会重建，挂在 window 上的监听仍要先解绑，避免成倍累积
   window.__momoMobileCategory?.cleanup?.();
 
   const onResize = () => syncMobileCategoryFilter();
@@ -454,47 +474,106 @@ function initMobileCategoryFilter() {
 
   syncMobileCategoryFilter();
 }
-document.addEventListener('astro:page-load', initMobileCategoryFilter);
+registerPageInit(initMobileCategoryFilter);
 
-// 顶栏是 transition:persist 的：页面切换后它的 DOM 不会更新，
-// 需要按当前地址重算语言切换链接与选中态（logo 链接同理）。
-function syncPersistedHeader() {
-  const menu = document.getElementById('language-menu');
-  if (!menu) return;
-
-  const defaultLocale = menu.dataset.defaultLocale || 'zh-cn';
-  const pathname = window.location.pathname;
-  // 从 <html lang> 反推当前语言（zh-CN -> zh-cn / en -> en）
-  const currentLang = (document.documentElement.lang || defaultLocale)
-    .toLowerCase()
-    .replace('_', '-');
-  const locales = ['zh-cn', 'en'].filter((code) => menu.querySelector(`[data-lang="${code}"]`));
-
-  // 去掉当前语言前缀，得到与语言无关的路径
-  let basePath = pathname;
-  const matched = locales
-    .filter((code) => code !== defaultLocale)
+/** 去掉语言前缀，得到与语言无关的路径（/en/friends/ -> /friends/） */
+function withoutLocalePrefix(pathname) {
+  const matched = LOCALES
+    .filter((code) => code !== DEFAULT_LOCALE)
     .find((code) => pathname === `/${code}` || pathname.startsWith(`/${code}/`));
-  if (matched) basePath = pathname.slice(matched.length + 1) || '/';
-  if (!basePath.startsWith('/')) basePath = `/${basePath}`;
-
-  menu.querySelectorAll('.lang-option').forEach((link) => {
-    const lang = link.dataset.lang;
-    const target = lang === defaultLocale ? basePath : `/${lang}${basePath}`;
-    link.setAttribute('href', target);
-    const isActive = lang === currentLang;
-    link.classList.toggle('bg-[var(--button-hover-color)]', isActive);
-    link.classList.toggle('hover:bg-[var(--button-hover-color)]', !isActive);
-    link.querySelector('.lang-dot')?.classList.toggle('hidden', !isActive);
-  });
-
-  // logo 指向当前语言的首页
-  const home = currentLang === defaultLocale ? '/' : `/${currentLang}/`;
-  document.querySelector('#main-header .header-logo a')?.setAttribute('href', home);
+  // ⚠️ 前缀长度要算上开头那个斜杠：'/en/friends/'.slice(2) 是 'n/friends/'（错），
+  // slice(3) 才是 '/friends/'。少算这一位会让换语言后落到 /n/... 这种 404 地址上。
+  const rest = matched ? pathname.slice(matched.length + 1) : pathname;
+  return rest.startsWith('/') ? rest : `/${rest}`;
 }
 
-// 只在顶栏被持久化复用时需要同步；首次加载时服务端渲染的就是对的
-document.addEventListener('astro:page-load', syncPersistedHeader);
+/** 比较路径时忽略末尾斜杠：/archives 与 /archives/ 视为同一页 */
+const normalizePath = (path) => {
+  const value = String(path || '/');
+  return value.length > 1 ? value.replace(/\/+$/, '') : value;
+};
+
+/**
+ * 顶栏在 swup 的替换容器之外 —— 换页与换语言都不会重建它的 DOM，
+ * 所以凡是「跟着当前地址变」的东西都要在这里按地址重算：
+ *   1. 语言菜单的链接与高亮（语言一律从地址推导，不依赖 <html lang>）
+ *   2. logo 链接
+ *   3. 导航链接 / 文案 / 选中态（data-i18n-path / data-i18n-labels / data-i18n-text）
+ * 由 registerPageInit 注册：首屏也要跑一次（swup 下首屏没有 astro:page-load）。
+ */
+function syncPersistedHeader() {
+  const pathname = window.location.pathname;
+  const currentLang = currentLangFromUrl(pathname);
+  // <html lang> 与地址不一致时以地址为准（swup 的 head 插件是「顺带」同步，不是真源）
+  syncDocumentLang();
+
+  // 1. 语言菜单：每个选项指向当前页面对应的语言版本，并高亮当前语言
+  const menu = document.getElementById('language-menu');
+  if (menu) {
+    const basePath = withoutLocalePrefix(pathname);
+    menu.querySelectorAll('.lang-option').forEach((link) => {
+      const lang = link.dataset.lang;
+      link.setAttribute('href', getRelativeLocaleUrl(lang, basePath));
+      const isActive = lang === currentLang;
+      link.classList.toggle('bg-[var(--button-hover-color)]', isActive);
+      link.classList.toggle('hover:bg-[var(--button-hover-color)]', !isActive);
+      link.querySelector('.lang-dot')?.classList.toggle('hidden', !isActive);
+    });
+  }
+
+  // 2. logo 指向当前语言的首页
+  document
+    .querySelector('#main-header .header-logo a')
+    ?.setAttribute('href', getRelativeLocaleUrl(currentLang, '/'));
+
+  // 3. 导航链接（桌面端顶栏 + 移动端抽屉共用同一套 data 标记）
+  document.querySelectorAll('[data-i18n-path]').forEach((link) => {
+    link.setAttribute('href', getRelativeLocaleUrl(currentLang, link.getAttribute('data-i18n-path') || '/'));
+  });
+
+  // 4. 导航文案：每种语言的文案在构建时都渲染进了 data-i18n-labels，这里按当前语言取用
+  document.querySelectorAll('[data-i18n-labels]').forEach((el) => {
+    const raw = el.getAttribute('data-i18n-labels');
+    if (!raw) return;
+    let labels;
+    try {
+      labels = JSON.parse(raw);
+    } catch {
+      return;
+    }
+    const text = labels?.[currentLang];
+    if (typeof text === 'string') {
+      el.querySelector('[data-i18n-text]')?.replaceChildren(document.createTextNode(text));
+    }
+  });
+
+  // 5. 导航选中态：服务端渲染时是落地页的判定，换页后必须重算
+  const here = normalizePath(pathname);
+  const isActiveLink = (link) => {
+    const href = link.getAttribute('href');
+    if (!href) return false;
+    return normalizePath(new URL(href, window.location.origin).pathname) === here;
+  };
+  // 桌面端顶栏：选中项只加底色
+  document.querySelectorAll('#nav-bar [data-i18n-path]').forEach((link) => {
+    const active = isActiveLink(link);
+    link.classList.toggle('bg-[var(--button-hover-color)]', active);
+    link.classList.toggle('hover:bg-[var(--button-hover-color)]', !active);
+  });
+  // 移动端抽屉：选中项是「底色 + 主题色文字」（与 mobileNavLinkClass 保持一致）
+  document.querySelectorAll('#mobile-menu-drawer [data-i18n-path]').forEach((link) => {
+    const active = isActiveLink(link);
+    link.classList.toggle('bg-[var(--button-hover-color)]', active);
+    link.classList.toggle('text-[var(--link-color)]', active);
+    link.classList.toggle('hover:bg-[var(--button-hover-color)]', !active);
+    link.classList.toggle('hover:text-[var(--link-color)]', !active);
+  });
+
+  // 6. 移动端分类筛选的选中态与链接（含当前语言前缀）
+  syncMobileCategoryFilter();
+}
+
+registerPageInit(syncPersistedHeader);
 
 function initLanguageMenu() {
   const languageButton = document.getElementById('language-button');
@@ -504,7 +583,7 @@ function initLanguageMenu() {
 
   window.__momoLanguageMenu?.cleanup?.();
 
-  // 顶栏是 persist 的，同一元素会被多次初始化，必须用 onclick 赋值
+  // 顶栏在容器外不会重建，同一元素会被多次初始化，必须用 onclick 赋值
   languageButton.onclick = (e) => {
     e.stopPropagation();
     languageMenu.classList.toggle('hidden');
@@ -518,19 +597,24 @@ function initLanguageMenu() {
   };
   document.addEventListener('click', onDocumentClick);
 
+  // 换页开始时收掉语言菜单（顶栏不重建，以前靠整页替换复位）
+  const onVisitStart = () => languageMenu.classList.add('hidden');
+  document.addEventListener('swup:visit:start', onVisitStart);
+
   window.__momoLanguageMenu = {
     cleanup() {
       document.removeEventListener('click', onDocumentClick);
+      document.removeEventListener('swup:visit:start', onVisitStart);
     },
   };
 }
-document.addEventListener('astro:page-load', initLanguageMenu);
+registerPageInit(initLanguageMenu);
 
 function initHeaderScroll() {
   const header = document.getElementById('main-header');
   if (!header) return;
 
-  // 顶栏 persist 后不会重建，所以必须先解绑上一次的滚动回调。
+  // 顶栏在容器外不会重建，但初始化会反复执行，必须先解绑上一次的滚动回调。
   // 原实现每次新建 onScroll 闭包再 removeEventListener，移除的是从未绑定过的函数，等于没解绑。
   window.__momoHeaderScroll?.cleanup?.();
 
@@ -574,12 +658,19 @@ function initHeaderScroll() {
   };
 }
 
-document.addEventListener('astro:page-load', initHeaderScroll);
+registerPageInit(initHeaderScroll);
 </script>
 
 
 {import.meta.env.PROD && 
-<script is:inline define:vars={{ scriptUrl: baseUrl('/pagefind/pagefind.js') }}>
+<script is:inline data-swup-ignore-script>
+// ⚠️ 不要用 define:vars 往这个脚本里注入变量：Astro 会丢掉 define:vars 内联脚本上的
+// 其它属性（包括 data-swup-ignore-script），于是 swup 每次换页都会把它重放一遍，
+// 挂在 document 上的监听器就会成倍累积。需要构建期的值就放到元素的 data-* 上（见 #main-header）。
+function pagefindScriptUrl() {
+  return document.getElementById('main-header')?.getAttribute('data-pagefind-script') || '/pagefind/pagefind.js';
+}
+
 async function loadAndSearch(options) {
   const quiet = options?.quiet === true;
 
@@ -593,7 +684,7 @@ async function loadAndSearch(options) {
 
   try {
     // 动态导入脚本
-    const pagefind = await import(scriptUrl);
+    const pagefind = await import(pagefindScriptUrl());
     await pagefind.options({ excerptLength: 20 });
     window.pagefind = pagefind;
     
@@ -609,7 +700,7 @@ async function loadAndSearch(options) {
 }
 
 // 2. 绑定到搜索按钮
-// 顶栏是 persist 的，用 dataset 守卫避免同一按钮被重复绑定
+// 顶栏在 swup 容器外、脚本只执行一次，用 dataset 守卫避免重复绑定
 function attachSearchListener() {
   const btn = document.getElementById('search-button');
   if (btn && btn.dataset.searchBound !== 'true') {
@@ -618,7 +709,9 @@ function attachSearchListener() {
   }
 }
 
-// 兼容 Astro 的 View Transitions
+// swup 下首屏不会派发 astro:page-load，所以这里直接先跑一次；
+// 监听 astro:page-load 只是兜底（顶栏万一被重建也能重新绑定）。
+attachSearchListener();
 document.addEventListener('astro:page-load', attachSearchListener);
 
 // 3. 空闲时预取索引：首次点击搜索不再有几百毫秒空窗。
@@ -639,6 +732,9 @@ function prefetchPagefind() {
   }
 }
 
+// 首屏直接预取一次（swup 下首屏没有 astro:page-load），换页时由监听兜底
+//（__momoPagefindPrefetched 保证整个会话只预取一次）
+prefetchPagefind();
 document.addEventListener('astro:page-load', prefetchPagefind);
 </script>
 }

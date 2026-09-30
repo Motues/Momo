@@ -173,9 +173,13 @@ const postJsonLd = articleJsonLd({
             <Twikoo postSlug={entry.data.slugId} language={currentLang} envId={siteConfig.comments.backendUrl}/>
         }
     </div>
-    {
-        siteConfig.toc.enable &&
-        <TOC headings={headings} language={currentLang} client:load/>
-    }
-    <FabMenu headings={headings} showComment={siteConfig.comments.enable} showBackBottom={!siteConfig.comments.enable}/>
+    <!-- fixed 浮层：留在 swup 容器内，但在淡入淡出元素之外（见 MainPageLayout 的说明）。
+         这里不能用 <Fragment slot="overlay">：包一层普通 div 不会影响 fixed 定位。 -->
+    <div slot="overlay">
+        {
+            siteConfig.toc.enable &&
+            <TOC headings={headings} language={currentLang} client:load/>
+        }
+        <FabMenu headings={headings} showComment={siteConfig.comments.enable} showBackBottom={!siteConfig.comments.enable}/>
+    </div>
 </MainPageLayout>

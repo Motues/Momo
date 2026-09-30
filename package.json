@@ -1,7 +1,7 @@
 {
   "name": "momo",
   "type": "module",
-  "version": "26.9.29",
+  "version": "26.9.30",
   "scripts": {
     "dev": "astro dev",
     "build": "astro build && pagefind --site dist",
@@ -23,6 +23,7 @@
     "@iconify/svelte": "^5.2.1",
     "@myriaddreamin/typst-ts-node-compiler": "0.7.0-rc2",
     "@myriaddreamin/typst.ts": "0.7.0-rc2",
+    "@swup/astro": "^1.8.0",
     "@tailwindcss/vite": "^4.1.13",
     "aos": "^2.3.4",
     "astro": "^7.2.1",

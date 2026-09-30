@@ -27,11 +27,12 @@ const className = Astro.props.class;
 </button>
 
 
-<script is:inline>
+<script>
+import { registerPageInit } from '@utils/pageInit';
 
 if (typeof window !== 'undefined') {
   
-  // 统一放在 window 上：内联脚本每次换页都会重新执行，
+  // 统一放在 window 上：顶栏在 swup 容器外不会重建，但初始化每次换页都会重跑，
   // 用块级变量会丢掉上一次的定时器与监听器引用。
   window.__momoTheme = window.__momoTheme || { toastTimer: null };
 
@@ -107,7 +108,7 @@ if (typeof window !== 'undefined') {
       }
     };
 
-    // 顶栏是 transition:persist 的，本函数会被反复调用：
+    // 顶栏在 swup 容器外不会重建，本函数会被反复调用：
     // 必须保留上一次的函数引用才能真正解绑（旧实现 remove 的是新建函数，从未生效）
     const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
     if (window.__momoTheme.mediaQuery && window.__momoTheme.onSystemThemeChange) {
@@ -132,7 +133,8 @@ if (typeof window !== 'undefined') {
     setTheme(getTheme(), true);
   }
 
-  document.addEventListener('astro:page-load', initThemeToggle);
+  // 首屏 + 每次换页（swup 下首屏不会有 astro:page-load，见 @utils/pageInit）
+  registerPageInit(initThemeToggle);
 }
 </script>
 

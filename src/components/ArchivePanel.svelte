@@ -120,7 +120,7 @@
     } else {
       url.searchParams.delete('category');
     }
-    window.history.replaceState({}, '', url);
+    window.history.replaceState({ ...window.history.state, url: url.pathname + url.search }, '', url);
   }
 
 </script>

@@ -49,7 +49,6 @@ export function GithubCardComponent(
         (function() {
             const fetchCardData = () => {
                 const card = document.getElementById('${cardUuid}-card');
-                // 卡片不存在或已加载过就跳过（astro:page-load 会重复触发）
                 if (!card || card.dataset.loaded === "true") return;
 
                 fetch('https://api.github.com/repos/${repo}', { referrerPolicy: "no-referrer" })
@@ -57,17 +56,26 @@ export function GithubCardComponent(
                     .then(data => {
                         if (data.message === "Not Found") throw new Error("Repo not found");
 
-                        document.getElementById('${cardUuid}-description').innerText = data.description?.replace(/:[a-zA-Z0-9_]+:/g, '') || "Description not set";
-                        document.getElementById('${cardUuid}-language').innerText = data.language || "Unknown";
+                        if (!card.isConnected) return;
+
+                        const setText = (id, text) => {
+                            const el = document.getElementById(id);
+                            if (el) el.innerText = text;
+                        };
+
+                        setText('${cardUuid}-description', data.description?.replace(/:[a-zA-Z0-9_]+:/g, '') || "Description not set");
+                        setText('${cardUuid}-language', data.language || "Unknown");
 
                         const fmt = Intl.NumberFormat('en-us', { notation: "compact", maximumFractionDigits: 1 });
-                        document.getElementById('${cardUuid}-forks').innerText = fmt.format(data.forks).replaceAll("\u202f", '');
-                        document.getElementById('${cardUuid}-stars').innerText = fmt.format(data.stargazers_count).replaceAll("\u202f", '');
-                        document.getElementById('${cardUuid}-license').innerText = data.license?.spdx_id || "No License";
+                        setText('${cardUuid}-forks', fmt.format(data.forks).replaceAll("\u202f", ''));
+                        setText('${cardUuid}-stars', fmt.format(data.stargazers_count).replaceAll("\u202f", ''));
+                        setText('${cardUuid}-license', data.license?.spdx_id || "No License");
 
                         const avatarEl = document.getElementById('${cardUuid}-avatar');
-                        avatarEl.style.backgroundImage = 'url(' + data.owner.avatar_url + ')';
-                        avatarEl.style.backgroundColor = 'transparent';
+                        if (avatarEl) {
+                            avatarEl.style.backgroundImage = 'url(' + data.owner.avatar_url + ')';
+                            avatarEl.style.backgroundColor = 'transparent';
+                        }
 
                         card.classList.remove("fetch-waiting");
                         card.dataset.loaded = "true";
@@ -81,7 +89,6 @@ export function GithubCardComponent(
             };
 
             fetchCardData();
-            document.addEventListener('astro:page-load', fetchCardData);
         })();
         `,
   );

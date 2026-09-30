@@ -32,5 +32,8 @@ const pageDescription = `${t("cover.title.archive")} - ${t("cover.subTitle.archi
         currentLang={currentLang}
         defaultLocale={i18n!.defaultLocale}
     />
-    <FabMenu showBackBottom={true} />
+    <!-- fixed 浮层：留在 swup 容器内，但在淡入淡出元素之外（见 MainPageLayout 的说明） -->
+    <div slot="overlay">
+        <FabMenu showBackBottom={true} />
+    </div>
 </MainPageLayout>

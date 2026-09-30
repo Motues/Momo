@@ -17,6 +17,8 @@ const className = Astro.props.class
 </div>
 
 <script>
+  import { registerPageInit } from '@utils/pageInit';
+
   function setupSpoilers() {
     const spoilers = document.querySelectorAll('.spoiler');
     
@@ -69,8 +71,8 @@ const className = Astro.props.class
     });
   }
 
-  // astro:page-load 在首次加载时也会触发，不需要在模块顶层再调用一次
-  document.addEventListener('astro:page-load', setupSpoilers);
+  // 首屏 + 每次换页（swup 下首屏不会有 astro:page-load，见 @utils/pageInit）
+  registerPageInit(setupSpoilers);
 
   // LQIP 图片的淡入：关闭 LQIP 时插件不会输出 .lqip-markdown-img，这里自然就是空操作，
   // 因此不需要再按 siteConfig.theme.LQIP 拆成另一个 <script>（少一个内联脚本）
@@ -90,7 +92,7 @@ const className = Astro.props.class
     });
   }
 
-  document.addEventListener('astro:page-load', handleLqipImages);
+  registerPageInit(handleLqipImages);
 </script>
 
 <style is:global>

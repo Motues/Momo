@@ -32,13 +32,14 @@ export function MusicCardComponent(
         (function() {
             const initMusicCard = () => {
                 const card = document.getElementById('${cardUuid}-card');
-                // 卡片不存在或已加载过就跳过（astro:page-load 会重复触发）
                 if (!card || card.dataset.loaded === "true") return;
 
                 fetch('https://open.motues.top/music?server=netease&type=details&id=${songId}', { referrerPolicy: "no-referrer" })
                     .then(response => response.json())
                     .then(data => {
                         if (data && data.id) {
+                            if (!card.isConnected) return;
+
                             const titleEl = document.getElementById('${cardUuid}-title');
                             if (titleEl) titleEl.innerText = data.name || "未知曲目";
 
@@ -51,7 +52,8 @@ export function MusicCardComponent(
                                 fetch('https://open.motues.top/music?server=netease&type=cover&id=${songId}', { referrerPolicy: "no-referrer" })
                                     .then(res => res.json())
                                     .then(coverData => {
-                                        if (coverData && coverData.url) {
+                                        // 封面是第二跳请求，回来时卡片更可能已经被换掉了
+                                        if (coverData && coverData.url && coverEl.isConnected) {
                                             coverEl.style.backgroundImage = 'url(' + coverData.url + ')';
                                             coverEl.style.backgroundColor = 'transparent';
                                         }
@@ -74,7 +76,6 @@ export function MusicCardComponent(
             };
 
             initMusicCard();
-            document.addEventListener('astro:page-load', initMusicCard);
         })();
         `,
   );

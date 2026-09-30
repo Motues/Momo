@@ -23,6 +23,11 @@ import { remarkReadingTime } from './src/plugins/remark-reading-time.ts';
 import { remarkLqip } from './src/plugins/remark-lqip.ts';
 
 import svelte from "@astrojs/svelte";
+import swupIntegration from '@swup/astro';
+
+const swup =
+  /** @type {(options: Omit<NonNullable<Parameters<typeof swupIntegration>[0]>, 'accessibility' | 'smoothScrolling'> & Record<string, unknown>) => import('astro').AstroIntegration} */
+  (swupIntegration);
 
 import { siteConfig, i18nConfig } from './src/config';
 
@@ -44,10 +49,6 @@ export default defineConfig({
       redirectToDefaultLocale: false
     }
   },
-  prefetch: {
-    prefetchAll: true,
-    defaultStrategy: 'hover',
-  },
   integrations: [icon({
     include: {
       "fa6-brands": ["*"],
@@ -58,6 +59,33 @@ export default defineConfig({
       "fluent": ["*"],
     }
   }), svelte(),
+  swup({
+    theme: false, 
+    animationClass: 'transition-swup-',  // ⚠️ 不能是默认的 transition-（会命中 Tailwind 的 transition-all）
+    containers: ['main#swup-container'],
+    loadOnIdle: true,
+    cache: true,
+    preload: true,
+    accessibility: {
+      announcements: {
+        'zh-CN': '已导航至：{title}',
+        en: 'Navigated to: {title}',
+        '*': 'Navigated to: {title}',
+      },
+    },
+    updateHead: true, 
+    updateBodyClass: false, 
+    globalInstance: true, 
+    smoothScrolling: { animateScroll: false },
+    reloadScripts: true, 
+    ignore: [
+      /\.xml$/i, 
+      /\.pdf$/i,
+      /^\/cms/, 
+      'a[download]',
+      '[data-no-swup]',
+    ],
+  }),
   ...(ecEnabled ? [expressiveCode({
     ...ecThemeOptions(ecSettings),
     getBlockLocale: ({ file }) => {

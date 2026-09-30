@@ -10,11 +10,24 @@ import i18nit from "@i18n/translation";
 const currentLang = Astro.currentLocale || i18n!.defaultLocale;
 const t = i18nit(currentLang);
 
-const translations = {
-  placeholder: t("search.placeholder"),
-  error: t("search.error"),
-  noresult: t("search.noresult")
-};
+// 搜索弹窗在 swup 容器之外，不会随换页重建：把**每种语言**的文案一起渲染进 data 属性，
+// 由脚本里的 syncSearchLocale() 在每次换页后按当前地址（语言）挑出该用的那一份。
+const localeCodes: string[] = (i18n?.locales ?? [currentLang]).map((l) =>
+  typeof l === 'string' ? l : l.path,
+);
+const translationsByLocale = Object.fromEntries(
+  localeCodes.map((code) => {
+    const tr = i18nit(code);
+    return [
+      code,
+      {
+        placeholder: tr("search.placeholder"),
+        error: tr("search.error"),
+        noresult: tr("search.noresult"),
+      },
+    ];
+  }),
+);
 
 const fakeResult: SearchResult[] = [
 	{
@@ -39,7 +52,7 @@ const fakeResult: SearchResult[] = [
   是在 FAB 自己的层叠上下文里，所以盖过 1000 即可），否则遮罩与弹窗会压在 FAB 下面，
   浮动按钮会浮在遮罩之上；同时保持在图片灯箱（z-2000）之下。
 -->
-<div id="search-modal" class="fixed inset-0 z-[1100] opacity-0 pointer-events-none">
+<div id="search-modal" data-i18n-search={JSON.stringify(translationsByLocale)} data-fake-results={JSON.stringify(fakeResult)} class="fixed inset-0 z-[1100] opacity-0 pointer-events-none">
   <div class="absolute inset-0 modal-backdrop opacity-0" aria-hidden="true"></div>
 
   <div class="fixed inset-0 flex items-start justify-center p-4 pt-[25vh]">
@@ -61,7 +74,9 @@ const fakeResult: SearchResult[] = [
         </button>
       </div>
       <div id="search-results" class="overflow-y-auto flex-grow">
-        <div class="p-8 text-center text-[var(--text-color-70)]">
+        <!-- data-search-hint：还停留在「默认提示」状态时，换页/换语言后要按当前语言改文案；
+             已经是搜索结果时不动（见 syncSearchLocale） -->
+        <div class="p-8 text-center text-[var(--text-color-70)]" data-search-hint>
           <p>{t("search.placeholder")}</p>
         </div>
       </div>
@@ -70,6 +85,38 @@ const fakeResult: SearchResult[] = [
 </div>
 
 <script>
+import { registerPageInit } from '@utils/pageInit';
+import { currentLangFromUrl } from '@utils/locale';
+
+/**
+ * 搜索弹窗在 swup 容器之外、不会随换页重建，所以：
+ * 1. 文案（placeholder / 空结果 / 出错）按**当前地址推导出的语言**重新挑一份
+ *    （构建时每种语言的文案都渲染进了 #search-modal 的 data-i18n-search）；
+ * 2. 挑出来的那份挂到 window 上，给下面那个 is:inline 的脚本用（它不能 import）。
+ */
+function syncSearchLocale() {
+  const modal = document.getElementById('search-modal');
+  if (!modal) return;
+
+  let byLocale;
+  try {
+    byLocale = JSON.parse(modal.getAttribute('data-i18n-search') || '{}');
+  } catch {
+    return;
+  }
+
+  const tr = byLocale[currentLangFromUrl()] || Object.values(byLocale)[0];
+  if (!tr) return;
+  window.__momoSearchTranslations = tr;
+
+  const input = document.getElementById('search-input');
+  if (input) input.placeholder = `${tr.placeholder}...`;
+
+  // 只改「默认提示」那一份；已经显示搜索结果 / 无结果时不要覆盖用户看到的内容
+  const hint = document.getElementById('search-results')?.querySelector('[data-search-hint] p');
+  if (hint) hint.textContent = tr.placeholder;
+}
+
 function initSearchModal() {
   const searchButton = document.getElementById('search-button');
   const searchModal = document.getElementById('search-modal');
@@ -107,7 +154,7 @@ function initSearchModal() {
     }, 300);
   };
 
-  // 搜索按钮位于 transition:persist 的顶栏里，用 onclick 赋值保证幂等
+  // 搜索按钮在 swup 容器外的顶栏里，用 onclick 赋值保证幂等
   searchButton.onclick = openModal;
   if (closeSearch) closeSearch.onclick = closeModal;
   searchModal.onclick = (e) => {
@@ -121,15 +168,22 @@ function initSearchModal() {
   };
   document.addEventListener('keydown', onKeyDown);
 
+  // 换页开始时收掉搜索弹窗：它在 swup 容器外不会重建，
+  // 而点搜索结果里的链接不会关掉它（以前靠整页替换复位）
+  const onVisitStart = () => closeModal();
+  document.addEventListener('swup:visit:start', onVisitStart);
+
   window.__momoSearchModal = {
     cleanup() {
       document.removeEventListener('keydown', onKeyDown);
+      document.removeEventListener('swup:visit:start', onVisitStart);
     },
   };
 }
 
-// astro:page-load 首次加载时也会触发，不再额外监听 DOMContentLoaded（避免首屏绑两份）
-document.addEventListener('astro:page-load', initSearchModal);
+// 首屏 + 每次换页（swup 下首屏不会有 astro:page-load，见 @utils/pageInit）
+registerPageInit(syncSearchLocale);
+registerPageInit(initSearchModal);
 </script>
 
 
@@ -177,7 +231,41 @@ document.addEventListener('astro:page-load', initSearchModal);
   }
 </style>
 
-<script define:vars={{ fakeResult, translations }}>
+<script is:inline data-swup-ignore-script>
+// data-swup-ignore-script：swup 换页时会重放文档里的内联脚本，而这个脚本
+// 只该执行一次（搜索弹窗在容器外，重复执行只会让 astro:page-load 监听器成倍累积）。
+//
+// ⚠️ 这里不能用 define:vars 注入 fakeResult / translations：Astro 会丢掉 define:vars
+// 内联脚本上的其它属性（包括 data-swup-ignore-script），脚本就会被反复重放。
+// 构建期的值统一放在 #search-modal 的 data-* 上（data-i18n-search / data-fake-results）。
+//
+// 文案在运行时按当前语言取：syncSearchLocale()（上面那个模块脚本）会把当前语言那份
+// 挂到 window.__momoSearchTranslations；它还没跑时退回 data-i18n-search 里查一份。
+function tr() {
+  if (window.__momoSearchTranslations) return window.__momoSearchTranslations;
+  try {
+    const all = JSON.parse(document.getElementById('search-modal')?.getAttribute('data-i18n-search') || '{}');
+    const lang = (document.documentElement.lang || '').toLowerCase();
+    const hit = Object.entries(all).find(([code]) => code.toLowerCase() === lang) || Object.entries(all)[0];
+    if (hit) {
+      window.__momoSearchTranslations = hit[1];
+      return hit[1];
+    }
+  } catch {
+    /* 忽略：退回下面的兜底文案 */
+  }
+  return { placeholder: 'Search', error: 'Search failed', noresult: 'No results' };
+}
+
+/** 开发环境（或索引未加载成功）时用的假数据 */
+function fakeResults() {
+  try {
+    return JSON.parse(document.getElementById('search-modal')?.getAttribute('data-fake-results') || '[]');
+  } catch {
+    return [];
+  }
+}
+
 function initPagefindSearch() {
   const searchInput = document.getElementById('search-input');
   const searchResults = document.getElementById('search-results');
@@ -198,10 +286,10 @@ function initPagefindSearch() {
       if (query.length > 0) {
         performSearch(query);
       } else {
-        // 清空或显示默认状态
+        // 清空或显示默认状态（data-search-hint 让换页时的语言同步认得这块提示）
         searchResults.innerHTML = `
-          <div class="p-8 text-center text-[var(--text-color-70)]">
-            <p>${translations.placeholder}</p>
+          <div class="p-8 text-center text-[var(--text-color-70)]" data-search-hint>
+            <p>${tr().placeholder}</p>
           </div>
         `;
       }
@@ -231,7 +319,7 @@ async function performSearch(query) {
   const isDev = !pagefind;
 
   if (isDev) {
-    displayResults(fakeResult);
+    displayResults(fakeResults());
   } else {
     // 只需要初始化一次：重复调用 search() 即可，不必每次 destroy + init
     try {
@@ -254,7 +342,7 @@ async function performSearch(query) {
       console.error('Search failed:', error);
       searchResults.innerHTML = `
         <div class="p-8 text-center text-red-500">
-          <p>${translations.error}</p>
+          <p>${tr().error}</p>
         </div>
       `;
     }
@@ -268,7 +356,7 @@ function displayResults(results) {
   if (results.length === 0) {
     searchResults.innerHTML = `
       <div class="p-8 text-center text-[var(--text-color-70)]">
-        <p>${translations.noresult}</p>
+        <p>${tr().noresult}</p>
       </div>
     `;
     return;
@@ -292,7 +380,9 @@ document.addEventListener('pagefindloaderror', () => {
   console.log('Pagefind failed to load, search functionality will not work');
 });
 
-// astro:page-load 首次加载时同样会触发，无需再监听 DOMContentLoaded
+// swup 下首屏不会派发 astro:page-load，所以这里先跑一次；
+// 监听 astro:page-load 只是兜底（dataset.bound 保证不会重复绑定）
+initPagefindSearch();
 document.addEventListener('astro:page-load', initPagefindSearch);
 </script>
 
