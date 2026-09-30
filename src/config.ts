@@ -36,6 +36,11 @@ export const siteConfig: SiteConfig = {
         },
         postCard: {
             imageMode: "top" // Cover image mode for article cards: "top" shows the image above the content; "background" uses the image as the card background, fading to transparent from right to left
+        },
+        overlayScrollbars: {
+            enable: true, // Whether to replace the browser's default scrollbar with OverlayScrollbars (overlay style, can auto-hide)
+            autoHide: "leave", // When to hide the scrollbar: "never" always visible; "scroll" hidden unless scrolling; "move" hidden unless the pointer moves over the page or the user scrolls; "leave" hidden when the pointer leaves the page or the user isn't scrolling
+            size: 8 // Scrollbar thickness in pixels
         }
     },
     expressiveCode: {

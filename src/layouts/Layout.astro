@@ -1,18 +1,13 @@
 ---
 import { siteConfig, profileConfig } from '@/config';
 import "@styles/global.css"
-// 客户端换页的淡入淡出（swup 的 animationClass 依赖这里的时长）
+import OverlayScrollbars from '@components/control/OverlayScrollbars.astro';
 import "@styles/swup-transition.css"
-// KaTeX 的样式移到真正的渲染处（Markdown.astro），不再让每个页面都下载
-// 标题 / 页脚用的 EB Garamond 只有几条 @font-face，保持阻塞，避免首屏字体跳变
 import '@fontsource/eb-garamond';
-// 正文用的 Noto Serif SC 有 202 条 @font-face（约 320 KB CSS），改成非阻塞加载：
-// 这里只取构建后的 URL，真正应用见 <head> 里的 <link media="print" onload>
 import notoSerifSc400 from '@fontsource/noto-serif-sc/400.css?url';
 import notoSerifSc700 from '@fontsource/noto-serif-sc/700.css?url';
-// 正文引用块（blockquote / ::quote）用的 LXGW Bright Medium：234 条 @font-face（约 180 KB CSS）
-// 同样只在渲染 Markdown 正文的页面异步加载，见 <head> 里的 markdownFont 分支
 import lxgwBrightCss from '@chinese-fonts/lxgwwenkaibright/dist/LXGWBright-Medium/result.css?url';
+import osCss from 'overlayscrollbars/styles/overlayscrollbars.scriptingenabled.css?url';
 import { i18n } from "astro:config/client";
 import { getSiteTitle } from '@utils/siteTitle';
 import {
@@ -108,10 +103,28 @@ const commentOrigin =
 const aosBodyAttrs = siteConfig.theme.AOS
   ? { 'data-aos-duration': '500', 'data-aos-easing': 'ease', 'data-aos-delay': '0' }
   : {};
+
+// ---- OverlayScrollbars（悬浮滚动条）----
+// 关闭时既不加载它的样式与脚本，也不输出桥接属性，直接回退到浏览器原生滚动条。
+// ⚠️ 样式必须用 ?url 取出后自己挂 <link>，不能在组件里静态 import：
+// 那样 Vite 会无视下面的条件渲染，把样式合并进页面样式表，关掉开关也省不下这 ~4 KB（gzip）。
+// 用的是 scriptingenabled 版本而不是默认的 overlayscrollbars.css：桥接属性会先把原生滚动条
+// 藏掉来消除闪烁，但这以「JS 确实会执行」为前提，否则禁用 JS 的访客会拿到一个没有滚动条的
+// 页面；scriptingenabled.css 把这些样式包进 @media (scripting: enabled)，禁用 JS 时仍走原生滚动条。
+// 它必须是**阻塞样式**（要在首屏之前就位），所以不能用 media="print" 那套异步加载。
+const osConfig = siteConfig.theme.overlayScrollbars;
+const osEnabled = osConfig?.enable !== false;
+// 桥接属性：OS 初始化要建好几个元素，这段时间里原生滚动条会闪一下，
+// 提前在 <html> / <body> 上打标记，让配套样式先把原生滚动条藏掉。
+// 只在开关打开时输出，否则关掉开关反而会留下一个没有滚动条的页面。
+const osAttrs = osEnabled ? { 'data-overlayscrollbars-initialize': '' } : {};
+// 滚动条粗细走 CSS 变量（见 styles/scrollbar.css 的 .os-theme-momo），
+// 写成内联变量而不是把数值编进样式表，改配置才能即时生效
+const osStyle = osEnabled ? `--os-momo-size: ${osConfig?.size ?? 8}px` : undefined;
 ---
 
 <!DOCTYPE html>
-<html lang={pageLang} class="h-full">
+<html lang={pageLang} class="h-full" style={osStyle} {...osAttrs}>
 <head>
     <meta charset="UTF-8">
     <!-- data-swup-ignore-script：客户端路由（swup）每次换页会把文档里的内联脚本重放一遍，
@@ -171,6 +184,9 @@ const aosBodyAttrs = siteConfig.theme.AOS
     <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#0a0a0a">
     <link rel="alternate" type="application/rss+xml" title={getSiteTitle()} href={new URL("rss.xml", Astro.site)} >
     <link rel="icon" href={siteConfig.favicon} type="image/x-icon">
+
+    <!-- OverlayScrollbars 的样式表：必须阻塞（桥接属性要在首屏前把原生滚动条藏掉） -->
+    {osEnabled && <link rel="stylesheet" href={osCss}>}
 
     <!-- 正文 CJK 字体（Noto Serif SC）：202 条 @font-face 不参与首屏阻塞渲染，
          用 media="print" 先异步取回、onload 再切成 all；禁用 JS 时由 <noscript> 兜底 -->
@@ -318,8 +334,10 @@ const aosBodyAttrs = siteConfig.theme.AOS
         });
     </script>
 </head>
-<body class="h-full bg-[var(--bg-color)]" {...aosBodyAttrs}>
+<body class="h-full bg-[var(--bg-color)]" {...aosBodyAttrs} {...osAttrs}>
     
+    {osEnabled && <OverlayScrollbars />}
+
     <div id="loading-overlay" aria-hidden="true">
       <div class="spinner"></div>
     </div>

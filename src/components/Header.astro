@@ -61,6 +61,12 @@ const normalizePath = (path: string) => {
 const currentPath = normalizePath(Astro.url.pathname);
 const isCurrentPage = (path: string) => normalizePath(path) === currentPath;
 
+// 桌面端导航链接的公共样式：当前页的底色由独立的浮动色块（#nav-indicator）负责，
+// 链接自己不再有 bg-*，避免「色块滑过去」和「链接底色淡入」两套效果同时出现。
+// relative z-10 是为了让链接画在色块之上（色块是绝对定位 + DOM 在前）。
+// 悬停反馈见文件末尾 <style is:global> 里的 #nav-bar-list a 规则。
+const navLinkClass = "relative z-10 transition-colors rounded-lg px-3 py-1 mx-1";
+
 // 移动端侧边栏链接：当前页加上背景色与主题色文字，其余保持悬停效果
 const mobileNavLinkClass = (path: string) =>
     `flex items-center gap-3 px-4 py-3 rounded-lg transition-colors active:bg-[var(--button-hover-color)] active:text-[var(--link-color)] ${
@@ -135,36 +141,22 @@ if (profileConfig.indexPage) {
     <!-- nav_bar -->
     <div id="nav-bar" class="hidden md:flex absolute left-1/2 top-0 transform -translate-x-1/2  justify-center items-center text-lg font-bold my-5 z-100">
         <div id="nav-bar-list" class="transition relative z-10 flex max-w-max flex-1 items-center justify-center rounded-outer p-2 backdrop-blur rounded-xl bg-[color:var(--bg-color)]/20 border border-[var(--bg-color)]">
+          <!-- 当前页底色块：空元素 + aria-hidden，纯装饰。位置与尺寸由脚本按当前链接量出来（见 moveNavIndicator） -->
+          <div id="nav-indicator" aria-hidden="true"></div>
           <!-- 首页链接 -->
-          <a href={ indexPage } data-i18n-path="/" data-i18n-labels={JSON.stringify(i18nLabels("header.home"))} class={`transition-colors rounded-lg px-3 py-1 mx-1 hover:text-current ${
-              isCurrentPage(indexPage)
-                  ? 'bg-[var(--button-hover-color)]' 
-                  : 'hover:bg-[var(--button-hover-color)]'
-              }`}>
+          <a href={ indexPage } data-i18n-path="/" data-i18n-labels={JSON.stringify(i18nLabels("header.home"))} aria-current={isCurrentPage(indexPage) ? 'page' : undefined} class={navLinkClass}>
               <span data-i18n-text>{t("header.home")}</span>
           </a>
           <!-- 归档链接 -->
-          <a href={ archivesPage } data-i18n-path="/archives/" data-i18n-labels={JSON.stringify(i18nLabels("header.archive"))} class={`transition-colors rounded-lg px-3 py-1 mx-1 hover:text-current ${
-              isCurrentPage(archivesPage)
-                  ? 'bg-[var(--button-hover-color)]' 
-                  : 'hover:bg-[var(--button-hover-color)]'
-              }`}>
+          <a href={ archivesPage } data-i18n-path="/archives/" data-i18n-labels={JSON.stringify(i18nLabels("header.archive"))} aria-current={isCurrentPage(archivesPage) ? 'page' : undefined} class={navLinkClass}>
               <span data-i18n-text>{t("header.archive")}</span>
           </a>
           <!-- 关于链接 -->
-          <a href={ aboutPage } data-i18n-path="/about/" data-i18n-labels={JSON.stringify(i18nLabels("header.about"))} class={`transition-colors rounded-lg px-3 py-1 mx-1 hover:text-current ${
-              isCurrentPage(aboutPage)
-                  ? 'bg-[var(--button-hover-color)]' 
-                  : 'hover:bg-[var(--button-hover-color)]'
-              }`}>
+          <a href={ aboutPage } data-i18n-path="/about/" data-i18n-labels={JSON.stringify(i18nLabels("header.about"))} aria-current={isCurrentPage(aboutPage) ? 'page' : undefined} class={navLinkClass}>
               <span data-i18n-text>{t("header.about")}</span>
           </a>
           <!-- 友链链接 -->
-          <a href={ friendsPage } data-i18n-path="/friends/" data-i18n-labels={JSON.stringify(i18nLabels("header.friends"))} class={`transition-colors rounded-lg px-3 py-1 mx-1 hover:text-current ${
-              isCurrentPage(friendsPage)
-                  ? 'bg-[var(--button-hover-color)]' 
-                  : 'hover:bg-[var(--button-hover-color)]'
-              }`}>
+          <a href={ friendsPage } data-i18n-path="/friends/" data-i18n-labels={JSON.stringify(i18nLabels("header.friends"))} aria-current={isCurrentPage(friendsPage) ? 'page' : undefined} class={navLinkClass}>
               <span data-i18n-text>{t("header.friends")}</span>
           </a>
         </div>
@@ -282,6 +274,50 @@ if (profileConfig.indexPage) {
     }
   }
 
+  /* 桌面端导航的「当前页」底色块。
+     独立于链接的一个绝对定位元素，位置 / 尺寸由脚本量当前链接后写入
+     （moveNavIndicator），切页时用 transform 平移过去。
+
+     ⚠️ 只过渡 transform / width / height，top / left 一次性写入：
+     这几个属性动起来每帧都要重新布局。虽然色块本身脱离了文档流、没有兄弟依赖它，
+     但没必要把整条导航拖进重排。transform 才是走合成层的那个。
+
+     ⚠️ 色块自身用 opacity 显隐（不加过渡）：它的祖先 #nav-bar-list 带 backdrop-filter，
+     祖先只要 opacity < 1 就会成为 backdrop 根、后代毛玻璃整帧失效
+     （见 AGENT.md「开发约定」）。色块自己是绝对定位的叶子，opacity 不会影响祖先的毛玻璃。 */
+  #nav-indicator {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 0;
+    height: 0;
+    border-radius: 0.5rem;
+    background-color: var(--button-hover-color);
+    pointer-events: none;
+    opacity: 0;
+    transition:
+      transform 300ms cubic-bezier(0.4, 0, 0.2, 1),
+      width 300ms cubic-bezier(0.4, 0, 0.2, 1),
+      height 300ms cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  /* 系统/用户要求减弱动画时直接就位，不做滑行 */
+  @media (prefers-reduced-motion: reduce) {
+    #nav-indicator {
+      transition: none;
+    }
+  }
+
+  /* 导航链接的悬停反馈：底色归色块，这里只变色。
+     当前页不再变色（它已经有底色了），避免色块滑过去时文字还在跳色。 */
+  #nav-bar-list a[data-i18n-path]:hover {
+    color: var(--link-color);
+  }
+
+  #nav-bar-list a[aria-current="page"]:hover {
+    color: inherit;
+  }
+
   /* 移动端侧边栏的分类：选中的用桌面端归档页同款样式标记（蓝底白字）。
      写在这里而不是 Tailwind 的 aria-[current=true]: 变体，是为了确定地压过
      hover / active 的悬停样式——普通样式优先于 utilities 层。 */
@@ -299,6 +335,7 @@ if (profileConfig.indexPage) {
 
 <script>
 import { registerPageInit } from '@utils/pageInit';
+import { lockPageScroll, unlockPageScroll } from '@utils/scrollLock';
 import { currentLangFromUrl, DEFAULT_LOCALE, LOCALES, syncDocumentLang } from '@utils/locale';
 import { getRelativeLocaleUrl } from '@utils/urlUtils';
 
@@ -320,6 +357,9 @@ function initMobileNav() {
   window.__momoMobileNav?.cleanup?.();
 
   let closeTimer = null;
+  // 抽屉的滚动锁是计数式的（@utils/scrollLock），所以必须只在「状态真的翻转」时加减：
+  // 连续点两次会先 clearTimeout 掉待执行的解锁、再补一次加锁，没有这个守卫就会多锁一层、解不开
+  let menuScrollLocked = false;
 
   function openMenu() {
     clearTimeout(closeTimer);
@@ -329,7 +369,10 @@ function initMobileNav() {
       overlay?.classList.add('opacity-100');
       drawer?.classList.remove('-translate-x-full');
     });
-    document.body.style.overflow = 'hidden'; // 禁止页面滚动
+    if (!menuScrollLocked) {
+      menuScrollLocked = true;
+      lockPageScroll(); // 禁止页面滚动（锁 <html>，见 @utils/scrollLock）
+    }
   }
 
   function closeMenu() {
@@ -339,7 +382,10 @@ function initMobileNav() {
     // 等待动画结束后隐藏容器
     closeTimer = setTimeout(() => {
       container.classList.add('hidden');
-      document.body.style.overflow = '';
+      if (menuScrollLocked) {
+        menuScrollLocked = false;
+        unlockPageScroll();
+      }
     }, 300);
   }
 
@@ -493,12 +539,113 @@ const normalizePath = (path) => {
   return value.length > 1 ? value.replace(/\/+$/, '') : value;
 };
 
+/* ------------------------------------------------------------------
+ * 桌面端顶栏的「当前页」底色块（#nav-indicator）
+ *
+ * 色块是导航条里一个独立的绝对定位元素，链接自己不再有 bg-*。
+ * 切页时不是把旧底色淡出、新底色淡入，而是**一个色块平移过去**。
+ *
+ * 顶栏在 swup 容器之外、换页不重建，所以位置一律现量：
+ *   1. 点击导航链接 → 立刻按目标链接滑过去（不等 swup 把新页面取回来，跟手）
+ *   2. 每次换页 → syncPersistedHeader() 末尾按地址权威重算（刷新 / 前进后退 / 换语言）
+ *   3. 换页被取消 → 回弹到真实的当前页
+ * ------------------------------------------------------------------ */
+
+/** 当前页对应的导航链接（桌面端顶栏，移动端抽屉不算） */
+function activeNavLink() {
+  return document.querySelector('#nav-bar-list a[data-i18n-path][aria-current="page"]');
+}
+
+/**
+ * 把色块移到指定链接上（不传则隐藏）。
+ *
+ * 尺寸用两个 getBoundingClientRect 相减得到，再减掉导航条自身的边框宽度：
+ * 绝对定位的包含块是 padding box，而 rect 量的是 border box，漏掉这一条会整体偏 1px。
+ * 链接的 rect 不含 mx-1 外边距，正好等于原来 bg-* 覆盖的范围，视觉上无变化。
+ */
+function moveNavIndicator(link) {
+  const indicator = document.getElementById('nav-indicator');
+  const list = document.getElementById('nav-bar-list');
+  if (!indicator || !list) return;
+
+  // 移动端整条导航是 hidden（#nav-bar 是 hidden md:flex），量不到就藏起来。
+  // 没有当前页（文章详情等）同理。
+  if (!link || !list.offsetWidth) {
+    indicator.style.opacity = '0';
+    return;
+  }
+
+  const listRect = list.getBoundingClientRect();
+  const linkRect = link.getBoundingClientRect();
+  const style = window.getComputedStyle(list);
+  const x = linkRect.left - listRect.left - (parseFloat(style.borderLeftWidth) || 0);
+  const y = linkRect.top - listRect.top - (parseFloat(style.borderTopWidth) || 0);
+
+  // 四个链接同字号同内边距，top / height 实际是常量，写死即可（CSS 里也没给它们过渡）；
+  // 需要过渡的只有水平位移与宽度 —— 四个文案宽度不同，颜色块要能拉伸
+  indicator.style.top = `${y}px`;
+  indicator.style.height = `${linkRect.height}px`;
+  indicator.style.width = `${linkRect.width}px`;
+  indicator.style.transform = `translateX(${x}px)`;
+  indicator.style.opacity = '1';
+}
+
+/** 按当前地址把色块放回正确的位置（切页后 / 回弹时调用） */
+function syncNavIndicator() {
+  moveNavIndicator(activeNavLink());
+}
+
+function initNavIndicator() {
+  const list = document.getElementById('nav-bar-list');
+  if (!list) return;
+
+  window.__momoNavIndicator?.cleanup?.();
+
+  // 1. 点击：先乐观地滑过去，换页完成后由 syncPersistedHeader() 校正。
+  //    只响应普通左键 —— 中键 / Ctrl 点击会开新标签页，页面并没有换，色块不能跟着动。
+  const onClick = (event) => {
+    if (event.defaultPrevented || event.button !== 0) return;
+    if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+    const link = event.target instanceof Element
+      ? event.target.closest('#nav-bar-list a[data-i18n-path]')
+      : null;
+    if (!link || link.target === '_blank' || link.hasAttribute('download')) return;
+    moveNavIndicator(link);
+  };
+  list.addEventListener('click', onClick);
+
+  // 2. 导航条尺寸一变就重量：视口缩放（含跨过 md 断点）、字体到位、换语言改文案。
+  //    色块是绝对定位的，改它自己的宽度不会反过来触发 ResizeObserver，不会自激。
+  let raf = 0;
+  const observer = new ResizeObserver(() => {
+    cancelAnimationFrame(raf);
+    raf = window.requestAnimationFrame(syncNavIndicator);
+  });
+  observer.observe(list);
+
+  // 3. 换页被取消（命中 swup ignore、用户打断等）：弹回真实的当前页
+  const onVisitCancel = () => syncNavIndicator();
+  document.addEventListener('swup:visit:cancel', onVisitCancel);
+
+  window.__momoNavIndicator = {
+    cleanup() {
+      list.removeEventListener('click', onClick);
+      document.removeEventListener('swup:visit:cancel', onVisitCancel);
+      observer.disconnect();
+      cancelAnimationFrame(raf);
+    },
+  };
+}
+
+registerPageInit(initNavIndicator);
+
 /**
  * 顶栏在 swup 的替换容器之外 —— 换页与换语言都不会重建它的 DOM，
  * 所以凡是「跟着当前地址变」的东西都要在这里按地址重算：
  *   1. 语言菜单的链接与高亮（语言一律从地址推导，不依赖 <html lang>）
  *   2. logo 链接
  *   3. 导航链接 / 文案 / 选中态（data-i18n-path / data-i18n-labels / data-i18n-text）
+ *   4. 桌面端顶栏底色块的位置
  * 由 registerPageInit 注册：首屏也要跑一次（swup 下首屏没有 astro:page-load）。
  */
 function syncPersistedHeader() {
@@ -554,11 +701,10 @@ function syncPersistedHeader() {
     if (!href) return false;
     return normalizePath(new URL(href, window.location.origin).pathname) === here;
   };
-  // 桌面端顶栏：选中项只加底色
+  // 桌面端顶栏：选中态只记在 aria-current 上，底色交给独立的浮动色块（#nav-indicator）
   document.querySelectorAll('#nav-bar [data-i18n-path]').forEach((link) => {
-    const active = isActiveLink(link);
-    link.classList.toggle('bg-[var(--button-hover-color)]', active);
-    link.classList.toggle('hover:bg-[var(--button-hover-color)]', !active);
+    if (isActiveLink(link)) link.setAttribute('aria-current', 'page');
+    else link.removeAttribute('aria-current');
   });
   // 移动端抽屉：选中项是「底色 + 主题色文字」（与 mobileNavLinkClass 保持一致）
   document.querySelectorAll('#mobile-menu-drawer [data-i18n-path]').forEach((link) => {
@@ -571,6 +717,10 @@ function syncPersistedHeader() {
 
   // 6. 移动端分类筛选的选中态与链接（含当前语言前缀）
   syncMobileCategoryFilter();
+
+  // 7. 桌面端顶栏底色块：必须排在最后 —— 上面 3 / 4 步刚改过 href 与文案，
+  //    链接宽度变了才量得准
+  syncNavIndicator();
 }
 
 registerPageInit(syncPersistedHeader);

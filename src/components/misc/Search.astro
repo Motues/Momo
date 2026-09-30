@@ -73,11 +73,19 @@ const fakeResult: SearchResult[] = [
           </svg>
         </button>
       </div>
+      <!-- #search-results 是滚动容器（由 OverlayScrollbars 接管），
+           #search-results-list 才是真正被 innerHTML 重写的目标。
+           ⚠️ 两者必须分开：OS 会在容器里插入自己的包装层
+           （data-overlayscrollbars-padding / -content），而 innerHTML 赋值会把
+           这些包装层一起冲掉，实例当场失效。写到 list 上就只换它的子节点，
+           OS 的结构完好，内容变化由它自己的 MutationObserver 接手。 -->
       <div id="search-results" class="overflow-y-auto flex-grow">
-        <!-- data-search-hint：还停留在「默认提示」状态时，换页/换语言后要按当前语言改文案；
-             已经是搜索结果时不动（见 syncSearchLocale） -->
-        <div class="p-8 text-center text-[var(--text-color-70)]" data-search-hint>
-          <p>{t("search.placeholder")}</p>
+        <div id="search-results-list">
+          <!-- data-search-hint：还停留在「默认提示」状态时，换页/换语言后要按当前语言改文案；
+               已经是搜索结果时不动（见 syncSearchLocale） -->
+          <div class="p-8 text-center text-[var(--text-color-70)]" data-search-hint>
+            <p>{t("search.placeholder")}</p>
+          </div>
         </div>
       </div>
     </div>
@@ -269,8 +277,11 @@ function fakeResults() {
 function initPagefindSearch() {
   const searchInput = document.getElementById('search-input');
   const searchResults = document.getElementById('search-results');
+  // innerHTML 只写到 list 上：#search-results 是 OverlayScrollbars 的宿主，
+  // 直接重写它的 innerHTML 会把 OS 的包装层一起冲掉（见上面标记处的说明）
+  const searchList = document.getElementById('search-results-list');
   
-  if (!searchInput || !searchResults) return;
+  if (!searchInput || !searchResults || !searchList) return;
 
   // 避免重复绑定
   if (searchInput.dataset.bound === 'true') return;
@@ -287,7 +298,7 @@ function initPagefindSearch() {
         performSearch(query);
       } else {
         // 清空或显示默认状态（data-search-hint 让换页时的语言同步认得这块提示）
-        searchResults.innerHTML = `
+        searchList.innerHTML = `
           <div class="p-8 text-center text-[var(--text-color-70)]" data-search-hint>
             <p>${tr().placeholder}</p>
           </div>
@@ -312,7 +323,7 @@ function waitForPagefind(timeout = 4000) {
 }
 
 async function performSearch(query) {
-  const searchResults = document.getElementById('search-results');
+  const searchList = document.getElementById('search-results-list');
   const pagefind = window.pagefind ?? (await waitForPagefind());
 
   // 开发环境（或索引未加载成功）时退回假数据
@@ -340,7 +351,7 @@ async function performSearch(query) {
       displayResults(results);
     } catch (error) {
       console.error('Search failed:', error);
-      searchResults.innerHTML = `
+      searchList.innerHTML = `
         <div class="p-8 text-center text-red-500">
           <p>${tr().error}</p>
         </div>
@@ -350,11 +361,13 @@ async function performSearch(query) {
 }
 
 function displayResults(results) {
-  const searchResults = document.getElementById('search-results');
-  if (!searchResults) return;
+  // 只重写 #search-results-list：#search-results 是 OverlayScrollbars 的宿主，
+  // 直接写它的 innerHTML 会把 OS 的包装层冲掉（见 initPagefindSearch 的说明）
+  const searchList = document.getElementById('search-results-list');
+  if (!searchList) return;
 
   if (results.length === 0) {
-    searchResults.innerHTML = `
+    searchList.innerHTML = `
       <div class="p-8 text-center text-[var(--text-color-70)]">
         <p>${tr().noresult}</p>
       </div>
@@ -362,7 +375,7 @@ function displayResults(results) {
     return;
   }
 
-  searchResults.innerHTML = results.map(result => `
+  searchList.innerHTML = results.map(result => `
     <div class="p-4 border-b border-[var(--button-border-color)] hover:bg-[var(--button-hover-color)]">
       <a href="${result.url}" class="block no-underline">
         <h3 class="text-lg font-semibold text-[var(--text-color)] mb-2">${result.meta.title}</h3>

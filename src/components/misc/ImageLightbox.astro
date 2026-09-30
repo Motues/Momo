@@ -184,6 +184,7 @@
 
 <script>
   import { registerPageInit } from '@utils/pageInit'
+  import { lockPageScroll, unlockPageScroll } from '@utils/scrollLock'
 
   // 100% = 图片适应屏幕（灯箱里的基准大小）：缩小最多到 50%，放大最多到 800%
   // 桌面端打开时默认缩到 86%（比「适应屏幕」略小一点），移动端保持 100%
@@ -265,8 +266,6 @@
     let startY = 0
     let pinchStart = 0
     let pinchScale = baseScale()
-    // 打开前的 body overflow，关闭动画结束后再还原（见 restoreScroll）
-    let lockedOverflow: string | null = null
 
     const clamp = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value))
 
@@ -281,16 +280,22 @@
       })
     }
 
-    // 打开灯箱时锁定页面滚动；记录原值，避免覆盖其它组件（如移动端菜单）的锁定状态
+    // 打开灯箱时锁定页面滚动；统一走 @utils/scrollLock：它锁的是 <html>
+    // （OverlayScrollbars 开启时真正的滚动容器），并且自带计数器，抽屉与灯箱叠加时不会互相解开。
+    // 这里是计数式的，所以必须只在状态翻转时加减——cleanup() 里 close() 已经解过一次，
+    // 紧跟着再解一次会把计数打穿，导致并存的抽屉锁被误开。
+    let scrollLocked = false
+
     function lockScroll() {
-      if (lockedOverflow === null) lockedOverflow = document.body.style.overflow
-      document.body.style.overflow = 'hidden'
+      if (scrollLocked) return
+      scrollLocked = true
+      lockPageScroll()
     }
 
     function restoreScroll() {
-      if (lockedOverflow === null) return
-      document.body.style.overflow = lockedOverflow
-      lockedOverflow = null
+      if (!scrollLocked) return
+      scrollLocked = false
+      unlockPageScroll()
     }
 
     // 缩放后的图片不能拖出可视区域

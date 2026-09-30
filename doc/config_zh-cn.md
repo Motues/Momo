@@ -34,6 +34,10 @@
     * `imageCollage.enable`: 是否启用连续图片自动拼图（正文里连续放置的多张图片自动排成网格）
     * `imageCollage.maxColumns`: 拼图每行最多放几张图片（2 - 6，默认 4）；实际每行张数会按图片数量自动选择，最后一行的图片自动补满整行
     * `postCard.imageMode`: 首页文章卡片封面样式，`top` 为图片在内容上方，`background` 为图片作为卡片背景
+    * `overlayScrollbars.enable`: 是否用 [OverlayScrollbars](https://kingsora.github.io/OverlayScrollbars/) 替换浏览器默认的整页滚动条（悬浮样式，可自动隐藏）；关闭后回退到 `scrollbar.css` 里的原生滚动条样式
+    * `overlayScrollbars.autoHide`: 滚动条什么时候隐藏，`never` 一直显示、`scroll` 滚动时才显示、`move` 指针移到页面上或滚动时显示、`leave`（默认）指针离开页面且不滚动时隐藏
+    * `overlayScrollbars.size`: 滚动条粗细（像素，默认 8）；写在 `<html>` 的内联 CSS 变量上，改这里即时生效
+    * > 接入范围是**整页滚动条 + 搜索结果列表**；代码块、目录面板、移动端导航横滑这些仍是浏览器原生滚动条（样式在 `src/styles/scrollbar.css`，已手工对齐成与悬浮滚动条一致的观感）
 * `expressiveCode`
     * `enable`: 是否启用 [Expressive Code](https://expressive-code.com/)（
     * `theme`: 代码块的 Shiki 主题名，如 `one-dark-pro`（默认）、`github-dark`、`vitesse-dark`；深浅色模式共用同一套主题

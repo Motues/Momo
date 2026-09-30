@@ -34,6 +34,10 @@
     * `imageCollage.enable`: Enable automatic image collage (consecutive images in the content are arranged into a grid)
     * `imageCollage.maxColumns`: Max images per row in a collage (2 - 6, default 4); the actual number per row is chosen automatically from the image count, and the images of the last row always fill the whole row
     * `postCard.imageMode`: Cover style of the article cards on the home page, `top` puts the image above the content, `background` uses it as the card background
+    * `overlayScrollbars.enable`: Replace the browser's default page scrollbar with [OverlayScrollbars](https://kingsora.github.io/OverlayScrollbars/) (overlay style, can auto-hide); when disabled the blog falls back to the native scrollbar styles in `scrollbar.css`
+    * `overlayScrollbars.autoHide`: When the scrollbar hides: `never` always visible, `scroll` only while scrolling, `move` while the pointer is over the page or the user scrolls, `leave` (default) hidden once the pointer leaves and scrolling stops
+    * `overlayScrollbars.size`: Scrollbar thickness in pixels (default 8); written to an inline CSS variable on `<html>`, so changing it takes effect immediately
+    * > Covered: the **page scrollbar and the search result list**. Code blocks, the TOC panel and the mobile nav strip keep the native scrollbar (styled in `src/styles/scrollbar.css`, hand-aligned to look like the overlay one)
 * `expressiveCode`
     * `enable`: Enable [Expressive Code](https://expressive-code.com/) 
     * `theme`: Shiki theme name of code blocks, e.g. `one-dark-pro` (default), `github-dark`, `vitesse-dark`; the same theme is used in light and dark mode

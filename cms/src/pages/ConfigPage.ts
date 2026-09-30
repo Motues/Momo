@@ -109,6 +109,24 @@ function buildSections(values: ConfigValues): SectionDef[] {
           options: ['top', 'background'],
           hint: 'top：封面在上方；background：封面作为卡片背景',
         },
+        {
+          path: ['siteConfig', 'theme', 'overlayScrollbars', 'enable'],
+          label: '悬浮滚动条 overlayScrollbars',
+          type: 'bool',
+          hint: '用 OverlayScrollbars 替换浏览器默认的整页滚动条（悬浮样式，可自动隐藏）',
+        },
+        {
+          path: ['siteConfig', 'theme', 'overlayScrollbars', 'autoHide'],
+          label: '滚动条自动隐藏 autoHide',
+          type: 'select',
+          options: ['never', 'scroll', 'move', 'leave'],
+          hint: 'never：一直显示；scroll：滚动时才显示；move：指针移到页面上或滚动时显示；leave：指针离开页面且不滚动时隐藏',
+        },
+        {
+          path: ['siteConfig', 'theme', 'overlayScrollbars', 'size'],
+          label: '滚动条粗细 size（px）',
+          type: 'number',
+        },
       ],
     },
     {

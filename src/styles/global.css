@@ -15,6 +15,10 @@
     font-family: "Noto Serif SC", "Times New Roman", "STZhongsong", serif;
     overflow-y: scroll;
   }
+
+  html[data-overlayscrollbars] body {
+    overflow: visible;
+  }
   
 
   ::selection {

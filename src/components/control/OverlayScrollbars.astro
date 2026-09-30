@@ -1,0 +1,101 @@
+---
+// 这里**不**引入 overlayscrollbars 的样式表：样式由 Layout.astro 以 `?url` 取出独立资源、
+// 再按开关用 <link> 挂到 <head>。如果在这里静态 import，Vite 会无视
+// `{osEnabled && <OverlayScrollbars />}` 的条件把样式合并进页面样式表，
+// 关掉开关就省不下这 ~4 KB（gzip）。
+// 另外必须用 scriptingenabled 版本而不是默认的 overlayscrollbars.css：
+// 桥接属性 data-overlayscrollbars-initialize 会先把原生滚动条藏掉、避免初始化时闪烁，
+// 但这以「JS 确实会执行」为前提——否则禁用 JS 的访客会拿到一个没有滚动条的页面。
+// scriptingenabled.css 把这些样式包进 @media (scripting: enabled)，禁用 JS 时仍走原生滚动条。
+
+import { siteConfig } from '@/config';
+const osConfig = siteConfig.theme.overlayScrollbars;
+---
+
+<!--
+  整页（主滚动容器）的 OverlayScrollbars。
+
+  挂在 body 上时 OS 并**不会**给 body 的子元素套一层壳：它把 documentElement 当作 viewport、
+  body 当作 content，因此 window.scrollY / scrollTo / documentElement.scrollHeight /
+  scrollIntoView / html 上的 scroll-behavior: smooth 全部照常有效，
+  顶栏吸顶、阅读进度、目录高亮、swup 的滚动位置恢复等逻辑都不需要改。
+
+  随之而来的两处配套改动：
+  1. 滚动锁定要锁 documentElement 而不是 body（见 @utils/scrollLock）；
+  2. 锁 / 解锁会改变视口的滚动能力，解锁后要让 OS 重新量一次尺寸。
+-->
+<div id="os-root" hidden data-auto-hide={osConfig.autoHide}></div>
+
+<script>
+  import { OverlayScrollbars } from 'overlayscrollbars';
+  import { bindScrollLockNotifier } from '@utils/scrollLock';
+
+  const root = document.getElementById('os-root');
+  const autoHide = (root?.dataset.autoHide || 'leave') as
+    | 'never' | 'scroll' | 'move' | 'leave';
+
+  // 模块表去重 ⇒ 换页不会重跑；这里再用 window 上的实例做一次幂等守卫
+  if (!window.__momoOs) {
+    window.__momoOs = OverlayScrollbars(document.body, {
+      // 主题类名在 styles/scrollbar.css 里，颜色直接复用已有的 --scrollbar-* 变量，
+      // 因此切换深色模式不需要重新初始化
+      scrollbars: {
+        theme: 'os-theme-momo',
+        autoHide,
+        autoHideDelay: 600,
+        // 点击轨道跳转一屏；不开的话点轨道没反应
+        clickScroll: true,
+      },
+      // ⚠️ 必须显式指定，不能让 OS 自己推导。
+      // OS 把 body 挂上去之后，真正的 viewport 是 <html>，它会去读「被接管元素」的
+      // computed overflow 来决定视口的 overflow；但它那个 CSS 值 → 选项值的转换
+      // 只认 hidden / visible，读到 `scroll` 会**兜底成 hidden**。
+      // 一旦视口变成 overflow: hidden，「根元素的 overflow 传播给视口」这条链路就断了：
+      // body 上 literal 的 `overflow-y: scroll`（global.css）会立刻变成一个**内层**滚动容器，
+      // 文档本身不再可滚动，window.scrollY 恒为 0，顶栏吸顶 / 阅读进度 / 目录全废。
+      // 显式给 scroll 之后视口才是可滚动的，文档正常滚动、原生 API 全部照旧。
+      overflow: {
+        x: 'hidden',
+        y: 'scroll',
+      },
+    });
+
+    // 抽屉 / 灯箱锁上滚动后解锁，视口的滚动能力变了，让 OS 重新量一次，
+    // 否则滚动条手柄的长度可能停在旧的高度上
+    bindScrollLockNotifier(() => window.__momoOs?.update(true));
+
+    // swup 换页会整段替换 #swup-container。OS 自己有 MutationObserver 会跟着更新，
+    // 但那是去抖过的；这里在 DOM 就位的瞬间先同步量一次，避免新页面刚出现时手柄长度是错的
+    document.addEventListener('astro:after-swap', () => {
+      window.__momoOs?.update(true);
+    });
+
+    // ---- 内层滚动容器：目前只接了搜索结果列表 ----
+    //
+    // ⚠️ 不要无脑「全局接满」，两个原因：
+    // 1. 代码块接不了。Expressive Code 渲染的 pre 是 display: flex，接上 OS 之后
+    //    OS 生成的 viewport 拿到的 computed overflow 会是 visible（而不是自己设的 scroll），
+    //    代码块直接**失去横向滚动能力**——实测 scrollLeft 写不动、手柄高度 0。
+    //    代码块改用 styles/scrollbar.css 里手工对齐过的原生滚动条。
+    // 2. 内层容器大多在 swup 容器**内**，每次换页都会被销毁重建，就得跟着
+    //    astro:before-swap 逐个 destroy() 再重建，否则监听器与 observer 会累积。
+    //
+    // 搜索结果列表是唯一的例外：Search.astro 由 MainPageLayout 直接渲染，在 swup 容器
+    // **之外**，换页不重建，元素本身常驻，搜索时只是换 innerHTML——所以实例只建一次，
+    // 之后交给 OS 自己的 MutationObserver 跟着内容变化更新即可。
+    const searchResults = document.getElementById('search-results');
+    if (searchResults) {
+      window.__momoOsInner = {
+        ...window.__momoOsInner,
+        search: OverlayScrollbars(searchResults, {
+          scrollbars: {
+            theme: 'os-theme-momo',
+            autoHide,
+            autoHideDelay: 600,
+            clickScroll: true,
+          },
+        }),
+      };
+    }
+  }
+</script>

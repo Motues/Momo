@@ -29,6 +29,11 @@ export type SiteConfig = {
         postCard: {
             imageMode: "top" | "background"; 
         };
+        overlayScrollbars: {
+            enable: boolean;
+            autoHide: "never" | "scroll" | "move" | "leave";
+            size: number;
+        };
     };
     expressiveCode: {
         enable: boolean;

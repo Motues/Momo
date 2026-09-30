@@ -1,24 +1,81 @@
 /* 滚动条样式 */
+
+/* ---- 内层滚动容器：浏览器原生滚动条 ----
+   代码块、目录面板、移动端导航横滑这些仍走原生滚动条（代码块**不能**接 OS：
+   Expressive Code 渲染的 pre 是 display: flex，接上 OS 后视口的 overflow 不会被
+   设成滚动容器，代码块直接失去横向滚动能力）。
+
+   这里是**手工对齐** OS 主题的观感，两边要一起改：
+     宽度  8px（= .os-theme-momo 的 --os-size）
+     内缩  2px（= --os-padding-perpendicular），手柄 = 8 - 2×2 = 4px
+     颜色  同一个 --scrollbar-thumb / --scrollbar-thumb-hover
+     形状  999px 全圆角
+   做法：滚动条本身 8px 宽，手柄加一圈 2px 的透明边框并用 background-clip: padding-box
+   把背景裁进边框里，于是可见部分正好是居中的 4px —— 和 OS 的手柄一模一样。 */
 ::-webkit-scrollbar {
-    width: 6px;
-    height: 6px;
-    -webkit-overflow-scrolling: overlay;
+    width: 8px;
+    height: 8px;
 }
 
-::-webkit-scrollbar-track {
-    background: var(--scrollbar-track);
-    border-radius: 4px;
+/* 轨道不画出来，做成悬浮样式（与 OS 的 --os-track-bg: transparent 对齐） */
+::-webkit-scrollbar-track,
+::-webkit-scrollbar-corner {
+    background: transparent;
 }
 
 ::-webkit-scrollbar-thumb {
     background: var(--scrollbar-thumb);
-    border-radius: 4px;
+    background-clip: padding-box;
+    border: 2px solid transparent;
+    border-radius: 999px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
     background: var(--scrollbar-thumb-hover);
 }
 
-html {
-    scrollbar-gutter: stable;
+/* ⚠️ 这里**不要**加标准的 `* { scrollbar-width: thin; scrollbar-color: ... }`：
+   Chromium 会因此改用「标准滚动条」渲染（带两端箭头按钮），直接盖掉上面这套伪元素样式，
+   代码块底部会冒出一排 ◀ ▶，和站点风格打架。实测 A/B 过：加了就有箭头，去掉就没有。
+   Firefox 不认 ::-webkit-scrollbar，会继续用它自己的默认滚动条——与本次改动前一致。 */
+
+/* ---- OverlayScrollbars（主页面滚动条）----
+   主题类名由 components/control/OverlayScrollbars.astro 传给 OS。
+   颜色直接复用 variables.css 里已有的 --scrollbar-*，所以切换深色模式
+   （<html data-theme>）时不需要重新初始化，CSS 变量自己就跟着变了。
+
+   ⚠️ 选择器必须比 OS 自带的 `.os-scrollbar { --os-size: 0; ... }` 更重：
+   两者特异度相同（都是 0,1,0），谁生效完全取决于打包后的先后顺序，而 Astro/Vite
+   会把我们自己的 scrollbar.css 排在 overlayscrollbars 的样式表**之前**——
+   一旦被覆盖，--os-size 归 0，滚动条会整个消失（而且不报错，很难排查）。
+   所以这里用 `html[data-overlayscrollbars]` 抬一档特异度，与打包顺序解耦；
+   顺带也表达了「只有 OS 真的接管了才应用这套主题」。 */
+html[data-overlayscrollbars] .os-theme-momo {
+    /* 粗细由 siteConfig.theme.overlayScrollbars.size 决定，
+       Layout 把值以 --os-momo-size 写在 <html> 的内联样式上 */
+    --os-size: var(--os-momo-size, 8px);
+    /* 轨道内缩：让手柄与页面边缘之间留一点空隙 */
+    --os-padding-perpendicular: 2px;
+    --os-padding-axis: 2px;
+    /* 悬浮样式：轨道不画出来，只留手柄，压在内容上而不占布局宽度 */
+    --os-track-bg: transparent;
+    --os-track-bg-hover: transparent;
+    --os-track-bg-active: transparent;
+    --os-track-border: none;
+    --os-track-border-radius: 0;
+    --os-handle-bg: var(--scrollbar-thumb);
+    --os-handle-bg-hover: var(--scrollbar-thumb-hover);
+    --os-handle-bg-active: var(--scrollbar-thumb-hover);
+    --os-handle-border: none;
+    --os-handle-border-radius: 999px;
+    /* 手柄不会短到抓不住 */
+    --os-handle-min-size: 30px;
+    /* 命中区域比视觉宽度再宽一点，靠近边缘就能拖 */
+    --os-handle-interactive-area-offset: 4px;
 }
+
+/* 原来这里有 `html { scrollbar-gutter: stable }`：预留原生滚动条的位置，避免
+   页面从「不可滚动」变成「可滚动」时内容横向跳一下。现在已经不需要了——
+   global.css 的 `body { overflow-y: scroll }` 让滚动容器常驻可滚动状态，
+   位置本来就被预留；而开启 OverlayScrollbars 后视口的 scrollbar-width 是 none，
+   这条规则压根不生效，留着只会误导。 */
