@@ -351,6 +351,16 @@ body {
 .markdown-content .music-artist { font-size: 0.85em; color: var(--text-sub); }
 .markdown-content .fetch-error { opacity: 0.5; border: 1px solid #ff6b6b; }
 
+/* 单张正文图片：宽度不超过正文栏并保持原始比例，水平居中（与博客 markdown.css 对应）
+   没有 max-width 时大图会按固有像素宽渲染，直接横向溢出预览 iframe */
+.markdown-content img {
+  max-width: 100%;
+  height: auto;
+  margin: 1rem auto;
+  display: block;
+  border-radius: 6px;
+}
+
 /* 连续图片自动拼图（与博客 src/styles/markdown.css 对应）
    --cols 是每行张数（插件智能选择），--span 让最后一行的图片补满整行 */
 .markdown-content .image-collage {

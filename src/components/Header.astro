@@ -399,8 +399,7 @@ function initMobileNav() {
     link.onclick = closeMenu;
   });
 
-  // ---- 顶部导航条吸顶：rAF 合并 + 只在状态变化时改 class ----
-  let isFixed = false;
+  // ---- 顶部导航条吸顶：rAF 合并 + class 直接由滚动位置推导 ----
   let ticking = false;
   let lastScrollY = -1;
 
@@ -410,23 +409,11 @@ function initMobileNav() {
     if (y === lastScrollY) return;
     lastScrollY = y;
     if (!navBar || !navBarList) return;
-    if (y > 0 && !isFixed) {
-      navBar.classList.add('fixed');
-      navBar.classList.remove('border-[var(--bg-color)]');
-      navBarList.classList.add(
-        'border-[var(--button-border-color)]',
-        'shadow-[0_4px_12px_var(--shadow-color)]'
-      );
-      isFixed = true;
-    } else if (y === 0 && isFixed) {
-      navBar.classList.remove('fixed');
-      navBar.classList.add('border-[var(--bg-color)]');
-      navBarList.classList.remove(
-        'border-[var(--button-border-color)]',
-        'shadow-[0_4px_12px_var(--shadow-color)]'
-      );
-      isFixed = false;
-    }
+    const scrolled = y > 0;
+    navBar.classList.toggle('fixed', scrolled);
+    navBar.classList.toggle('border-[var(--bg-color)]', !scrolled);
+    navBarList.classList.toggle('border-[var(--button-border-color)]', scrolled);
+    navBarList.classList.toggle('shadow-[0_4px_12px_var(--shadow-color)]', scrolled);
   }
 
   function onScroll() {
@@ -436,6 +423,10 @@ function initMobileNav() {
   }
 
   window.addEventListener('scroll', onScroll, { passive: true });
+
+  // 首屏与每次换页都对一次齐：此刻的滚动位置是权威值，
+  // DOM 上的 class 可能还停留在上一页的状态（顶栏不重建）
+  updateNavBar();
 
   // 换页开始时收掉抽屉：顶栏在 swup 容器外不会重建，以前靠「整页替换」复位；
   // 抽屉开着时 body 的滚动还是锁住的，不复位会把新页面一起锁住。
