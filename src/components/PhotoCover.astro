@@ -17,6 +17,13 @@
 // 样式在 src/styles/photo-cover.css（由 Layout.astro 按开关用 <link> 挂载，
 // 组件里再 import 会让关掉开关的用户也白背一份 CSS）。
 import ImageModule from '@components/misc/ImageModule.astro';
+// publicDir 只能从 astro:config/server 拿：组件会被打包进 dist/.prerender/chunks/，
+// 用 import.meta.url 往上数两级会数到构建产物目录里（实测报 Input file is missing）
+import { publicDir } from 'astro:config/server';
+import sharp from 'sharp';
+import { existsSync } from 'node:fs';
+import { join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { siteConfig } from '@/config';
 import { photoCoverEnabled } from '@utils/photoCover';
 
@@ -31,11 +38,40 @@ const photoCover = siteConfig.theme.photoCover;
 // 淡完之后 / 内页时照片的不透明度
 const REST_OPACITY = 0.12;
 
-// 模糊预览图：约定 public 下与原图同目录的 preview/ 里放一张小图。
-// src/ 下的图片走 ImageModule 自己的 LQIP，不需要这一层。
-const preview = photoCover.image.startsWith('/')
-    ? photoCover.image.replace(/\/([^/]+)$/, '/preview/$1')
-    : '';
+// 模糊底图的宽度（像素）。照片要铺满整屏，这一层只负责「先把颜色铺上」，
+// 细节交给 photo-cover.css 里的 filter: blur(38px)，所以 32px 足够。
+const PREVIEW_WIDTH = 32;
+
+// ---- 模糊底图（照片下载完成前先铺上的那一层）----
+// **构建期生成**（`pnpm dev` 下同样按需生成，换了图刷新即可看到）：
+// 用 sharp 把原图缩到 32px 宽、编成 webp，再以 data URI 内联进样式属性。
+// 一张 1920×1080 的照片缩完只有 200 字节上下（base64 后约 250 字节），随 HTML 一起到达，
+// 不发额外请求 —— 这一层的意义就是「立刻有颜色」，让它去和原图抢带宽是本末倒置。
+// 因此**不需要**在 public/ 下手工准备 preview/ 小图了（老约定仍然优先，见下）。
+// 只处理 public/ 下的照片（以 / 开头）：src/ 下的照片由 ImageModule 自己的 LQIP 兜底。
+let preview = '';
+if (enabled && photoCover.image.startsWith('/')) {
+    // 老约定优先：public/ 下与原图同目录的 preview/ 里如果放了小图，就用你自己那张
+    // （想手工挑裁剪 / 色调时留着这个口子；没有就走下面的构建期生成）
+    const publicRoot = fileURLToPath(publicDir);
+    const manualPreview = photoCover.image.replace(/\/([^/]+)$/, '/preview/$1');
+
+    if (existsSync(join(publicRoot, manualPreview))) {
+        preview = manualPreview;
+    } else {
+        try {
+            const buffer = await sharp(join(publicRoot, photoCover.image))
+                // withoutEnlargement：原图本来就比 32px 窄时不要放大（白白多几字节）
+                .resize({ width: PREVIEW_WIDTH, withoutEnlargement: true })
+                .webp({ quality: 40 })
+                .toBuffer();
+            preview = `data:image/webp;base64,${buffer.toString('base64')}`;
+        } catch (error) {
+            // 图片不存在、sharp 读不出（SVG 等）时静默降级：底图不出现，原图照常加载
+            console.error(`[PhotoCover] 模糊底图生成失败：${photoCover.image}`, error);
+        }
+    }
+}
 ---
 
 {enabled && (

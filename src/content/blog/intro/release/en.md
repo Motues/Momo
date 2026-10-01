@@ -38,6 +38,21 @@ Below are general modification suggestions.
 
 > Version numbers follow the `YY.MM.DD` format
 
+### 26.10.1
+
+> Happy National Day!
+
+* **New photo cover**: the first page of the home page uses a full-screen photo as its background, with the `Cover` title and subtitle centered and enlarged on top of an adjustable black mask; scrolling down smoothly moves the title back to its place, restores its size and colour, and fades the photo into a faint backdrop. Later pagination pages plus the archive / about / friends and post pages all get a very faint version of the photo as their background, and its blurred placeholder is generated at build time — nothing to prepare by hand
+* **In-site navigation no longer reloads the page**: [swup](https://swup.js.org/) now handles client-side routing with the same fade as before, plus hover preloading and "back / forward returns to the same spot"; the header / footer / search modal are no longer rebuilt on navigation, and the language menu and active nav state follow the current address
+* **The page scrollbar is now [OverlayScrollbars](https://kingsora.github.io/OverlayScrollbars/)**: it floats above the content, hides itself automatically, supports dragging the handle and clicking the track, and follows the theme in both light and dark mode; the search result list uses it too
+* **Reworked desktop navigation pill**: nothing but text and the active-page highlight at the top, growing an outline and frosted glass once it docks; with the photo cover it now transitions along the scroll progress instead of switching the moment you scroll
+* **The mobile drawer now highlights the current page and filters by category**: the current page gets a background and the accent colour, and the category chips filter the archive page — clicking the selected one again clears the filter
+* **Improved link styling in posts**: thinner underlines that sit slightly higher and turn theme blue together with the text on hover; the arrow icon of new-tab links is smaller and changes colour along with the link
+* **New config**: `siteConfig.theme.photoCover` (switch / photo path / mask) and `siteConfig.theme.overlayScrollbars` (switch / auto-hide / thickness), editable in `src/config.ts` or in the CMS; new translation `button.scrollDown`
+* **CLI**: `pnpm momo update` now also removes files that no longer exist in the new version (add `--no-delete` to only overwrite), `pnpm momo clean` also clears `node_modules/.astro`, and `pnpm momo doctor` flags a leftover `<ClientRouter />`
+* A batch of bugs that only surfaced with client-side routing are fixed: broken browser back, the header font flashing after a navigation, out-of-sync TOC and header highlighting, console warnings, and more
+* This update modifies the config files `astro.config.mjs` (client-side navigation now uses swup), `src/config.ts` (two new theme switches) and `src/i18n/` (a new `button.scrollDown` translation) — merge them as prompted
+
 ### 26.9.29
 
 * New **new-tab link syntax**: put `{target="_blank"}` straight after a link to open it in a new tab, with an arrow icon appended after the link; only `target` / `rel` / `class` are recognised, `rel` always keeps `noopener` / `noreferrer`, and links holding only an image get no icon

@@ -35,7 +35,7 @@
     * `imageCollage.maxColumns`: 拼图每行最多放几张图片（2 - 6，默认 4）；实际每行张数会按图片数量自动选择，最后一行的图片自动补满整行
     * `postCard.imageMode`: 首页文章卡片封面样式，`top` 为图片在内容上方，`background` 为图片作为卡片背景
     * `photoCover.enable`: 是否启用照片封面（首页第 1 页：整屏照片做背景，`Cover.title` 与 `Cover.subTitle` 居中并放大显示、叠一层黑色蒙版；向下滚动时标题平滑落回它自己的位置、字号缩回常规大小、颜色回到主题色。**其余所有页面**（分页第 2 页起、归档 / 关于 / 友链 / 文章）都会铺一层很淡的照片作为整页背景）
-    * `photoCover.image`: 照片路径，以 `/` 开头相对 `public/` 目录，否则相对 `src/` 目录（如 `assets/cover.jpg`）；留空时按关闭处理。想加快首屏，可以在 `public/` 下与原图同名的 `preview/` 目录里放一张几十像素的小图（如 `public/cover.jpg` 配 `public/preview/cover.jpg`），它会作为模糊底图先出现
+    * `photoCover.image`: 照片路径，以 `/` 开头相对 `public/` 目录，否则相对 `src/` 目录（如 `assets/cover.jpg`）；留空时按关闭处理。
     * `photoCover.mask`: 照片上黑色蒙版的浓度（0 - 1，默认 0.5），保证白色标题清晰，随滚动逐渐消退；照片很亮（日出、天空之类）时可以调高到 0.6 - 0.7
     * `overlayScrollbars.enable`: 是否用 [OverlayScrollbars](https://kingsora.github.io/OverlayScrollbars/) 替换浏览器默认的整页滚动条（悬浮样式，可自动隐藏）；关闭后回退到 `scrollbar.css` 里的原生滚动条样式
     * `overlayScrollbars.autoHide`: 滚动条什么时候隐藏，`never` 一直显示、`scroll` 滚动时才显示、`move` 指针移到页面上或滚动时显示、`leave`（默认）指针离开页面且不滚动时隐藏

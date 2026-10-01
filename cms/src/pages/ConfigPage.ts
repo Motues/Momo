@@ -119,7 +119,7 @@ function buildSections(values: ConfigValues): SectionDef[] {
           path: ['siteConfig', 'theme', 'photoCover', 'image'],
           label: '照片路径 photoCover.image',
           mono: true,
-          hint: '以 / 开头相对 /public，否则相对 /src（如 assets/cover.jpg）；可在 public 下同名目录的 preview/ 里放一张几十像素的小图加快首屏',
+          hint: '以 / 开头相对 /public，否则相对 /src（如 assets/cover.jpg）。模糊底图由构建期自动生成，无需自己准备；想换成自己挑的小图，可在 public 下同名目录的 preview/ 里放一张（存在时优先用它）',
         },
         {
           path: ['siteConfig', 'theme', 'photoCover', 'mask'],

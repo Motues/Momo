@@ -13,6 +13,8 @@ Momo originates from Xiaohongshu📕, serving as the default nickname for every 
 
 * **Minimalist Design**: Clean page layout with black and white as primary colors, accented by blue
 * **Dark Mode**: Supports manual switching or automatic system adaptation
+* **Photo cover**: the first page of the home page can use a full-screen photo as its cover, with the title and subtitle centered and enlarged on top of an adjustable black mask; scrolling down moves the title smoothly back to its place while the photo fades into a faint backdrop, and every other page keeps a very faint copy of it
+* **Client-side navigation**: in-site links are handled by [swup](https://swup.js.org/) instead of full page reloads, with hover preloading, fade transitions and "back / forward returns to the same spot"
 * **Mobile Adaptation**: Components optimized for mobile devices, delivering the same experience as desktop browsers
 * **Image experience**: Click any image to open the lightbox; consecutive images are automatically laid out as a grid; images inside posts support an LQIP gradient placeholder
 * **Extensive Markdown syntax**: KaTeX, Typst (compiled to SVG at build time), Alert components, GitHub / NetEase Music cards, quote component, ruby annotations, spoilers, rainbow text, underline, new-tab links, Expressive Code and more
@@ -22,7 +24,6 @@ Momo originates from Xiaohongshu📕, serving as the default nickname for every 
 * **SEO**: canonical URLs, hreflang alternates, Open Graph / Twitter Cards, structured data, `sitemap.xml` and `robots.txt`
 * **Local CMS**: Start it with `pnpm cms` to edit posts with live preview (sharing the same Markdown pipeline as the blog) instead of editing Markdown by hand
 * **Command line tool**: `pnpm momo` provides config backup/restore, one-command updates, new post creation and environment checks
-* **TypeScript**: The site source and the custom `src/plugins/` pipeline are both written in TypeScript
 * Other core features: Article categories, directory, RSS subscription, text statistics, reading time
 
 ## 🚀 Quick Start

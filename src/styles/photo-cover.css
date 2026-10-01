@@ -23,7 +23,8 @@
     background-color: color-mix(in srgb, var(--text-color) 16%, transparent);
 }
 
-/* 模糊预览图：约定 public 下与原图同目录的 preview/ 里放一张小图。
+/* 模糊预览图：图片由 PhotoCover.astro 在构建期用 sharp 从原图缩出来（几十像素的 webp，
+   直接以 data URI 内联，不发额外请求），也可以在 public/ 下同目录的 preview/ 里手工放一张覆盖它。
    用 background-image 而不是 <img>：路径写错时只是什么都不显示，不会出现裂图图标。 */
 .photo-cover-preview {
     position: absolute;

@@ -198,11 +198,9 @@ const photoCoverOn = photoCoverEnabled();
     <!-- 照片封面：同样是阻塞样式，首屏的居中标题、蒙版与淡出都靠它，不能等 -->
     {photoCoverOn && <link rel="stylesheet" href={photoCoverCss}>}
 
-    <!-- 正文 CJK 字体（Noto Serif SC）：202 条 @font-face 不参与首屏阻塞渲染，
-         用 media="print" 先异步取回、onload 再切成 all；禁用 JS 时由 <noscript> 兜底 -->
-    <link rel="stylesheet" href={notoSerifSc400} media="print" onload="this.media='all'">
+    <link rel="stylesheet" data-swup-theme href={notoSerifSc400} media="print" onload="this.media='all'">
     <noscript><link rel="stylesheet" href={notoSerifSc400}></noscript>
-    <link rel="stylesheet" href={notoSerifSc700} media="print" onload="this.media='all'">
+    <link rel="stylesheet" data-swup-theme href={notoSerifSc700} media="print" onload="this.media='all'">
     <noscript><link rel="stylesheet" href={notoSerifSc700}></noscript>
 
     <!-- 引用块字体（LXGW Bright Medium）：只有渲染正文的页面才需要，同样非阻塞 -->

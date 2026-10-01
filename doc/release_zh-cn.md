@@ -29,16 +29,20 @@
 
 > 版本号采用 `YY.MM.DD` 的格式
 
-### 26.9.30
+### 26.10.1
 
-* **客户端路由改用 [swup](https://swup.js.org/)（替代 Astro 的 View Transitions）**：站内跳转不再整页刷新，保留原来的淡入淡出观感，并新增悬停预取与「前进/后退的滚动位置恢复」（按历史条目自己记录，比浏览器原生恢复更准）。`<ClientRouter />` 与 `transition:persist` 都已移除；禁用 JS 时依旧按普通链接整页跳转（渐进增强）
-* **页面结构**：正文放进唯一的替换容器 `main#swup-container`；顶栏 / 页脚 / 搜索弹窗移到容器之外（换页不重建，替代原来的 `transition:persist`）；TOC 与悬浮菜单（FabMenu）留在容器内、但在淡入淡出元素之外 —— 否则容器 `opacity < 1` 时会成为 `position: fixed` 后代的包含块，过渡那 200ms 里它们会整体跳位
-* 新增 `src/utils/pageInit.ts`：统一「首屏 + 每次换页」的初始化入口 `registerPageInit()`。swup 下**首屏不会派发 `astro:page-load`**，只挂该事件的初始化（语言菜单、搜索、主题、抽屉、灯箱、剧透、TOC 等）在首屏会全部失效
-* **语言同步不再依赖 `<html lang>`**：新增 `src/utils/locale.ts`，当前语言一律从地址推导；顶栏在容器外不重建，它的语言菜单、logo、导航链接、导航文案与选中态都在每次换页后按地址重算
-* 换页时自动收起移动端抽屉与搜索弹窗（它们在容器外不会重建，以前靠整页替换复位）；`ArchivePanel` 的 `history.replaceState` 改为保留已有 state（传 `{}` 会清掉 swup 的历史标记，导致浏览器后退完全失效）
-* 内联脚本按需加 `data-swup-ignore-script` 豁免重放；rehype 注入的 GitHub / 音乐卡片脚本改为「每次执行只跑一遍 + `await` 之后判空」，不再监听 `astro:page-load`（避免监听器与指向旧节点的闭包累积，同时修掉换页后写空节点的控制台告警）
-* 本次**没有新增配置项**，`src/config.ts` 无需改动。会被覆盖的配置文件与代码：`astro.config.mjs`（新增 `@swup/astro` 集成、移除 Astro 自带的 `prefetch`）、`package.json`（新增 `@swup/astro` 依赖）、`src/layouts/Layout.astro`、`src/layouts/MainPageLayout.astro`、`src/components/Header.astro`、`src/components/misc/Search.astro`、`src/components/misc/Markdown.astro`、`src/components/misc/ImageLightbox.astro`、`src/components/control/FabMenu.astro`、`src/components/control/ThemeIcon.astro`、`src/components/comment/thirdparty/twikoo.astro`、`src/components/ArchivePanel.svelte`、`src/plugins/rehype-component-github-card.ts`、`src/plugins/rehype-component-music-card.ts`，以及 `src/pages/[...locale]/` 下用到 TOC / FabMenu 的 4 个页面。新增文件：`src/styles/swup-transition.css`、`src/utils/pageInit.ts`、`src/utils/locale.ts`。**没有文件被删除**
-* 依赖由 `pnpm momo update` 自动安装（默认执行 `pnpm install`）。如果你改过 `Header.astro`、`MainPageLayout.astro` 或文章页里 TOC / FabMenu 的位置，更新后需要手工合并；建议先 `pnpm momo update --dry-run` 预览变更，出问题用 `pnpm momo restore` 回滚
+> 国庆快乐！
+
+* **新增照片封面**：首页第 1 页用一整屏照片做背景，`Cover` 标题与副标题居中放大、叠一层可调的黑色蒙版；向下滚动时标题平滑落回原位、字号与颜色复原，照片淡成底色。分页第 2 页起与归档 / 关于 / 友链 / 文章页都会铺一层很淡的照片作为整页背景，照片的模糊底图由构建期自动生成，不用自己准备小图
+* **站内跳转不再整页刷新**：改用 [swup](https://swup.js.org/) 接管客户端路由，保留原来的淡入淡出观感，新增悬停预取与「前进 / 后退回到原位置」；换页时顶栏 / 页脚 / 搜索弹窗不再重建，语言菜单、导航选中态自动跟随地址更新
+* **主页面滚动条换成 [OverlayScrollbars](https://kingsora.github.io/OverlayScrollbars/)**：悬浮在内容之上、可自动隐藏，支持拖动手柄与点击轨道跳转，深浅色跟随主题；搜索结果列表也一并用上
+* **桌面端导航胶囊改版**：顶部只留文字与当前页色块，吸顶后淡入描边与毛玻璃；照片封面下不再「滚一像素就硬切」，而是跟着滚动进度平滑过渡
+* **移动端侧边栏支持当前页高亮与分类筛选**：当前页有底色与主题色；分类标签可点选筛选归档页，再点一次取消筛选
+* **正文链接样式优化**：下划线更细并略微上提，悬停时连同下划线一起变为主题蓝；新标签页链接的右上箭头图标换小一圈、跟随链接变色
+* **新增配置项** `siteConfig.theme.photoCover`（开关 / 照片路径 / 蒙版浓度）与 `siteConfig.theme.overlayScrollbars`（开关 / 隐藏时机 / 粗细），在 `src/config.ts` 或 CMS 的「主题与动效」里都能改；新增文案 `button.scrollDown`
+* **CLI**：`pnpm momo update` 会顺带清掉新版本里已移除的旧文件（加 `--no-delete` 可只覆盖不删除），`pnpm momo clean` 补上 `node_modules/.astro`，`pnpm momo doctor` 会提示残留的 `<ClientRouter />`
+* 修掉了一批只有客户端换页才会暴露的问题：浏览器后退失效、换页后顶栏字体闪一下、目录与顶栏高亮不同步、控制台告警等
+* 本次更新改动了配置文件 `astro.config.mjs`（客户端换页改用 swup）、`src/config.ts`（两个新主题开关）与 `src/i18n/`（新文案 `button.scrollDown`），覆盖后请按提示合并
 
 ### 26.9.29
 
