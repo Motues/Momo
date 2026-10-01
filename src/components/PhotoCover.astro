@@ -1,0 +1,167 @@
+---
+// 全站照片背景（siteConfig.theme.photoCover）
+//
+// 这个组件由 MainPageLayout 渲染，**所有页面都有**，有两种状态：
+//   - hero（只有首页第 1 页）：满屏照片 + 黑色蒙版，标题从屏幕正中滑回原位；
+//     滚动结束后照片淡到 --photo-rest。
+//   - 内页：只剩 --photo-rest 的淡淡一层，作为整页的背景。
+//
+// 两个容易踩的点：
+//   1. 固定层放在 MainPageLayout 的 isolate 容器里、**swup 容器之外**，
+//      所以换页时它不会被替换：既躲开了 .transition-swup-fade 的 opacity 包含块问题
+//      （见 MainPageLayout 的说明），内页换页时照片也不会重新请求。
+//   2. 标题是绝对定位的（Cover.astro 的 photo 模式）。字号随滚动变化 → 高度一直在变，
+//      如果标题留在文档流里，它下面的文章卡片会被推着抖。
+//      占位高度因此由脚本按「终态字号」量一次写进 --photo-copy-h。
+//
+// 样式在 src/styles/photo-cover.css（由 Layout.astro 按开关用 <link> 挂载，
+// 组件里再 import 会让关掉开关的用户也白背一份 CSS）。
+import ImageModule from '@components/misc/ImageModule.astro';
+import { siteConfig } from '@/config';
+import { photoCoverEnabled } from '@utils/photoCover';
+
+interface Props {
+    /** 首页 hero 模式；不传就是内页那种淡淡的背景 */
+    hero?: boolean;
+}
+
+const { hero = false } = Astro.props;
+const enabled = photoCoverEnabled();
+const photoCover = siteConfig.theme.photoCover;
+// 淡完之后 / 内页时照片的不透明度
+const REST_OPACITY = 0.12;
+
+// 模糊预览图：约定 public 下与原图同目录的 preview/ 里放一张小图。
+// src/ 下的图片走 ImageModule 自己的 LQIP，不需要这一层。
+const preview = photoCover.image.startsWith('/')
+    ? photoCover.image.replace(/\/([^/]+)$/, '/preview/$1')
+    : '';
+---
+
+{enabled && (
+    <div
+        class="photo-cover-layer"
+        aria-hidden="true"
+        style={`--photo-mask: ${photoCover.mask}; --photo-rest: ${REST_OPACITY}${preview ? `; --photo-preview: url('${preview}')` : ''}`}
+    >
+        {preview && <div class="photo-cover-preview"></div>}
+        <div class="photo-cover-media">
+            <ImageModule src={photoCover.image} alt="" priority={hero} class="w-full h-full" />
+        </div>
+        <div class="photo-cover-mask"></div>
+    </div>
+)}
+
+{enabled && <script>
+    import { registerPageInit } from '@utils/pageInit';
+
+    const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+
+    function initPhotoCover() {
+        // 先解绑上一次：照片层在 swup 容器外不重建，但滚动监听是每次 init 重新挂的。
+        // 必须在下面的提前 return **之前** —— 内页没有 hero，元素不在，
+        // 但监听还挂在 window 上，不解绑的话它会继续往 <html> 写进度。
+        window.__momoPhotoCover?.cleanup?.();
+
+        const root = document.documentElement;
+        const copy = document.getElementById('photo-cover-text');
+        const hero = copy?.closest('.photo-cover-hero');
+        const spacer = document.querySelector('.photo-cover-spacer');
+        const arrow = document.getElementById('photo-cover-arrow');
+        if (!hero || !copy || !spacer) return;
+
+        /** 过渡距离：标题的落点正好到视口正中所需的滚动量 */
+        let distance = 1;
+
+        /**
+         * 量两件事：
+         *  1. 占位块上方压着多少（桌面端顶栏在文档流里，移动端是 fixed 不占位），
+         *     既要让标题在视口正中，也要让箭头落在首屏真正的底部；
+         *  2. 标题在**终态字号**下的高度 —— 字号随滚动变化，不按终态量的话占位会跟着抖。
+         */
+        function measure() {
+            const previous = root.style.getPropertyValue('--photo-p');
+            root.style.setProperty('--photo-p', '1');
+            const copyHeight = copy.offsetHeight;
+            root.style.setProperty('--photo-copy-h', `${copyHeight}px`);
+            root.style.setProperty('--photo-p', previous || '0');
+
+            const headerHeight = hero.getBoundingClientRect().top + window.scrollY;
+            root.style.setProperty('--photo-header', `${headerHeight}px`);
+
+            // 过渡距离 = 整整一屏。
+            // 标题的落点在占位末尾（文档坐标约 1 屏 + 标题高度），滚满一屏之后
+            // 它刚好到视口顶部、正好贴在第一张卡片上方 —— 和其它页面 Cover 的位置一模一样。
+            // 早先按「落点滑到视口正中」取距离，标题就会全程停在屏幕中间、末段才窜上去。
+            //
+            // 例外：移动端顶栏是 fixed（hero 起点为 0），它浮在内容之上，
+            // 落位时得给它让出高度，否则标题会停在它背后。
+            const fixedHeader = headerHeight < 1
+                ? (document.getElementById('main-header')?.getBoundingClientRect().height || 0)
+                : 0;
+            distance = Math.max(spacer.offsetHeight - fixedHeader, 1);
+        }
+
+        let ticking = false;
+        function update() {
+            ticking = false;
+            const raw = Math.min(Math.max(window.scrollY / distance, 0), 1);
+            // 位置用线性：见 photo-cover.css 里 .photo-cover-copy 的注释
+            root.style.setProperty('--photo-pos', raw.toFixed(4));
+            // 淡出 / 字号 / 颜色用 smoothstep（起步慢、中段快、收尾稳），比线性自然得多。
+            // 用户要求减少动效时不做插值，滚一下就直接落位。
+            const eased = reducedMotion.matches && raw > 0 ? 1 : raw * raw * (3 - 2 * raw);
+            root.style.setProperty('--photo-p', eased.toFixed(4));
+        }
+
+        function onScroll() {
+            if (ticking) return;
+            ticking = true;
+            requestAnimationFrame(update);
+        }
+
+        function onResize() {
+            measure();
+            update();
+        }
+
+        // 字体到位后标题高度会变（换字体可能多折一行），重量一次
+        document.fonts?.ready.then(measure);
+
+        measure();
+        window.addEventListener('scroll', onScroll, { passive: true });
+        window.addEventListener('resize', onResize);
+
+        if (arrow) {
+            arrow.onclick = () => {
+                window.scrollTo({ top: distance, behavior: reducedMotion.matches ? 'auto' : 'smooth' });
+            };
+        }
+
+        // 延一帧再对齐：swup 的 ScrollPlugin 是在 page:view 里用 rAF 派发 scrollTo(0) 的，
+        // 同一帧里 astro:page-load 先跑，此刻读到的还是**上一页**的滚动位置。
+        // 首屏不用等这一帧——--photo-p 的 CSS 初值就是 0（见 photo-cover.css）。
+        requestAnimationFrame(update);
+
+        window.__momoPhotoCover = {
+            cleanup() {
+                window.removeEventListener('scroll', onScroll);
+                window.removeEventListener('resize', onResize);
+            },
+        };
+    }
+
+    registerPageInit(initPhotoCover);
+
+    // 照片层在 swup 容器之外、换页不重建，进度得由脚本按当前页面切：
+    // 首页 → 0（满屏），内页 → 1（淡背景）。
+    // 用 after-swap 而不是 before-swap：@swup/astro 把 before-swap 派发成**不带载荷**的
+    // 裸 Event（拿不到新文档），after-swap 时 DOM 已经换好，直接查当前文档就行，
+    // 而且它和内容替换在同一个同步钩子里，不会闪出上一��的透明度。
+    document.addEventListener('astro:after-swap', () => {
+        const value = document.getElementById('photo-cover-text') ? '0' : '1';
+        const style = document.documentElement.style;
+        style.setProperty('--photo-p', value);
+        style.setProperty('--photo-pos', value);
+    });
+</script>}

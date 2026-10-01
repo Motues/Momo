@@ -3,6 +3,7 @@ import Layout from '@layouts/Layout.astro';
 import Header from '@components/Header.astro';
 import Footer from '@components/Footer.astro';
 import Search from '@components/misc/Search.astro';
+import PhotoCover from '@components/PhotoCover.astro';
 
 
 interface Props {
@@ -19,6 +20,8 @@ interface Props {
   structuredData?: Record<string, unknown> | Record<string, unknown>[];
   /** 页面是否渲染 Markdown 正文（透传给 Layout，用于异步加载引用块字体） */
   markdownFont?: boolean;
+  /** 首页 hero 模式的照片封面；不传就是内页那种淡淡的背景（见 @components/PhotoCover） */
+  photoCover?: boolean;
 }
 const {
   title,
@@ -33,6 +36,7 @@ const {
   noindex,
   structuredData,
   markdownFont,
+  photoCover = false,
 } = Astro.props;
 
 ---
@@ -51,7 +55,14 @@ const {
   structuredData={structuredData}
   markdownFont={markdownFont}
 >
-  <div class="flex flex-col min-h-screen">
+  <!-- isolate：给固定的照片层一个层叠上下文。
+       它用 z-index:-1 落在正文之下，而负 z-index 的绘制早于 body 的背景色，
+       不隔离会被 body 的底色盖住。放在 swup 容器（main）之外还有两个好处：
+       换页时照片层不会被替换 —— 既躲开了 .transition-swup-fade 的 opacity 包含块问题，
+       内页之间跳转也不会重新请求图片。 -->
+  <div class="relative isolate flex flex-col min-h-screen">
+    <PhotoCover hero={photoCover} />
+
     <!-- 顶栏在 swup 容器之外：换页时不重建（替代原来的 transition:persist），
          毛玻璃不重绘、没有跳动。它的语言菜单 / logo / 导航链接由 Header 里
          的 syncPersistedHeader() 在每次换页后按当前地址重算。 -->

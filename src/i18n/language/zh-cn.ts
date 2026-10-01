@@ -23,6 +23,7 @@ const translation: Translation = {
         meun: "菜单",
         toc: "目录",
         backToComments: "前往评论区",
+        scrollDown: "向下滚动查看文章",
     },
     search: {
         placeholder: "输入关键词开始搜索",

@@ -23,6 +23,7 @@ const translation: Translation = {
         meun: "Menu",
         toc: "Contents",
         backToComments: "Back to Comments",
+        scrollDown: "Scroll down for posts",
     },
     search: {
         placeholder: "Enter keywords to start searching",

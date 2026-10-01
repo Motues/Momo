@@ -8,8 +8,10 @@ import notoSerifSc400 from '@fontsource/noto-serif-sc/400.css?url';
 import notoSerifSc700 from '@fontsource/noto-serif-sc/700.css?url';
 import lxgwBrightCss from '@chinese-fonts/lxgwwenkaibright/dist/LXGWBright-Medium/result.css?url';
 import osCss from 'overlayscrollbars/styles/overlayscrollbars.scriptingenabled.css?url';
+import photoCoverCss from '@styles/photo-cover.css?url';
 import { i18n } from "astro:config/client";
 import { getSiteTitle } from '@utils/siteTitle';
+import { photoCoverEnabled } from '@utils/photoCover';
 import {
   absoluteUrl,
   bcp47,
@@ -121,6 +123,11 @@ const osAttrs = osEnabled ? { 'data-overlayscrollbars-initialize': '' } : {};
 // 滚动条粗细走 CSS 变量（见 styles/scrollbar.css 的 .os-theme-momo），
 // 写成内联变量而不是把数值编进样式表，改配置才能即时生效
 const osStyle = osEnabled ? `--os-momo-size: ${osConfig?.size ?? 8}px` : undefined;
+
+// ---- 照片封面 ----
+// 和 OS 的样式表同一个套路：不能 import 进组件，否则每个页面都会背上这份 CSS，
+// 开关关掉时也省不下来。照片层每个页面都有，所以这个 <link> 也是全站生效。
+const photoCoverOn = photoCoverEnabled();
 ---
 
 <!DOCTYPE html>
@@ -187,6 +194,9 @@ const osStyle = osEnabled ? `--os-momo-size: ${osConfig?.size ?? 8}px` : undefin
 
     <!-- OverlayScrollbars 的样式表：必须阻塞（桥接属性要在首屏前把原生滚动条藏掉） -->
     {osEnabled && <link rel="stylesheet" href={osCss}>}
+
+    <!-- 照片封面：同样是阻塞样式，首屏的居中标题、蒙版与淡出都靠它，不能等 -->
+    {photoCoverOn && <link rel="stylesheet" href={photoCoverCss}>}
 
     <!-- 正文 CJK 字体（Noto Serif SC）：202 条 @font-face 不参与首屏阻塞渲染，
          用 media="print" 先异步取回、onload 再切成 all；禁用 JS 时由 <noscript> 兜底 -->

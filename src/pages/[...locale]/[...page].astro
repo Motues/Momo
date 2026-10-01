@@ -12,6 +12,7 @@ import { i18n } from "astro:config/client";
 import type { CollectionEntry } from 'astro:content';
 import type { GetStaticPaths } from 'astro';
 import { getRelativeLocaleUrl } from '@utils/urlUtils';
+import { photoCoverEnabled } from '@utils/photoCover';
 
 import i18nit from '@i18n/translation'
 
@@ -66,10 +67,19 @@ const pageTitle = page.currentPage > 1
     ? `${getSiteTitle()} (${page.currentPage})`
     : getSiteTitle();
 
+// 照片封面只在首页第 1 页启用：翻页时再闪一次全屏大图反而吵。
+// 内页也会有一层很淡的照片背景，但那是 MainPageLayout 里 PhotoCover 的默认状态。
+const usePhotoCover = page.currentPage === 1 && photoCoverEnabled();
+// 社交分享图用这张照片；放在 src/ 下的图片构建后地址不可知，只在站内 / 绝对地址时生效
+const coverImage = siteConfig.theme.photoCover.image;
+const shareImage = usePhotoCover && (coverImage.startsWith('/') || /^https?:\/\//.test(coverImage))
+    ? coverImage
+    : undefined;
+
 ---
 
-<MainPageLayout title={pageTitle} lang={currentLang}>
-    <Cover title={t("cover.title.home")} subTitle={t("cover.subTitle.home")} />
+<MainPageLayout title={pageTitle} lang={currentLang} image={shareImage} photoCover={usePhotoCover}>
+    <Cover title={t("cover.title.home")} subTitle={t("cover.subTitle.home")} photo={usePhotoCover} />
     <PostPage page={page} />
     <Navi page={page} />
     <!-- fixed 浮层：留在 swup 容器内，但在淡入淡出元素之外（见 MainPageLayout 的说明） -->

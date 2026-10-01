@@ -110,6 +110,24 @@ function buildSections(values: ConfigValues): SectionDef[] {
           hint: 'top：封面在上方；background：封面作为卡片背景',
         },
         {
+          path: ['siteConfig', 'theme', 'photoCover', 'enable'],
+          label: '首页照片封面 photoCover',
+          type: 'bool',
+          hint: '首页第 1 页用整屏照片做背景，标题与副标题居中显示；向下滚动时标题平滑落回正常位置、照片淡成底色（需重新构建博客）',
+        },
+        {
+          path: ['siteConfig', 'theme', 'photoCover', 'image'],
+          label: '照片路径 photoCover.image',
+          mono: true,
+          hint: '以 / 开头相对 /public，否则相对 /src（如 assets/cover.jpg）；可在 public 下同名目录的 preview/ 里放一张几十像素的小图加快首屏',
+        },
+        {
+          path: ['siteConfig', 'theme', 'photoCover', 'mask'],
+          label: '蒙版浓度 photoCover.mask（0 - 1）',
+          type: 'number',
+          hint: '照片上的黑色蒙版浓度，保证白色标题清晰；随滚动逐渐消退',
+        },
+        {
           path: ['siteConfig', 'theme', 'overlayScrollbars', 'enable'],
           label: '悬浮滚动条 overlayScrollbars',
           type: 'bool',

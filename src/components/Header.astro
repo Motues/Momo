@@ -86,7 +86,9 @@ if (profileConfig.indexPage) {
 
 <!-- header -->
 <div id="main-header" data-pagefind-script={baseUrl('/pagefind/pagefind.js')} class="fixed top-0 left-0 right-0 z-50 transition-transform duration-300 ease-in-out md:relative md:translate-y-0">
-<div class="flex items-center pt-2 md:py-4 text-[var(--text-color)] max-w-[var(--header-width)] mx-auto">
+<!-- id="header-bar"：logo + 工具按钮这一条。照片封面时由 PhotoCover.astro 把它整条切白，
+     顶栏在 swup 容器外不会重建，所以这里给一个稳定的钩子而不是靠结构选择器 -->
+<div id="header-bar" class="flex items-center pt-2 md:py-4 text-[var(--text-color)] max-w-[var(--header-width)] mx-auto">
     <!-- logo -->
     <div class="pr-4 py-2 z-30 header-logo">
         <a href={ indexPage } >
@@ -140,7 +142,9 @@ if (profileConfig.indexPage) {
 
     <!-- nav_bar -->
     <div id="nav-bar" class="hidden md:flex absolute left-1/2 top-0 transform -translate-x-1/2  justify-center items-center text-lg font-bold my-5 z-100">
-        <div id="nav-bar-list" class="transition relative z-10 flex max-w-max flex-1 items-center justify-center rounded-outer p-2 backdrop-blur rounded-xl bg-[color:var(--bg-color)]/20 border border-[var(--bg-color)]">
+        <!-- 顶部没有描边、没有底色，只有文字与当前页色块；吸顶后才长出描边 + 毛玻璃底
+             （见文件末尾 #nav-bar-list 的规则）。border 宽度一直保留 1px，只把颜色设透明 -->
+        <div id="nav-bar-list" class="transition relative z-10 flex max-w-max flex-1 items-center justify-center rounded-xl p-2 border">
           <!-- 当前页底色块：空元素 + aria-hidden，纯装饰。位置与尺寸由脚本按当前链接量出来（见 moveNavIndicator） -->
           <div id="nav-indicator" aria-hidden="true"></div>
           <!-- 首页链接 -->
@@ -274,6 +278,48 @@ if (profileConfig.indexPage) {
     }
   }
 
+  /* ============ 桌面端导航胶囊（#nav-bar-list）的外壳 ============
+     外壳（描边 / 底色 / 阴影 / 模糊）统一由 --nav-chrome 驱动：0 = 只有文字和当前页色块，
+     1 = 完整毛玻璃胶囊。它是**派生变量**，不是状态：非照片页由脚本按 scrollY 0 / 1 切换，
+     照片封面（首页 hero）则由 photo-cover.css 换成滚动进度 --photo-p，于是和 Cover 一样
+     是逐帧插值渐变，而不是滚一像素就硬切。
+
+     ⚠️ 默认值是 1：禁用 JS 时既没有 nav-scrolled 也没有滚动脚本，顶栏必须保持完整胶囊，
+     否则滚起来文字会直接压在正文上。只有脚本可用时才把它归 0。 */
+  #nav-bar { --nav-chrome: 1; }
+  @media (scripting: enabled) {
+    #nav-bar { --nav-chrome: 0; }
+  }
+  /* 吸顶。特异性比上面两条高，顺序无所谓，但排在后面更好读 */
+  #nav-bar.nav-scrolled { --nav-chrome: 1; }
+
+  #nav-bar-list {
+    /* border-color 透明 ≠ 没有边框：宽度还在，吸顶时不会跳 1px 布局，
+       moveNavIndicator() 减掉的也正是这 1px */
+    border-color: color-mix(in srgb, var(--button-border-color) calc(var(--nav-chrome, 1) * 100%), transparent);
+    /* ⚠️ 这里的 65% 是「毛玻璃的实心程度」，调它就能整体加减透明度 */
+    background-color: color-mix(in srgb, var(--bg-color) calc(var(--nav-chrome, 1) * 65%), transparent);
+    box-shadow: 0 4px 12px color-mix(in srgb, var(--shadow-color) calc(var(--nav-chrome, 1) * 100%), transparent);
+    /* 注意：与 #main-header 同理，构建时的 CSS 压缩器会把 backdrop-filter 与
+       -webkit-backdrop-filter 当作同一属性合并、只保留后写的那条，
+       所以标准属性必须单独放进 @supports 规则里。 */
+    -webkit-backdrop-filter: blur(calc(12px * var(--nav-chrome, 1)));
+  }
+  @supports (backdrop-filter: blur(1px)) {
+    #nav-bar-list {
+      backdrop-filter: blur(calc(12px * var(--nav-chrome, 1)));
+    }
+  }
+
+  /* 系统/用户要求降低透明效果时退回纯色背景（同 #main-header） */
+  @media (prefers-reduced-transparency: reduce) {
+    #nav-bar-list {
+      background-color: color-mix(in srgb, var(--bg-color) calc(var(--nav-chrome, 1) * 100%), transparent);
+      -webkit-backdrop-filter: none;
+      backdrop-filter: none;
+    }
+  }
+
   /* 桌面端导航的「当前页」底色块。
      独立于链接的一个绝对定位元素，位置 / 尺寸由脚本量当前链接后写入
      （moveNavIndicator），切页时用 transform 平移过去。 */
@@ -403,9 +449,15 @@ function initMobileNav() {
     if (!navBar || !navBarList) return;
     const scrolled = y > 0;
     navBar.classList.toggle('fixed', scrolled);
-    navBar.classList.toggle('border-[var(--bg-color)]', !scrolled);
-    navBarList.classList.toggle('border-[var(--button-border-color)]', scrolled);
-    navBarList.classList.toggle('shadow-[0_4px_12px_var(--shadow-color)]', scrolled);
+    // 外壳（描边 / 底色 / 阴影 / 模糊）全部由 --nav-chrome 派生，这里只负责翻状态：
+    //   0 = 顶部，只有文字与当前页色块（没有边框、没有底色）
+    //   1 = 吸顶，完整毛玻璃胶囊
+    // photo-cover.css 会把照片封面页的这个变量换成滚动进度 --photo-p，
+    // 于是首页是逐帧插值，而不是滚一像素就硬切 —— 所以状态类仍然要照常维护。
+    // 打在两层上是同一个状态的两个落点：#nav-bar 供 photo-cover.css 覆盖，
+    // #nav-bar-list 是外壳本身，两行都由这只 updateNavBar() 幂等对账。
+    navBar.classList.toggle('nav-scrolled', scrolled);
+    navBarList.classList.toggle('nav-scrolled', scrolled);
   }
 
   function onScroll() {

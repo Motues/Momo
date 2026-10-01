@@ -33,6 +33,7 @@ export interface Translation {
         meun: string;
         toc: string;
         backToComments: string;
+        scrollDown: string;
     }
     search: {
         placeholder: string;
