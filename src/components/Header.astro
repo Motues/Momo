@@ -276,15 +276,7 @@ if (profileConfig.indexPage) {
 
   /* 桌面端导航的「当前页」底色块。
      独立于链接的一个绝对定位元素，位置 / 尺寸由脚本量当前链接后写入
-     （moveNavIndicator），切页时用 transform 平移过去。
-
-     ⚠️ 只过渡 transform / width / height，top / left 一次性写入：
-     这几个属性动起来每帧都要重新布局。虽然色块本身脱离了文档流、没有兄弟依赖它，
-     但没必要把整条导航拖进重排。transform 才是走合成层的那个。
-
-     ⚠️ 色块自身用 opacity 显隐（不加过渡）：它的祖先 #nav-bar-list 带 backdrop-filter，
-     祖先只要 opacity < 1 就会成为 backdrop 根、后代毛玻璃整帧失效
-     （见 AGENT.md「开发约定」）。色块自己是绝对定位的叶子，opacity 不会影响祖先的毛玻璃。 */
+     （moveNavIndicator），切页时用 transform 平移过去。 */
   #nav-indicator {
     position: absolute;
     top: 0;

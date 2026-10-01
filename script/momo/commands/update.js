@@ -59,7 +59,7 @@ const MANIFEST_FILE = '.momo/manifest.json'
 const DEFAULT_KEEP = [
   ...CONTENT_PATHS, // src/content、src/assets、public
   ...USER_CONFIG_PATHS, // src/config.ts
-  'AGENT.md',
+  'AGENTS.md',
   'cms/AGENT.md',
   '.env',
   '.env.local',

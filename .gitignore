@@ -33,4 +33,5 @@ pnpm-debug.log*
 .vscode/
 
 # AI tools
-AGENT.md
+/AGENTS.md
+/AGENT.md
