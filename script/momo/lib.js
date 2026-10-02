@@ -51,6 +51,9 @@ export const c = {
   gray: paint('90'),
 }
 
+// 单行进度：只在 TTY 下原地刷新（CI / 重定向时静默，避免刷出成百上千行）
+let progressActive = false
+
 export const log = {
   title: (text) => console.log(`\n${c.bold(text)}`),
   step: (text) => console.log(`${c.cyan('›')} ${text}`),
@@ -60,6 +63,16 @@ export const log = {
   fail: (text) => console.error(`${c.red('✗')} ${text}`),
   dim: (text) => console.log(c.gray(text)),
   raw: (text = '') => console.log(text),
+  progress: (text) => {
+    if (!process.stdout.isTTY) return
+    progressActive = true
+    process.stdout.write(`\r\u001b[2K${text}`)
+  },
+  progressEnd: () => {
+    if (!progressActive) return
+    progressActive = false
+    process.stdout.write('\r\u001b[2K')
+  },
 }
 
 // 面向用户的错误：只打印消息，不打印堆栈

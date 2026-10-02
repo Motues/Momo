@@ -39,6 +39,7 @@ import {
   listTreeFiles,
   planChanges,
 } from '../release.js'
+import { BUILTIN_MIRRORS, DIRECT_SOURCE, createSourcePlan } from '../mirrors.js'
 import backupCommand from './backup.js'
 
 // 构建产物与依赖：release 源码包里本来也没有，属于双保险
@@ -89,6 +90,29 @@ function printList(title, files, color = c.gray) {
   if (files.length > LIST_LIMIT) log.info(c.gray(`  …还有 ${files.length - LIST_LIMIT} 个`))
 }
 
+// 下载进度：单行原地刷新，最多每 400ms 一次（慢速镜像下也能看出没卡死）
+const PROGRESS_INTERVAL = 400
+function progressReporter() {
+  let last = 0
+  return ({ bytes, elapsed }) => {
+    const now = Date.now()
+    if (now - last < PROGRESS_INTERVAL) return
+    last = now
+    const mb = bytes / 1024 / 1024
+    const rate = elapsed > 0 ? mb / (elapsed / 1000) : 0
+    log.progress(`  ${c.cyan('↓')} 已下载 ${mb.toFixed(1)} MB（${rate.toFixed(2)} MB/s）`)
+  }
+}
+
+/** 把镜像设置翻译成一句人话（打印给用户看） */
+function describeMirror(mode) {
+  if (mode.mode === 'direct') return '只用 GitHub 直连（--mirror direct）'
+  if (mode.mode === 'custom') {
+    return `优先使用 ${mode.custom.map((source) => source.name).join('、')}，失败时回退内置镜像`
+  }
+  return '自动选择最快的源（GitHub 直连 + 内置镜像）'
+}
+
 /** 从更新指南（doc/release_zh-cn.md）里截取某个版本的段落 */
 function notesFrom(text, version) {
   if (!text || !version) return null
@@ -123,7 +147,7 @@ async function nextBackupName() {
  * 优先读上次更新写下的本地清单；没有清单（第一次用 momo update 的项目）时，
  * 退回读取当前版本 tag 在 GitHub 上的文件树（一次轻量 API 调用，不下载文件内容）。
  */
-async function previousTemplateFiles({ repo, version, releases, token }) {
+async function previousTemplateFiles({ repo, version, releases, token, plan, onStatus }) {
   const manifest = await readJson(fromRoot(MANIFEST_FILE), null)
   if (Array.isArray(manifest?.files) && manifest.files.length) {
     const tag = manifest.tag ?? manifest.version ?? '未知版本'
@@ -140,7 +164,7 @@ async function previousTemplateFiles({ repo, version, releases, token }) {
 
   for (const ref of [...new Set(candidates)]) {
     try {
-      const { files, truncated } = await listTreeFiles({ repo, ref, token })
+      const { files, truncated } = await listTreeFiles({ repo, ref, token, plan, onStatus })
       if (files.length) return { files, label: `远端文件树（${ref}）`, truncated }
     } catch {
       // 该 ref 不存在或接口不可用：换下一个候选，全部失败时按「没有清单」处理
@@ -168,6 +192,13 @@ export default {
   details: [
     `数据源：https://github.com/${DEFAULT_REPO}/releases（用 package.json 的版本号对比，不需要本地 git）。`,
     '',
+    '国内直连 GitHub 经常超时，因此下载 Release 列表与源码包时会先探测「GitHub 直连 + 公共镜像」，',
+    '按实测速度挑最快的源；连不上、超时或返回错误内容就自动换下一个（每个源还会换几种 URL 形式），',
+    '上次成功的源记在 .momo/mirror.json 里，一小时内直接复用。全部失败时会列出每个源的失败原因。',
+    `内置镜像：${BUILTIN_MIRRORS.map((source) => source.name).join('、')}`,
+    '用 --mirror <镜像前缀>（可逗号分隔多个）或环境变量 MOMO_MIRROR 指定镜像；--mirror direct 强制只走直连。',
+    '经第三方镜像请求源码包时不会携带 GITHUB_TOKEN（token 只发给 GitHub 直连），介意的话请用 --mirror direct。',
+    '',
     '更新时保留用户自己的内容：',
     `  ${[...CONTENT_PATHS, ...USER_CONFIG_PATHS].join('、')}`,
     `以下目录永远不更新（保留你自己的仓库配置）：${REPO_SKIP.join('、')}`,
@@ -181,6 +212,7 @@ export default {
     'dry-run': { type: 'boolean', desc: '下载并列出将要变更的文件，但不写入任何文件' },
     version: { type: 'string', desc: '更新到指定版本（标签，如 v26.9.26）' },
     repo: { type: 'string', desc: `数据源仓库，默认 ${DEFAULT_REPO}（也可用环境变量 MOMO_REPO）` },
+    mirror: { type: 'string', desc: '下载源：auto（默认）/ direct（只用直连）/ <镜像前缀>（也可用环境变量 MOMO_MIRROR）' },
     keep: { type: 'string', desc: '额外保留的路径，逗号分隔，如 src/components/Header.astro' },
     'keep-config': { type: 'boolean', desc: '保留全部配置文件，只更新代码与文档（自己按说明合并配置）' },
     delete: { type: 'boolean', default: true, desc: '删除 release 中已移除的旧文件（--no-delete 保留它们）' },
@@ -194,13 +226,23 @@ export default {
     const token = process.env.GITHUB_TOKEN || process.env.GH_TOKEN
     const localVersion = (await readJson(fromRoot('package.json'), {}))?.version ?? null
 
+    // 下载源：auto（默认，探测后挑最快的）/ direct / 自定义镜像前缀
+    const mirror = flags.mirror || process.env.MOMO_MIRROR || 'auto'
+    /** 状态行统一走这里：先擦掉进度行，避免两条输出叠在一起 */
+    const status = (text) => {
+      log.progressEnd()
+      log.step(text)
+    }
+    const sourcePlan = createSourcePlan({ mirror, onStatus: status })
+
     log.title('检查更新')
     log.info(`数据源：${c.cyan(`https://github.com/${repo}/releases`)}`)
     log.info(`本地版本：${c.bold(localVersion ?? '未知')}`)
+    log.info(`下载源：${describeMirror(sourcePlan.mode)}`)
 
-    const releases = await listReleases({ repo, token })
+    const releases = await listReleases({ repo, token, plan: sourcePlan, onStatus: status })
     const target = flags.version
-      ? await findRelease({ repo, version: flags.version, releases, token })
+      ? await findRelease({ repo, version: flags.version, releases, token, plan: sourcePlan, onStatus: status })
       : releases.find((item) => compareVersions(item.version, localVersion ?? '0') > 0)
 
     if (!target) {
@@ -246,14 +288,24 @@ export default {
       return
     }
 
-    // 1) 下载并解压目标版本源码
+    // 1) 下载并解压目标版本源码（自动挑最快的镜像，失败自动换源）
     const dir = join(tmpdir(), `momo-update-${Date.now()}`)
     await ensureDir(dir)
     let source
     try {
       log.raw()
-      source = await downloadRelease({ release: target, token, dir, onStatus: (text) => log.step(text) })
+      source = await downloadRelease({
+        release: target,
+        repo,
+        token,
+        dir,
+        plan: sourcePlan,
+        onStatus: status,
+        onProgress: progressReporter(),
+      })
+      log.progressEnd()
     } catch (error) {
+      log.progressEnd()
       await rm(dir, { recursive: true, force: true })
       throw error
     }
@@ -261,6 +313,9 @@ export default {
     if (source.version && compareVersions(source.version, target.version) !== 0) {
       await rm(dir, { recursive: true, force: true })
       fail(`源码包里的版本（${source.version}）与标签（${target.tag}）不一致，可能下载到了错误的分支，请稍后重试`)
+    }
+    if (source.source !== DIRECT_SOURCE.name) {
+      log.info(c.gray(`  下载源：${source.source}（自定义镜像可用 --mirror <前缀> 或环境变量 MOMO_MIRROR）`))
     }
 
     // 2) 生成变更清单（保留用户内容）
@@ -276,7 +331,7 @@ export default {
     }
 
     // 上一版模板的文件清单：用于判断新版本删掉了哪些文件
-    const previous = await previousTemplateFiles({ repo, version: localVersion, releases, token })
+    const previous = await previousTemplateFiles({ repo, version: localVersion, releases, token, plan: sourcePlan, onStatus: status })
 
     const plan = await planChanges(dir, {
       root: fromRoot('.'),
@@ -344,6 +399,7 @@ export default {
     }
 
     // 3) 确认
+    log.progressEnd()
     if (!flags.yes) {
       log.raw()
       const todo = [`写入 ${writes.length} 个文件`]
