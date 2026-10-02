@@ -97,7 +97,15 @@
         height: 100svh;
     }
 
+    /* 向下箭头：没有圆形描边、没有底色，只剩一个箭头本身。
+       所以按钮那 52px 方块是**看不见的点击热区**，视觉上只有里面的 svg；
+       宽度够大是为了好按（尤其手机上），不是为了好看。 */
     .photo-cover-arrow {
+        /* 唯一的尺寸旋钮：只影响箭头，热区不变。
+           ⚠️ 这个是 svg 的盒子大小，不是箭头的视觉宽度：viewBox 是 24×24，而路径
+           （m5 9 7 7 7-7）只占中间一块，可见宽度 ≈ 这个值 × 0.65（34px → 约 22px，比
+           原来的 21px 盒子大六成）。想再大就调它，线条粗细会按同比例跟着变。 */
+        --arrow-size: 34px;
         position: absolute;
         left: 50%;
         /* 占位块是排在顶栏之后的（桌面端顶栏在文档流里），所以要补回顶栏的高度，
@@ -106,31 +114,65 @@
         z-index: 1;
         display: grid;
         place-items: center;
-        width: 42px;
-        height: 42px;
-        transform: translateX(-50%);
-        border: 1px solid rgb(255 255 255 / 0.4);
-        border-radius: 50%;
+        width: 52px;
+        height: 52px;
+        padding: 0;
+        border: 0;
+        background: none;
         color: #fff;
-        background-color: rgb(0 0 0 / 0.2);
         cursor: pointer;
+        /* 自身居中用 translate 属性、不用 transform：transform 留给 hover 的 scale，
+           两个属性各自合成，互不覆盖 */
+        translate: -50% 0;
         /* 滚动一开始就退场，别挡着内容 */
         opacity: max(0, calc(1 - var(--photo-p, 1) * 2));
-        transition: background-color 0.2s;
+        /* ⚠️ 故意不写 opacity：淡出是逐帧跟着 --photo-p 走的，加了过渡会拖在滚动后面 */
+        transition: scale 0.25s ease, filter 0.25s ease;
     }
 
+    /* 呼吸式的定时跳动：做在 svg 上而不是按钮上，按钮的 scale 才能腾出来给 hover。
+       2.4s 一轮、节奏固定，位移 + 轻微放大 + 明暗一起呼吸；
+       中间 45% / 55% 停一下再回来，让它听起来像「一下、一下」的拍子，而不是匀速的正弦波。 */
+    .photo-cover-arrow svg {
+        width: var(--arrow-size);
+        height: var(--arrow-size);
+        /* 亮调照片上给一点暗底影，白箭头才立得住 */
+        filter: drop-shadow(0 2px 5px rgb(0 0 0 / 0.45));
+        animation: photo-arrow-breathe 2.4s ease-in-out infinite;
+    }
+
+    @keyframes photo-arrow-breathe {
+        0%,
+        100% {
+            translate: 0 0;
+            scale: 1;
+            opacity: 0.82;
+        }
+
+        45%,
+        55% {
+            translate: 0 5px;
+            scale: 1.07;
+            opacity: 1;
+        }
+    }
+
+    /* hover：没有底色可以变了，所以改成「放大 + 发白光」。
+       呼吸不停——停在中途会比让箭头继续飘更难看（那会跳一下）。 */
     .photo-cover-arrow:hover {
-        background-color: rgb(0 0 0 / 0.45);
+        scale: 1.16;
+        filter: drop-shadow(0 0 8px rgb(255 255 255 / 0.7));
+    }
+
+    .photo-cover-arrow:active {
+        scale: 0.94;
     }
 
     .photo-cover-arrow:focus-visible {
+        /* 圆角只为了把焦点圈画成圆形（按钮本体已经看不见了） */
+        border-radius: 999px;
         outline: 2px solid #fff;
-        outline-offset: 4px;
-    }
-
-    .photo-cover-arrow svg {
-        width: 21px;
-        height: 21px;
+        outline-offset: 2px;
     }
 
     /* 标题：p = 0 时中心落在视口正中，p = 1 时落在占位末尾 —— 也就是它本来的位置。
@@ -254,7 +296,9 @@
     @media (prefers-reduced-motion: reduce) {
         .photo-cover-copy h1,
         .photo-cover-copy p,
-        .photo-cover-arrow {
+        /* svg 也要列进来：呼吸动画挂在它身上，只关按钮等于没关 */
+        .photo-cover-arrow,
+        .photo-cover-arrow svg {
             animation: none;
             transition: none;
         }

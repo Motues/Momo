@@ -297,8 +297,11 @@ if (profileConfig.indexPage) {
     /* border-color 透明 ≠ 没有边框：宽度还在，吸顶时不会跳 1px 布局，
        moveNavIndicator() 减掉的也正是这 1px */
     border-color: color-mix(in srgb, var(--button-border-color) calc(var(--nav-chrome, 1) * 100%), transparent);
-    /* ⚠️ 这里的 65% 是「毛玻璃的实心程度」，调它就能整体加减透明度 */
-    background-color: color-mix(in srgb, var(--bg-color) calc(var(--nav-chrome, 1) * 65%), transparent);
+    /* ⚠️ 这里的 15% 是「毛玻璃的实心程度」，调它就能整体加减透明度：
+       0% = 彻底无色（只剩模糊 + 描边 + 阴影），100% = 实心底（等于 prefers-reduced-transparency
+       的回退）。底色本身仍取 --bg-color（浅色近白 / 深色近黑），所以即使 15% 也是「跟着主题
+       微微偏一点」，而不是纯透明——留这点底色是为了压在正文上时导航文字还有对比度。 */
+    background-color: color-mix(in srgb, var(--bg-color) calc(var(--nav-chrome, 1) * 15%), transparent);
     box-shadow: 0 4px 12px color-mix(in srgb, var(--shadow-color) calc(var(--nav-chrome, 1) * 100%), transparent);
     /* 注意：与 #main-header 同理，构建时的 CSS 压缩器会把 backdrop-filter 与
        -webkit-backdrop-filter 当作同一属性合并、只保留后写的那条，
@@ -356,13 +359,15 @@ if (profileConfig.indexPage) {
     color: inherit;
   }
 
-  /* 移动端侧边栏的分类：选中的用桌面端归档页同款样式标记（蓝底白字）。
+  /* 移动端侧边栏的分类：选中的用桌面端归档页同款样式标记（蓝底 + --accent-fg）。
+     ⚠️ 底色必须用 --accent-bg 而不是 --link-color：深色模式下 --link-color 是亮蓝
+     （#57ace7），压白字只有 2.48:1，根本看不清。
      写在这里而不是 Tailwind 的 aria-[current=true]: 变体，是为了确定地压过
      hover / active 的悬停样式——普通样式优先于 utilities 层。 */
   #mobile-category-list a[aria-current="true"] {
-    background-color: var(--link-color);
-    color: #fff;
-    border-color: var(--link-color);
+    background-color: var(--accent-bg);
+    color: var(--accent-fg);
+    border-color: var(--accent-bg);
   }
 
   /* 当手指上滑时，JS 会给这个 ID 添加该类来隐藏 Header */

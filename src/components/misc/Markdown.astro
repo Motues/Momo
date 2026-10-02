@@ -181,9 +181,13 @@ const className = Astro.props.class
     transform: translateX(-2px);
   }
 
+  /* 脚注跳回来时 :target 那一行闪一下。
+     ⚠️ 0% 必须是**淡**蓝底，不能直接写 var(--link-color)：正文是主题文字色（浅色下是黑），
+     压满蓝底只有 1.85:1，而里面那个回跳链接本身就是 --link-color，压在自家人身上是 1:1
+     ——动画头几百毫秒整行基本看不见。 */
   @keyframes highlight-fade {
     0% {
-      background-color: var(--link-color); 
+      background-color: color-mix(in srgb, var(--link-color) 16%, transparent);
     }
     100% {
       background-color: transparent;

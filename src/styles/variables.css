@@ -15,16 +15,29 @@
  * --text-color             文字基本色，通过透明度来控制颜色深浅，分为两类
  *     --text-color:        适用于标题、正文等需要突出显示的内容
  *     --text-color-70      适用于次要信息、辅助文本等不需要过于突出显示的内容
- * --link-color             彩色基本色，适用于链接、按钮等颜色突出的地方
+ * --link-color             彩色基本色，适用于链接、按钮等颜色突出的地方（**文字 / 描边**）
+ * --accent-bg              强调色**当底色**用时的背景：蓝底按钮、选中的分类胶囊
+ * --accent-fg              压在 --accent-bg 上的文字色
  * --button-hover-color     按钮鼠标悬停背景色
  * --button-border-color    按钮边框色
+ *
+ * ⚠️ --link-color 只管「文字 / 描边」；要拿蓝色当底色（上面还要压字）必须用
+ * --accent-bg + --accent-fg。两者在深色模式下必须分开：链接文字要够亮
+ * （#57ace7 在 #0a0a0a 上是 7.98:1），同一个亮蓝当底色压白字却只有 2.48:1
+ * （AA 要求 4.5:1）——曾经就是把 --link-color 直接当 bg 用，深色下按钮字几乎看不清。
 */
 :root {
     --bg-color: #fbfbfb;
     --text-color: #000000;
     --text-color-70: #4c4c4c;
     --shadow-color: rgba(0, 0, 0, 0.15);
-    --link-color: #003b6e;
+    /* hsl(207 79% 31%)：在页面底色上 7.52:1（AAA）。早先是 #003b6e（明度只有 22%，
+       11:1）——对比度远超需要，代价是「蓝」几乎看不出来：标题 hover 由黑变成它时，
+       肉眼几乎没有变化。 */
+    --link-color: #10558c;
+    /* 白字压 #10558c = 7.78:1 */
+    --accent-bg: #10558c;
+    --accent-fg: #ffffff;
     --button-hover-color: #eeeeee;
     --button-border-color: #d6d6d6;
 
@@ -53,6 +66,10 @@
     --text-color-70: #b5b5b5;
     --shadow-color: rgba(255, 255, 255, 0.15);
     --link-color: #57ace7;
+    /* 深色下链接文字用亮蓝（#0a0a0a 上 7.98:1），底色则必须压暗：
+       #0d5a94 上压白字是 7.22:1（AAA）；若图省事直接拿 #57ace7 当底色，白字只有 2.48:1。 */
+    --accent-bg: #0d5a94;
+    --accent-fg: #ffffff;
     --button-hover-color: #262626;
     --button-border-color: #3d3d3d;
 

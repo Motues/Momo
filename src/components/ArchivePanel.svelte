@@ -187,7 +187,7 @@
                         on:click={() => toggleCategory(cat)}
                         class="px-3 py-1 text-xs rounded-md transition-[color,background-color,border-color] border
                         {selectedCategories.includes(cat) 
-                            ? 'bg-[var(--link-color)] text-white border-[var(--link-color)]' 
+                            ? 'bg-[var(--accent-bg)] text-[var(--accent-fg)] border-[var(--accent-bg)]' 
                             : 'hover:border-[var(--link-color)] border-[var(--button-border-color)] text-[var(--text-color)]'}"
                     >
                         {cat === 'undefined' ? t("pagecard.uncategorized") : cat}
