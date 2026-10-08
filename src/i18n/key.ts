@@ -97,6 +97,12 @@ export interface Translation {
         list: string;
         showMoreReplies: string;
         collapseReplies: string;
+        verifying: string;
+        verifySuccess: string;
+        verifyFailed: string;
+        verifyRetry: string;
+        adminKey: string;
+        adminKeyPlaceholder: string;
     },
     langNote: {
         note: string;

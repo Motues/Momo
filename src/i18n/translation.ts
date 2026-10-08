@@ -32,9 +32,16 @@ function i18nit(language: string): (key: string, params?: Record<string, string 
 	 * Main translation function with parameter interpolation
 	 * @param key - Translation key to look up
 	 * @param params - Optional parameters for string interpolation (replaces {paramName} placeholders)
-	 * @returns Translated and interpolated string, or the original key if translation not found
+	 * @returns Translated and interpolated string; returns empty string if key is missing
 	 */
-	const t = (key: string, params?: Record<string, string | number>) => (fallback(key) as string)?.replace(/\{(\w+)\}/g, (_, param) => String(params?.[param] ?? param)) ?? key;
+	const t = (key: string, params?: Record<string, string | number>) => {
+		const value = fallback(key);
+		if (typeof value !== 'string') {
+			console.warn(`[i18n] missing translation key: ${key} (${language})`);
+			return '';
+		}
+		return value.replace(/\{(\w+)\}/g, (_, param) => String(params?.[param] ?? param));
+	};
 
 	return t;
 }

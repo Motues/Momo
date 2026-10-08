@@ -87,6 +87,12 @@ const translation: Translation = {
         list: "List",
         showMoreReplies: "Show more replies",
         collapseReplies: "Collapse",
+        verifying: "Verifying...",
+        verifySuccess: "Verified",
+        verifyFailed: "Verification failed",
+        verifyRetry: "Click to retry",
+        adminKey: "Admin verification key",
+        adminKeyPlaceholder: "Enter the admin comment key",
     },
     langNote: {
         note: "Note: ",
