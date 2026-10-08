@@ -29,13 +29,13 @@ const tocHeadings = headings.filter(h => h.depth > 1 && h.depth < 5);
 
 <div 
   id="fabMenu" 
-  class="fixed bottom-[5vh] lg:bottom-[13.5vh] right-[7vw] lg:left-[var(--toc-offset-left)] w-10 h-10 z-[1000] transition-opacity duration-300 opacity-0 pointer-events-none"
+  class="fixed bottom-[5vh] lg:bottom-[13.5vh] right-[7vw] lg:left-[var(--toc-offset-left)] w-10 h-10 z-[1000] pointer-events-none"
   data-scroll-distance={scrollToTopDistance}
 >
-  <div id="menuItems" class="absolute bottom-full left-0 mb-3 flex flex-col items-center gap-3 transition duration-300 ease-out translate-y-10 opacity-0 pointer-events-none [.is-active_&]:translate-y-0 [.is-active_&]:opacity-100 [.is-active_&]:pointer-events-auto">
+  <div id="menuItems" class="absolute bottom-full left-0 mb-3 flex flex-col items-center gap-3 transition duration-300 ease-out translate-y-10 pointer-events-none [.is-active_&]:translate-y-0 [.is-active_&]:pointer-events-auto">
     
     {showBackTop && (
-      <button id="backTop" title={t("button.backToTop")} class="relative w-10 h-10 rounded-full border border-[var(--text-color)]/20 cursor-pointer flex items-center justify-center transition-transform duration-200 active:scale-90 shadow-none backdrop-blur bg-[var(--bg-color)]/20 hover:bg-[var(--button-hover-color)]">
+      <button id="backTop" title={t("button.backToTop")} class="fab-item relative w-10 h-10 rounded-full border border-[var(--text-color)]/20 cursor-pointer flex items-center justify-center opacity-0 active:scale-90 shadow-none backdrop-blur bg-[var(--bg-color)]/20 hover:bg-[var(--button-hover-color)] [.is-active_&]:opacity-100">
         <svg class="absolute -top-[1px] -left-[1px] w-[calc(100%+2px)] h-[calc(100%+2px)] -rotate-90 overflow-visible" viewBox="0 0 40 40">
           <circle 
             id="progress-circle" 
@@ -52,25 +52,25 @@ const tocHeadings = headings.filter(h => h.depth > 1 && h.depth < 5);
     )}
 
     {tocHeadings.length > 0 && (
-      <button id="tocTrigger" title={t("button.toc") || "目录"} class="lg:hidden w-10 h-10 rounded-full border border-[var(--text-color)]/20 cursor-pointer flex items-center justify-center transition-transform duration-200 active:scale-90 shadow-none backdrop-blur bg-[var(--bg-color)]/20 hover:bg-[var(--button-hover-color)]">
+      <button id="tocTrigger" title={t("button.toc") || "目录"} class="fab-item lg:hidden w-10 h-10 rounded-full border border-[var(--text-color)]/20 cursor-pointer flex items-center justify-center opacity-0 active:scale-90 shadow-none backdrop-blur bg-[var(--bg-color)]/20 hover:bg-[var(--button-hover-color)] [.is-active_&]:opacity-100">
         <Icon name="fa6-solid:list-ul" class="text-lg text-[var(--text-color)]" />
       </button>
     )}
 
     {showBackBottom && (
-      <button id="backBottom" title={t("button.backToBottom")} class="w-10 h-10 rounded-full border border-[var(--text-color)]/20 cursor-pointer flex items-center justify-center transition-transform duration-200 active:scale-90 shadow-none backdrop-blur bg-[var(--bg-color)]/20 hover:bg-[var(--button-hover-color)]">
+      <button id="backBottom" title={t("button.backToBottom")} class="fab-item w-10 h-10 rounded-full border border-[var(--text-color)]/20 cursor-pointer flex items-center justify-center opacity-0 active:scale-90 shadow-none backdrop-blur bg-[var(--bg-color)]/20 hover:bg-[var(--button-hover-color)] [.is-active_&]:opacity-100">
         <Icon name="fa6-solid:arrow-down" class="text-lg text-[var(--text-color)]" />
       </button>
     )}
 
     {showComment && (
-      <button id="backComment" title={t("button.backToComments")} class="w-10 h-10 rounded-full border border-[var(--text-color)]/20 cursor-pointer flex items-center justify-center transition-transform duration-200 active:scale-90 shadow-none backdrop-blur bg-[var(--bg-color)]/20 hover:bg-[var(--button-hover-color)]">
+      <button id="backComment" title={t("button.backToComments")} class="fab-item w-10 h-10 rounded-full border border-[var(--text-color)]/20 cursor-pointer flex items-center justify-center opacity-0 active:scale-90 shadow-none backdrop-blur bg-[var(--bg-color)]/20 hover:bg-[var(--button-hover-color)] [.is-active_&]:opacity-100">
         <Icon name="material-symbols:comment-outline-rounded" class="text-lg text-[var(--text-color)]" />
       </button>
     )}
   </div>
 
-  <button id="menuTrigger" title={t("button.meun")} class="w-full h-full rounded-full border border-[var(--text-color)]/20 cursor-pointer flex items-center justify-center transition duration-300 shadow-none backdrop-blur bg-[var(--bg-color)]/20 active:scale-95 hover:bg-[var(--button-hover-color)]">
+  <button id="menuTrigger" title={t("button.meun")} class="w-full h-full rounded-full border border-[var(--text-color)]/20 cursor-pointer flex items-center justify-center opacity-0 transition duration-300 shadow-none backdrop-blur bg-[var(--bg-color)]/20 active:scale-95 hover:bg-[var(--button-hover-color)] [.is-visible_&]:opacity-100">
     <Icon name="fa6-solid:ellipsis" class="absolute text-lg text-[var(--text-color)] transition duration-300 opacity-100 rotate-0 [.is-active_&]:opacity-0 [.is-active_&]:rotate-90" />
     <Icon name="fa6-solid:xmark" class="absolute text-lg text-[var(--text-color)] transition duration-300 opacity-0 -rotate-90 [.is-active_&]:opacity-100 [.is-active_&]:rotate-0" />
   </button>
@@ -78,7 +78,7 @@ const tocHeadings = headings.filter(h => h.depth > 1 && h.depth < 5);
   {tocHeadings.length > 0 && (
     <div 
       id="tocPanel" 
-      class="lg:hidden absolute bottom-25 right-0 lg:bottom-0 lg:left-14 w-60 lg:w-72 max-h-[60vh] flex flex-col bg-[var(--bg-color)]/95 backdrop-blur-lg border border-[var(--text-color)]/20 rounded-2xl shadow-2xl transition duration-300 ease-[cubic-bezier(0.34,1.56,0.64,1)] origin-bottom-right lg:origin-bottom-left scale-50 opacity-0 pointer-events-none translate-y-4 lg:translate-y-0 lg:-translate-x-4 [.toc-active_&]:scale-100 [.toc-active_&]:opacity-100 [.toc-active_&]:pointer-events-auto [.toc-active_&]:translate-y-0 [.toc-active_&]:translate-x-0 z-[1001]"
+      class="lg:hidden absolute bottom-25 right-0 lg:bottom-0 lg:left-14 w-60 lg:w-72 max-h-[60vh] flex flex-col bg-[var(--bg-color)]/95 backdrop-blur-lg border border-[var(--text-color)]/20 rounded-2xl shadow-2xl transition duration-300 ease-[cubic-bezier(0.34,1.56,0.64,1)] origin-bottom-right lg:origin-bottom-left scale-50 opacity-0 pointer-events-none translate-y-4 lg:translate-y-0 lg:-translate-x-4 [.is-visible.toc-active_&]:scale-100 [.is-visible.toc-active_&]:opacity-100 [.is-visible.toc-active_&]:pointer-events-auto [.is-visible.toc-active_&]:translate-y-0 [.is-visible.toc-active_&]:translate-x-0 z-[1001]"
     >
       <div class="px-4 py-3 border-b border-[var(--text-color)]/10 font-bold text-sm text-[var(--text-color)] flex justify-between items-center bg-[var(--button-hover-color)] rounded-t-2xl">
         <span>{t("button.toc")}</span>
@@ -146,16 +146,18 @@ function initFabMenu() {
     ticking = false;
     const scrollTop = window.scrollY || document.documentElement.scrollTop;
 
-    // 控制 FAB 整体显示/隐藏（只在状态真的变化时改 class）
+    // 控制 FAB 整体显示/隐藏（只在状态真的变化时改 class）。
+    // 这里切的是 is-visible（CSS 里对应 visibility）而不是 opacity，原因见文件底部样式：
+    // 容器只要 opacity < 1 就会成为 backdrop 根，内部按钮的 backdrop-blur 在动画期间失效。
     const visible = scrollTop > threshold;
     if (visible !== lastVisible) {
       lastVisible = visible;
       if (visible) {
-        container.classList.remove('opacity-0', 'pointer-events-none');
-        container.classList.add('opacity-100', 'pointer-events-auto');
+        container.classList.remove('pointer-events-none');
+        container.classList.add('is-visible', 'pointer-events-auto');
       } else {
-        container.classList.add('opacity-0', 'pointer-events-none');
-        container.classList.remove('opacity-100', 'pointer-events-auto', 'is-active', 'toc-active');
+        container.classList.add('pointer-events-none');
+        container.classList.remove('is-visible', 'pointer-events-auto', 'is-active', 'toc-active');
         isTocOpen = false; // 回到顶部时同时关闭目录状态
       }
     }
@@ -348,6 +350,28 @@ registerPageInit(initFabMenu);
 </script>
 
 <style is:global>
+  /* ⚠️ 带 backdrop-blur 的按钮，出现 / 消失动画不能靠「祖先」的 opacity：
+     祖先只要 opacity < 1（或带 filter / will-change: opacity）就会成为 backdrop 根，
+     后代的 backdrop-filter 只能采样这个根内部的内容（= 什么都没有），
+     于是动画期间只剩下 20% 的底色，等过渡结束、opacity 回到 1 才「啪」地一下变模糊
+     —— 观感就是「先弹出、动画结束才变模糊」。
+     分工：容器只做 visibility + transform，淡入淡出落在带 backdrop-blur 的元素自己身上
+     （元素自身的 opacity 不会破坏自己的 backdrop-filter，只是把模糊结果按透明度混合）。 */
+  #fabMenu {
+    /* visibility 是离散插值：显示（hidden -> visible）立刻可见，
+       隐藏（visible -> hidden）要等 300ms 过渡跑完才生效，收起动画因此完整播完 */
+    visibility: hidden;
+    transition: visibility 300ms;
+  }
+  #fabMenu.is-visible { visibility: visible; }
+
+  /* 菜单项按钮：淡入沿用原先 #menuItems 上的 300ms ease-out（--ease-out = cubic-bezier(0,0,.2,1)），
+     按压缩放保持原来的 200ms + 默认缓动（原由 transition-transform duration-200 提供） */
+  #fabMenu .fab-item {
+    transition: opacity 300ms cubic-bezier(0, 0, 0.2, 1),
+                scale 200ms cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
   #progress-circle {
     stroke: var(--text-color);
     transition: stroke-dasharray 0.1s linear;

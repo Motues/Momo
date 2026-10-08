@@ -255,8 +255,6 @@
     let y = 0
     let open = false
     let lastFocus: HTMLElement | null = null
-    // 打开时点击的那张缩略图，关闭时飞回它的位置
-    let sourceImage: HTMLImageElement | null = null
     let transitionSeq = 0
     // 拖拽 / 双指手势状态
     const pointers = new Map<number, { x: number; y: number }>()
@@ -375,10 +373,18 @@
       )
     }
 
+    // 关闭时飞回「当前正在看的这一张」在正文里的缩略图，而不是打开时点击的那张：
+    // 切过图之后 index 已经变了，飞回目标也必须跟着变。
+    // items 正是 contentImages() 的映射（顺序一一对应），所以按 index 取即可。
+    function currentThumb(): HTMLImageElement | null {
+      const thumb = contentImages()[index]
+      return thumb && thumb.isConnected ? thumb : null
+    }
+
     // 原缩略图当前是否还可见（用于关闭动画）
     function sourceRect(): DOMRect | null {
-      const source = sourceImage
-      if (!source || !source.isConnected) return null
+      const source = currentThumb()
+      if (!source) return null
       const rect = source.getBoundingClientRect()
       if (rect.width < 8 || rect.height < 8) return null
       if (rect.bottom < 0 || rect.top > window.innerHeight) return null
@@ -423,10 +429,10 @@
     }
 
     // 打开：从缩略图平滑放大到全屏
+    // source 只用于飞入起点；飞回目标由 currentThumb() 按当时的 index 现取（见 sourceRect）
     async function openAt(position: number, source: HTMLImageElement) {
       items = contentImages().map(itemOf)
       if (!items.length) return
-      sourceImage = source
       lastFocus = document.activeElement as HTMLElement | null
       open = true
       const seq = ++transitionSeq

@@ -248,6 +248,18 @@
   margin: 1.25rem 0;
 }
 
+/* 复制按钮：EC 自带样式里，触摸设备（@media (hover: none)）会把按钮放大到 2.5rem
+   并常显，窄屏上很占地方；这里在手机 / 触摸设备上收回到桌面端同尺寸（2rem）。
+   条件与 EC 的那条互补（窄屏 or 触摸），媒体查询里两个都写，横屏手机也覆盖得到；
+   遮罩图标靠 ::after 的 margin 0.475rem 撑出来，尺寸不变即可保持图标比例与桌面一致。
+   选择器必须比 EC 的 `.expressive-code .copy button`(0,2,1) 更重，故带上 .markdown-content。 */
+@media (max-width: 776px), (hover: none) {
+  .markdown-content .expressive-code .copy button {
+    width: 2rem;
+    height: 2rem;
+  }
+}
+
 .markdown-content hr {
   margin: 2rem 0;
   border: none;
