@@ -29,6 +29,17 @@ Below are general modification suggestions.
 
 > Version numbers follow the `YY.MM.DD` format
 
+### 26.10.8
+
+* **Comments support silent verification**: once the backend turns it on, visitors pass the human check quietly in the background — no puzzles to solve, no codes to type — and then submit as usual. The check runs in batches so the input box and page scrolling stay smooth. Whether it is enabled is decided by the comment backend, so there is nothing to configure on the front end; with it off, the comment area behaves exactly as before
+* **A sturdier, safer comment area**: author website links now only allow the `http` / `https` / `mailto` protocols, so `javascript:` links in older data are no longer rendered as clickable addresses; previews and content are sanitized with DOMPurify; when the browser blocks site storage (incognito / private mode) it no longer throws and interrupts, and drafts and input keep working; after submitting a comment the list refreshes silently instead of being replaced by "Loading comments..."
+* **`pnpm momo update` picks the fastest download source automatically**: it probes the direct GitHub connection and public mirrors in parallel and uses whichever measures faster, switching sources on timeouts or broken archives, so a blocked GitHub needs no extra setup; the new `--mirror <prefix>` option or the `MOMO_MIRROR` environment variable pins your own, `--mirror direct` forces a direct connection, and downloads show a single-line progress
+* **Reworked blue**: the light-mode link colour moves from a near-black navy to a bright theme blue, so a title finally looks different on hover; "blue as a background under text" and "blue as link text" are now two separate colours, lifting dark-mode white-on-blue from 2.48:1 to 7.22:1 (the 404 button and the selected category chips on the archive page and in the mobile drawer), and the footnote jump highlight became a light blue wash instead of putting text on top of its own colour
+* **Clearer header glass**: the desktop navigation pill's background drops from 65% to 15% solidity, becoming almost colourless glass (outline, shadow and blur unchanged)
+* **Reworked home page scroll arrow**: the circle outline and background are gone, leaving a larger arrow that breathes slowly, and hovering enlarges it with a soft white glow
+* **Fixes**: closing the image lightbox now flies back to the thumbnail you are currently viewing (it used to fly to the one you clicked when opening, if you had switched images); the code block copy button no longer stays enlarged on phones and touch devices, back to the desktop size; the floating menu's frosted glass no longer waits for the pop-out animation to finish before appearing
+* This update modifies the config files `src/i18n/` (new comment translations `comments.verifying` / `verifySuccess` / `verifyFailed` / `verifyRetry` / `adminKey` / `adminKeyPlaceholder`), and both READMEs were updated accordingly — merge them as prompted
+
 ### 26.10.1
 
 > Happy National Day!

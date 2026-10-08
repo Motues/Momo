@@ -20,7 +20,7 @@ Momo originates from Xiaohongshu📕, serving as the default nickname for every 
 * **Extensive Markdown syntax**: KaTeX, Typst (compiled to SVG at build time), Alert components, GitHub / NetEase Music cards, quote component, ruby annotations, spoilers, rainbow text, underline, new-tab links, Expressive Code and more
 * **Local search**: Localized search built with [pagefind](https://pagefind.app/), no external service required
 * **Internationalization (i18n)**: Supports multilingual switching, currently available in Simplified Chinese and English
-* **Commenting**: Supports local deployment and Cloudflare deployment. See [Backend](https://github.com/Motues/Momo-Backend) for details
+* **Commenting**: Supports local deployment and Cloudflare deployment. See [Backend](https://github.com/Motues/Momo-Backend) for details; with silent verification enabled on the backend, visitors pass the human check automatically without solving puzzles or typing codes
 * **SEO**: canonical URLs, hreflang alternates, Open Graph / Twitter Cards, structured data, `sitemap.xml` and `robots.txt`
 * **Local CMS**: Start it with `pnpm cms` to edit posts with live preview (sharing the same Markdown pipeline as the blog) instead of editing Markdown by hand
 * **Command line tool**: `pnpm momo` provides config backup/restore, one-command updates, new post creation and environment checks

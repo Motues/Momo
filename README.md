@@ -19,7 +19,7 @@ Momo 取自小红书📕，每个新用户最初的昵称，象征着初始新�
 * **丰富的 Markdown 语法**：KaTeX、Typst（构建期编译为 SVG）、Alert 提示块、GitHub / 网易云音乐卡片、引用组件、注音（Ruby）、折叠、彩虹文字、下划线、新标签页链接，Expressive Code 等
 * **本地搜索**：使用 [pagefind](https://pagefind.app/) 实现本地化搜索，无需外部服务
 * **国际化（i18n）**：支持多语言切换，目前支持简体中文、英文
-* **评论功能**：支持本地部署和 Cloudflare 部署，具体参考 [Backend](https://github.com/Motues/Momo-Backend)
+* **评论功能**：支持本地部署和 Cloudflare 部署，具体参考 [Backend](https://github.com/Motues/Momo-Backend)；后端开启无感验证后，访客无需点选图片或输入验证码即可自动完成人机校验
 * **SEO**：canonical、hreflang 多语言对照、Open Graph / Twitter Card、结构化数据、`sitemap.xml` 与 `robots.txt`
 * **本地 CMS 管理后台**：`pnpm cms` 启动，可视化编辑文章与实时预览（与博客共用同一条 Markdown 管线），无需手动改 Markdown
 * **命令行工具**：`pnpm momo` 提供配置备份/恢复、一键更新、新建文章、环境检查等能力
