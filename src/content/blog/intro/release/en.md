@@ -1,9 +1,9 @@
 ---
 title: Update Guide and Release
-pubDate: 2026-01-01
+pubDate: '2026-01-01'
 description: Website Configuration
 category: Instruction
-image: "./images/banner.png"
+image: ./images/banner.png
 draft: false
 slugId: momo/intro/release
 pinTop: 1
@@ -17,11 +17,11 @@ The project version number is only incremented when the configuration file struc
 
 Blog text, images, and other content are stored in the `src/content/`, `src/assets`, and `public` folders.
 
-## Version Number Unchanged
+## Update with scripts
 
 You can directly clone this project, then overwrite the new project with your original configuration files. Run `pnpm install` to install dependencies, followed by `pnpm build` for local compilation. Finally, execute `pnpm preview` to preview the compiled project.
 
-When updating inside this repository, run `pnpm momo update`: it reads the latest [release](https://github.com/Motues/Momo/releases), compares it with the version in `package.json`, downloads that version's source, **keeps your own posts and images** (`src/content`, `src/assets`, `public`) and `src/config.ts`, overwrites the rest of the code, **deletes files the new version no longer ships** and installs dependencies, then lists the **configuration files that need to be merged by hand**. Deletion only covers files that existed in the previous template but were removed upstream (tracked in `.momo/manifest.json`; the first update reads the file list of your current version tag instead), so files you added yourself are never touched, and deleted files are backed up next to the overwritten ones under `.backup/update-<timestamp>/overwritten/`. Run `pnpm momo update --dry-run` first to preview the changes, add `--no-delete` to only overwrite, and `pnpm momo restore <backup name>` rolls the configuration back. If GitHub is slow or blocked, no extra setup is needed: `momo update` **picks the fastest download source by itself** — it probes GitHub and a list of public mirrors (gh-proxy and friends) in parallel, downloads through the quickest one and switches to the next whenever a source times out or returns a broken archive, remembering the last working one in `.momo/mirror.json` for an hour. Pin your own with `--mirror <prefix>` or the `MOMO_MIRROR` environment variable, or force a direct connection with `--mirror direct`.
+When updating inside this repository, run `pnpm momo update`: it reads the latest [release](https://github.com/Motues/Momo/releases), compares it with the version in `package.json`, downloads that version's source, **keeps your own posts and images** (`src/content`, `src/assets`, `public`) and `src/config.ts`, overwrites the rest of the code, **deletes files the new version no longer ships** and installs dependencies, then lists the **configuration files that need to be merged by hand**. 
 
 ## Version Number Changed
 

@@ -5,6 +5,8 @@
 import { api } from '../api'
 import type { ConfigDoc, ConfigValues, FriendLinkItem } from '../types'
 import { el, escapeHtml } from '../dom'
+import { createSelect } from '../select'
+import { createConfigToc, type ConfigToc } from './config-toc'
 import { pageHeader } from './header'
 import { toast } from '../ui'
 
@@ -22,6 +24,8 @@ interface FieldDef {
   mono?: boolean
   placeholder?: string
   wide?: boolean
+  // 同名的连续字段算一组：「主题与动效」按语义分组，组与组之间画一条浅色横线
+  group?: string
 }
 
 interface SectionDef {
@@ -38,6 +42,7 @@ interface ConfigState {
   snapshot: string
   dirty: boolean
   saving: boolean
+  toc: ConfigToc
 }
 
 // 各页面 Cover 文案的字段（与 i18nConfig.translations 结构对应）
@@ -86,20 +91,24 @@ function buildSections(values: ConfigValues): SectionDef[] {
     {
       id: 'theme',
       title: '主题与动效',
+      // group：同名连续字段算一组，组与组之间画一条浅色横线
+      // （动效基础 / 图片拼图 / 卡片封面 / 首页照片封面 / 悬浮滚动条）
       fields: [
-        { path: ['siteConfig', 'theme', 'AOS'], label: '滚动动画 AOS', type: 'bool' },
-        { path: ['siteConfig', 'theme', 'LQIP'], label: '图片占位 LQIP', type: 'bool' },
-        { path: ['siteConfig', 'theme', 'PhotoSwipe'], label: '图片查看器 PhotoSwipe', type: 'bool' },
+        { path: ['siteConfig', 'theme', 'AOS'], label: '滚动动画 AOS', type: 'bool', group: '动效基础' },
+        { path: ['siteConfig', 'theme', 'LQIP'], label: '图片占位 LQIP', type: 'bool', group: '动效基础' },
+        { path: ['siteConfig', 'theme', 'PhotoSwipe'], label: '图片查看器 PhotoSwipe', type: 'bool', group: '动效基础' },
         {
           path: ['siteConfig', 'theme', 'imageCollage', 'enable'],
           label: '连续图片自动拼图 imageCollage',
           type: 'bool',
+          group: '图片拼图',
           hint: '正文里连续放置的多张图片自动排成网格（不显示图注；每行高度由该行最宽的图片决定并让它完整显示，其余按这个高度裁切）（需重新构建博客）',
         },
         {
           path: ['siteConfig', 'theme', 'imageCollage', 'maxColumns'],
           label: '拼图每行最多几张 maxColumns',
           type: 'number',
+          group: '图片拼图',
           hint: '取值 2 - 6，实际每行张数会按图片数量自动选择',
         },
         {
@@ -107,30 +116,35 @@ function buildSections(values: ConfigValues): SectionDef[] {
           label: '卡片封面模式',
           type: 'select',
           options: ['top', 'background'],
+          group: '卡片封面',
           hint: 'top：封面在上方；background：封面作为卡片背景',
         },
         {
           path: ['siteConfig', 'theme', 'photoCover', 'enable'],
           label: '首页照片封面 photoCover',
           type: 'bool',
+          group: '首页照片封面',
           hint: '首页第 1 页用整屏照片做背景，标题与副标题居中显示；向下滚动时标题平滑落回正常位置、照片淡成底色（需重新构建博客）',
         },
         {
           path: ['siteConfig', 'theme', 'photoCover', 'image'],
           label: '照片路径 photoCover.image',
           mono: true,
+          group: '首页照片封面',
           hint: '以 / 开头相对 /public，否则相对 /src（如 assets/cover.jpg）。模糊底图由构建期自动生成，无需自己准备；想换成自己挑的小图，可在 public 下同名目录的 preview/ 里放一张（存在时优先用它）',
         },
         {
           path: ['siteConfig', 'theme', 'photoCover', 'mask'],
           label: '蒙版浓度 photoCover.mask（0 - 1）',
           type: 'number',
+          group: '首页照片封面',
           hint: '照片上的黑色蒙版浓度，保证白色标题清晰；随滚动逐渐消退',
         },
         {
           path: ['siteConfig', 'theme', 'overlayScrollbars', 'enable'],
           label: '悬浮滚动条 overlayScrollbars',
           type: 'bool',
+          group: '悬浮滚动条',
           hint: '用 OverlayScrollbars 替换浏览器默认的整页滚动条（悬浮样式，可自动隐藏）',
         },
         {
@@ -138,12 +152,14 @@ function buildSections(values: ConfigValues): SectionDef[] {
           label: '滚动条自动隐藏 autoHide',
           type: 'select',
           options: ['never', 'scroll', 'move', 'leave'],
+          group: '悬浮滚动条',
           hint: 'never：一直显示；scroll：滚动时才显示；move：指针移到页面上或滚动时显示；leave：指针离开页面且不滚动时隐藏',
         },
         {
           path: ['siteConfig', 'theme', 'overlayScrollbars', 'size'],
           label: '滚动条粗细 size（px）',
           type: 'number',
+          group: '悬浮滚动条',
         },
       ],
     },
@@ -251,6 +267,7 @@ export async function renderConfig(root: HTMLElement) {
     snapshot: '',
     dirty: false,
     saving: false,
+    toc: createConfigToc(),
   }
   state.snapshot = JSON.stringify(state.values)
 
@@ -264,6 +281,7 @@ export async function renderConfig(root: HTMLElement) {
 
   root.append(
     pageHeader('config', el('div', { class: 'editor-actions' }, [badge, reloadBtn, saveBtn])),
+    state.toc.el,
     main,
   )
   renderBody(main, state, badge)
@@ -286,6 +304,7 @@ export async function renderConfig(root: HTMLElement) {
   ;(root as HTMLElement & { __cleanup?: () => void }).__cleanup = () => {
     document.removeEventListener('keydown', onKey)
     window.removeEventListener('beforeunload', onBeforeUnload)
+    state.toc.destroy()
   }
 }
 
@@ -301,10 +320,13 @@ function renderBody(main: HTMLElement, state: ConfigState, badge: HTMLElement) {
       '：修改后点击右上角「保存配置」写回文件（只改写改动过的字段，注释与排版保持不变）。',
     ]),
   )
-  for (const section of buildSections(state.values)) {
+  const sections = buildSections(state.values)
+  for (const section of sections) {
     main.append(renderSection(section, state, main, badge))
   }
   main.append(renderSource(state))
+  // 悬浮目录栏跟着分区列表走（保存 / 重新加载 / 改了语种都会重建表单）
+  state.toc.setSections(sections.map((s) => ({ id: s.id, title: s.title })))
   window.scrollTo(0, scrollY)
 }
 
@@ -317,11 +339,7 @@ function renderSection(
   const body =
     section.kind === 'friendLinks'
       ? renderFriendLinks(state, main, badge)
-      : el(
-          'div',
-          { class: 'cfg-grid' },
-          (section.fields || []).map((f) => renderField(f, state, badge)),
-        )
+      : renderFields(section.fields || [], state, badge)
 
   return el('section', { class: 'panel cfg-section', id: `cfg-${section.id}` }, [
     el('div', { class: 'cfg-section-head' }, [
@@ -330,6 +348,33 @@ function renderSection(
     ]),
     body,
   ])
+}
+
+// 字段网格：没有 group 的走原来的两列布局；有 group 的先按同名连续字段切段，
+// 每段一个 .cfg-group（内部仍是两列），组与组之间由 CSS 画一条浅色横线
+function renderFields(fields: FieldDef[], state: ConfigState, badge: HTMLElement): HTMLElement {
+  if (!fields.some((f) => f.group)) {
+    return el('div', { class: 'cfg-grid' }, fields.map((f) => renderField(f, state, badge)))
+  }
+
+  const runs: { group?: string; fields: FieldDef[] }[] = []
+  for (const field of fields) {
+    const last = runs[runs.length - 1]
+    if (last && last.group === field.group) last.fields.push(field)
+    else runs.push({ group: field.group, fields: [field] })
+  }
+
+  return el(
+    'div',
+    { class: 'cfg-groups' },
+    runs.map((run) =>
+      el(
+        'div',
+        { class: 'cfg-group' },
+        run.fields.map((f) => renderField(f, state, badge)),
+      ),
+    ),
+  )
 }
 
 function renderField(field: FieldDef, state: ConfigState, badge: HTMLElement): HTMLElement {
@@ -360,13 +405,11 @@ function renderField(field: FieldDef, state: ConfigState, badge: HTMLElement): H
     if (value !== undefined && value !== null && !options.includes(String(value))) {
       options.push(String(value))
     }
-    control = el(
-      'select',
-      { class: 'input', onchange: (e: Event) => set((e.target as HTMLSelectElement).value) },
-      options.map((o) =>
-        el('option', { value: o, selected: String(value ?? '') === o }, [o]),
-      ),
-    )
+    control = createSelect({
+      options: options.map((o) => ({ value: o, label: o })),
+      value: String(value ?? ''),
+      onChange: (v: string) => set(v),
+    })
   } else if (field.type === 'tags') {
     control = el('input', {
       class: 'input mono',

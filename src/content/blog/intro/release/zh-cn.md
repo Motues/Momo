@@ -1,14 +1,13 @@
 ---
 title: 更新指南和版本记录
-pubDate: 2026-01-01
+pubDate: '2026-01-01'
 description: 网站配置
 category: 指南
-image: "./images/banner.png"
+image: ./images/banner.png
 draft: false
 slugId: momo/intro/release
 pinTop: 1
 ---
-
 
 该项目目前仍处于维护中，如果需要更新，请按照以下步骤进行：
 
@@ -18,11 +17,11 @@ pinTop: 1
 
 `src/content/`、`src/assets` 、`public` 文件夹下存放博客文字、图片等内容。
 
-## 版本号未变
+## 使用脚本更新
 
 可以直接克隆本项目，然后将自己原本的配置文件覆盖到新项目，然后运行 `pnpm install` 安装依赖，然后运行 `pnpm build` 本地编译，然后运行 `pnpm preview` 预览编译后的项目。
 
-在本仓库内更新时，可以直接执行 `pnpm momo update`：它会读取 [Release](https://github.com/Motues/Momo/releases) 里的最新版本，与 `package.json` 的版本号对比后下载该版本源码，**保留你自己的文章与图片**（`src/content`、`src/assets`、`public`）和 `src/config.ts`，覆盖其余代码，**删除新版本已经移除的旧文件**并安装依赖，最后列出本次更新中**需要手工合并的配置文件**。删除只针对「上一版模板里有、新版本已移除」的文件（依据更新时写下的 `.momo/manifest.json`，首次更新时读取当前版本 tag 的文件列表），你自己新增的文件不受影响；被删除的文件会和被覆盖的文件一起备份在 `.backup/update-<时间戳>/overwritten/` 里。更新前可以先用 `pnpm momo update --dry-run` 预览将要变更的文件，加 `--no-delete` 则只覆盖不删除；配置出问题可以用 `pnpm momo restore <备份名>` 回滚。国内直连 GitHub 常常超时，`momo update` 会**自动挑选最快的下载源**：并行探测 GitHub 直连与一批公共镜像（gh-proxy 等），按实测速度选最快的下载、失败就换下一个，上次成功的源记在 `.momo/mirror.json` 里一小时内复用；也可以用 `--mirror <镜像前缀>` 或环境变量 `MOMO_MIRROR` 指定镜像，`--mirror direct` 强制只用直连。
+在本仓库内更新时，可以直接执行 `pnpm momo update`：它会读取 [Release](https://github.com/Motues/Momo/releases) 里的最新版本，与 `package.json` 的版本号对比后下载该版本源码，**保留你自己的文章与图片**（`src/content`、`src/assets`、`public`）和 `src/config.ts`，覆盖其余代码，**删除新版本已经移除的旧文件**并安装依赖，最后列出本次更新中**需要手工合并的配置文件**。
 
 ## 版本号改变
 

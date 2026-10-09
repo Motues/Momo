@@ -2,6 +2,7 @@ import { api } from '../api'
 import type { ArticleSummary } from '../types'
 import { navigate } from '../router'
 import { el, encodePath } from '../dom'
+import { createSelect, type SelectControl } from '../select'
 import { toast } from '../ui'
 import { pageHeader } from './header'
 import { openNewModal } from './new-article'
@@ -61,44 +62,45 @@ export async function renderList(root: HTMLElement) {
             debouncedReload()
           },
         }),
-        el('select', {
-          class: 'input',
+        createSelect({
           id: 'filter-category',
-          onchange: (e: Event) => {
-            state.category = (e.target as HTMLSelectElement).value
+          // 先占位再等 /api/meta 填真实分类，避免加载完成前宽度跳一下
+          options: [{ value: '', label: '全部分类' }],
+          onChange: (v: string) => {
+            state.category = v
             reload()
           },
         }),
-        el('select', {
-          class: 'input',
+        createSelect({
           id: 'filter-draft',
-          onchange: (e: Event) => {
-            state.draft = (e.target as HTMLSelectElement).value
+          options: [
+            { value: 'all', label: '全部状态' },
+            { value: 'published', label: '已发布' },
+            { value: 'drafts', label: '草稿' },
+          ],
+          onChange: (v: string) => {
+            state.draft = v
             reload()
           },
-        }, [
-          el('option', { value: 'all' }, ['全部状态']),
-          el('option', { value: 'published' }, ['已发布']),
-          el('option', { value: 'drafts' }, ['草稿']),
-        ]),
-        el('select', {
-          class: 'input',
+        }),
+        createSelect({
           id: 'sort-by',
           title: '排序方式',
-          onchange: (e: Event) => {
-            state.sort = (e.target as HTMLSelectElement).value
+          options: [
+            { value: 'default', label: '默认（置顶+日期）' },
+            { value: 'date-desc', label: '发布日期 新→旧' },
+            { value: 'date-asc', label: '发布日期 旧→新' },
+            { value: 'title-asc', label: '标题 A→Z' },
+            { value: 'title-desc', label: '标题 Z→A' },
+            { value: 'path-asc', label: '路径 A→Z' },
+            { value: 'path-desc', label: '路径 Z→A' },
+            { value: 'category-asc', label: '分类 A→Z' },
+          ],
+          onChange: (v: string) => {
+            state.sort = v
             renderListItems(state.articles)
           },
-        }, [
-          el('option', { value: 'default' }, ['默认（置顶+日期）']),
-          el('option', { value: 'date-desc' }, ['发布日期 新→旧']),
-          el('option', { value: 'date-asc' }, ['发布日期 旧→新']),
-          el('option', { value: 'title-asc' }, ['标题 A→Z']),
-          el('option', { value: 'title-desc' }, ['标题 Z→A']),
-          el('option', { value: 'path-asc' }, ['路径 A→Z']),
-          el('option', { value: 'path-desc' }, ['路径 Z→A']),
-          el('option', { value: 'category-asc' }, ['分类 A→Z']),
-        ]),
+        }),
         el('div', { class: 'view-toggle', role: 'group', title: '切换视图模式' }, [
           el('button', {
             class: 'view-btn' + (state.view === 'card' ? ' active' : ''),
@@ -175,12 +177,11 @@ export async function renderList(root: HTMLElement) {
     try {
       const meta = await api.meta()
       state.categories = meta.categories.map((c) => c.name)
-      const sel = root.querySelector('#filter-category') as HTMLSelectElement
-      sel.innerHTML = ''
-      sel.append(el('option', { value: '' }, ['全部分类']))
-      for (const c of meta.categories) {
-        sel.append(el('option', { value: c.name }, [`${c.name} (${c.count})`]))
-      }
+      const sel = root.querySelector('#filter-category') as SelectControl | null
+      sel?.setOptions([
+        { value: '', label: '全部分类' },
+        ...meta.categories.map((c) => ({ value: c.name, label: `${c.name} (${c.count})` })),
+      ])
     } catch {
       /* meta 加载失败不影响列表 */
     }

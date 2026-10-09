@@ -95,6 +95,7 @@ const fakeResult: SearchResult[] = [
 <script>
 import { registerPageInit } from '@utils/pageInit';
 import { currentLangFromUrl } from '@utils/locale';
+import { lockPageScroll, unlockPageScroll } from '@utils/scrollLock';
 
 /**
  * 搜索弹窗在 swup 容器之外、不会随换页重建，所以：
@@ -138,7 +139,24 @@ function initSearchModal() {
   // 换页时本脚本会重新执行：先解绑上一次挂在 document 上的 keydown
   window.__momoSearchModal?.cleanup?.();
 
+  // 定时器挂在**元素**上而不是闭包变量里：弹窗在 swup 容器外、换页不重建，
+  // 而 initSearchModal 每次换页都会重建闭包（记在闭包里换页后就找不到了）。
+  const modalEl = searchModal as HTMLElement & { __closeTimer?: ReturnType<typeof setTimeout> };
+
+  // 弹窗打开时锁住整页滚动（锁 <html>，见 @utils/scrollLock）：
+  // 遮罩与弹窗都不是滚动容器，滚轮 / 键盘会直接穿透到后面的页面。
+  // 锁是计数式的，所以「是否已上锁」必须记在元素 dataset 上（闭包每次换页都重建），
+  // 只在状态真的翻转时加减，否则会把并存的抽屉 / 灯箱锁一起打穿。
+  const setPageScrollLocked = (locked: boolean) => {
+    const state = locked ? '1' : '0';
+    if (searchModal.dataset.scrollLocked === state) return;
+    searchModal.dataset.scrollLocked = state;
+    if (locked) lockPageScroll();
+    else unlockPageScroll();
+  };
+
   const openModal = () => {
+    clearTimeout(modalEl.__closeTimer);
     searchModal.classList.remove('opacity-0', 'pointer-events-none');
     searchModal.offsetHeight;
     requestAnimationFrame(() => {
@@ -148,6 +166,7 @@ function initSearchModal() {
       modalContent?.classList.add('scale-100');
     });
     setTimeout(() => searchInput?.focus(), 300);
+    setPageScrollLocked(true);
   };
 
   const closeModal = () => {
@@ -157,8 +176,11 @@ function initSearchModal() {
       modalContent?.classList.add('scale-80', 'opacity-0');
       modalContent?.classList.remove('scale-100');
     });
-    setTimeout(() => {
+    clearTimeout(modalEl.__closeTimer);
+    modalEl.__closeTimer = setTimeout(() => {
       searchModal.classList.add('opacity-0', 'pointer-events-none');
+      // 等淡出结束再解锁：解锁早了，淡出的这 300ms 里滚轮又能滚到后面的页面
+      setPageScrollLocked(false);
     }, 300);
   };
 

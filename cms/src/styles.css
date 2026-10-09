@@ -6,6 +6,8 @@
   --text: #1f2328;
   --text-sub: #6b7280;
   --border: #e3e6ea;
+  /* 比 --border 更浅：分区内的分组分割线 */
+  --border-soft: #eef1f4;
   --accent: #2563eb;
   --accent-hover: #1d4ed8;
   --accent-soft: #e8effd;
@@ -24,6 +26,7 @@
     --text: #e6e8eb;
     --text-sub: #9aa1a9;
     --border: #2a2e34;
+    --border-soft: #23272d;
     --accent: #3b82f6;
     --accent-hover: #60a5fa;
     --accent-soft: #1c2740;
@@ -162,6 +165,114 @@ body {
 }
 
 .input:focus { border-color: var(--accent); }
+
+/* ---------- 下拉选择（自研组件 src/select.ts，替换原生 select） ---------- */
+.cms-select-trigger {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  text-align: left;
+  /* 原生 select 的字体来自系统控件，自己画的按钮要显式继承页面字体 */
+  font-family: inherit;
+  line-height: 1.4;
+  cursor: pointer;
+}
+
+.cms-select-trigger:hover { border-color: var(--text-sub); }
+.cms-select-trigger.is-open { border-color: var(--accent); }
+
+.cms-select-trigger:focus-visible {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+
+.cms-select-value {
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+/* 箭头用两条边框画，颜色跟着 currentColor 走，深浅色都不用另配一套图标 */
+.cms-select-arrow {
+  flex: none;
+  width: 7px;
+  height: 7px;
+  margin-top: -4px;
+  border-right: 1.6px solid var(--text-sub);
+  border-bottom: 1.6px solid var(--text-sub);
+  transform: rotate(45deg);
+  transition: transform 0.18s, margin 0.18s, border-color 0.18s;
+}
+
+.cms-select-trigger:hover .cms-select-arrow { border-color: var(--text); }
+
+.cms-select-trigger.is-open .cms-select-arrow {
+  margin-top: 3px;
+  border-color: var(--accent);
+  transform: rotate(225deg);
+}
+
+/* 面板挂在 body 上（见 select.ts 的说明），fixed 定位由脚本逐次写入 */
+.cms-select-panel {
+  position: fixed;
+  z-index: 150; /* 高于弹窗遮罩（100），低于 toast（200） */
+  min-width: 120px;
+  max-width: min(360px, calc(100vw - 16px));
+  max-height: min(320px, 60vh);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 4px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.14), var(--shadow);
+  font-size: 13px;
+  animation: cms-select-in 0.13s ease-out;
+}
+
+.cms-select-panel.is-drop-up { animation-name: cms-select-in-up; }
+
+.cms-select-option {
+  padding: 6px 10px;
+  border-radius: 6px;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  cursor: pointer;
+}
+
+.cms-select-option.is-active { background: var(--bg-hover); }
+
+.cms-select-option.is-selected {
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.cms-select-option.is-selected.is-active { background: var(--accent-soft); }
+
+.cms-select-empty {
+  padding: 8px 10px;
+  color: var(--text-sub);
+  font-size: 12px;
+}
+
+@keyframes cms-select-in {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: none; }
+}
+
+@keyframes cms-select-in-up {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cms-select-panel { animation: none; }
+  .cms-select-arrow { transition: none; }
+}
 
 .mono { font-family: var(--mono); }
 
@@ -664,6 +775,14 @@ body {
   50% { opacity: 0.35; }
 }
 
+/* 自动保存提示（EditorPage.ts）：显示最近一次自动保存的时间，不闪烁 */
+.autosave-hint {
+  color: var(--text-sub);
+  font-size: 12px;
+  opacity: 0.9;
+  white-space: nowrap;
+}
+
 .editor-main {
   flex: 1;
   display: grid;
@@ -814,8 +933,9 @@ body {
 }
 
 .tool-select {
-  padding: 2px 6px;
+  padding: 3px 8px;
   font-size: 12px;
+  border-radius: 6px;
   width: auto;
 }
 
@@ -956,6 +1076,21 @@ body {
   gap: 12px 16px;
 }
 
+/* 按语义分组的字段（目前只有「主题与动效」用）：
+   每组内部仍是两列网格，组与组之间一条浅色横线 */
+.cfg-groups { display: flex; flex-direction: column; }
+
+.cfg-group {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px 16px;
+  padding: 15px 0;
+}
+
+.cfg-group:first-child { padding-top: 0; }
+.cfg-group:last-child { padding-bottom: 0; }
+.cfg-group + .cfg-group { border-top: 1px solid var(--border-soft); }
+
 .cfg-field {
   display: flex;
   flex-direction: column;
@@ -967,7 +1102,6 @@ body {
 
 .cfg-field.wide { grid-column: span 2; }
 .cfg-field .input { width: 100%; }
-.cfg-field select.input { cursor: pointer; }
 
 .cfg-field-check {
   justify-content: flex-end;
@@ -1039,6 +1173,104 @@ body {
   tab-size: 4;
 }
 
+/* ---------- 网站配置页：悬浮目录栏（src/pages/config-toc.ts） ---------- */
+.cfg-toc {
+  /* 贴住内容那一侧：表单 900px 居中，目录的**左边缘**落在表单字段右侧
+     --toc-gap 处（--toc-inset 是 .cms-main 的 padding，字段相对主容器还要再内缩）。
+     锚点取左边缘（朝向表单的那一侧），所以收起 / 展开都贴得住，空地全留在最右边。
+     窗口不够宽时 calc 会偏出视口，用 min() 与 --toc-guard（视口右边缘留白，
+     即自身宽度 + 12px 边距）兜住，不会整块跑到屏幕外。 */
+  --toc-gap: 16px;
+  --toc-inset: 24px;
+  --toc-width: 176px;
+  --toc-guard: 188px;
+  position: fixed;
+  top: 78px;
+  left: min(calc(100% - var(--toc-guard)), calc(50% + 450px - var(--toc-inset) + var(--toc-gap)));
+  /* 低于下拉面板（150）与弹窗遮罩（100），高于内容 */
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+  width: var(--toc-width);
+  max-height: calc(100vh - 104px);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  font-size: 12px;
+  overflow: hidden;
+}
+
+.cfg-toc-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  padding: 7px 7px 7px 12px;
+  border-bottom: 1px solid var(--border-soft);
+  color: var(--text-sub);
+}
+
+.cfg-toc-title { font-weight: 600; letter-spacing: 0.4px; }
+
+.cfg-toc-toggle {
+  border: none;
+  background: transparent;
+  color: var(--text-sub);
+  font: inherit;
+  font-size: 11px;
+  line-height: 1;
+  padding: 3px 6px;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+
+.cfg-toc-toggle:hover { background: var(--bg-hover); color: var(--text); }
+
+.cfg-toc-list {
+  /* 让目录项的 offsetTop 相对列表本身，高亮项自动滚动才不会算错 */
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  padding: 6px;
+  overflow-y: auto;
+}
+
+.cfg-toc-item {
+  border: none;
+  background: transparent;
+  color: var(--text-sub);
+  /* <button> 默认不继承页面字体 */
+  font: inherit;
+  text-align: left;
+  padding: 6px 8px;
+  border-radius: 6px;
+  cursor: pointer;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  transition: background 0.15s, color 0.15s;
+}
+
+.cfg-toc-item:hover { background: var(--bg-hover); color: var(--text); }
+
+.cfg-toc-item.is-active {
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-weight: 600;
+}
+
+/* 收起状态：只剩顶部一颗「目录 ▸」按钮 */
+.cfg-toc[data-open='0'] {
+  /* 收起时窄得多，兜底留白也相应收小（74px 左右的实际宽度 + 12px 边距） */
+  --toc-guard: 86px;
+  width: auto;
+}
+.cfg-toc[data-open='0'] .cfg-toc-list { display: none; }
+.cfg-toc[data-open='0'] .cfg-toc-head { border-bottom: none; padding-right: 8px; }
+
 /* ---------- 响应式 ---------- */
 @media (max-width: 860px) {
   .editor-main { grid-template-columns: 1fr; }
@@ -1052,8 +1284,16 @@ body {
   .overview-cols { grid-template-columns: 1fr; }
   .stat-grid { grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); }
   .cfg-grid { grid-template-columns: 1fr; }
+  .cfg-group { grid-template-columns: 1fr; }
   .cfg-field.wide { grid-column: span 1; }
   .cfg-link-row { flex-direction: column; align-items: stretch; }
   .cfg-link-fields { grid-template-columns: 1fr 1fr; }
   .cfg-links-head { display: none; }
+  /* 窄屏内容几乎铺满，目录改从视口右边缘向左展开（不再按表单位置兜底） */
+  .cfg-toc {
+    top: 68px;
+    left: auto;
+    right: 10px;
+    max-height: calc(100vh - 86px);
+  }
 }

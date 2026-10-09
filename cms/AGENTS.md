@@ -19,9 +19,10 @@ pnpm cms
 ## 功能
 
 - **概览页**（`#/`）：文章总数 / 已发布 / 草稿 / 置顶 / 分类数 / 正文总字数统计，分类分布条形图，语言版本覆盖（中英双语），最近文章列表
-- **网站配置页**（`#/config`）：`src/config.ts` 的可视化编辑器（站点信息、阅读与目录、评论、主题、个人信息、许可协议、国际化、各语言 Cover 文案、友链列表；支持增删与上下移动友链），可展开查看文件源码；保存时**只改写真正改动过的字段**，文件里的注释与排版保持不变
+- **网站配置页**（`#/config`）：`src/config.ts` 的可视化编辑器（站点信息、阅读与目录、评论、主题、个人信息、许可协议、国际化、各语言 Cover 文案、友链列表；支持增删与上下移动友链），可展开查看文件源码；右侧**悬浮目录栏**（贴住表单右边缘，只列分区，点击平滑滚动到位、滚动时自动高亮当前分区，可收起，窄窗口默认收起）；「主题与动效」按语义分组、组间用浅色横线分隔；保存时**只改写真正改动过的字段**，文件里的注释与排版保持不变
 - **文章列表**（`#/list`）：搜索、分类筛选、草稿/已发布筛选、语言徽章；支持**卡片 / 表格**两种视图模式（localStorage 记忆选择）与**多种排序**（默认置顶+日期 / 发布日期升降序 / 标题 / 路径 / 分类，中文按拼音排序）；表格**列宽按内容自动分配**（宽裕时按内容比例铺满整行，狭窄时压缩标题/路径并保底最小宽度，窗口变化自动重算），表格右侧**行内操作**（置顶/取消置顶、草稿/发布切换、删除）
 - **Markdown 编辑器**：frontmatter 表单 + 正文源码，左侧编辑右侧**实时预览**（防抖 500ms）；编辑区上方**快速插入工具栏**（加粗/斜体/行内代码/链接/图片/引用、代码块/Typst、行内/块公式、提示块（note/tip/important/caution/warning）、GitHub/音乐卡片、注音/折叠/彩虹/下划线），支持选中文本包裹与光标定位
+- **自动保存**：编辑页每 60 秒自动写盘一次（`EditorPage.ts` 的 `AUTOSAVE_INTERVAL`），只在「有改动且没有保存在进行」时保存；提示做在顶栏（`已自动保存 HH:MM`），不弹 toast，也**不重建界面**（`navigate` 会重建编辑器、丢掉光标与撤销栈），只有 slugId 改名真的移动了文件夹时才静默对齐地址栏
 - **完整自定义语法预览**：与博客渲染管线一致（见下方语法表）
 - **多语言版本**：同路径 `zh-cn.md` / `en.md` 标签页切换，可新建缺失的语言版本
 - **在文件夹中打开**：文章编辑页右上角按钮，用系统默认的文件管理器打开当前文章所在文件夹（Windows `explorer.exe` / macOS `open` / Linux `xdg-open`）
@@ -52,8 +53,10 @@ cms/
 │   └── prose.css         # 预览正文样式（与博客 markdown.css 一致的精简版）
 └── src/                  # 前端（纯 TypeScript SPA，hash 路由，无框架）
     ├── main.ts / router.ts / api.ts / types.ts / styles.css
+    ├── dom.ts / ui.ts（toast）/ select.ts（自研下拉组件）
     └── pages/ OverviewPage.ts（概览）、ListPage.ts（列表：卡片/表格）、EditorPage.ts、
-              ConfigPage.ts（网站配置）、header.ts（顶栏导航）、new-article.ts（新建文章弹窗）
+              ConfigPage.ts（网站配置）、config-toc.ts（配置页悬浮目录栏）、header.ts（顶栏导航）、
+              new-article.ts（新建文章弹窗）
 ```
 
 - **API 端口**：5188（唯一端口，Vite dev server 内嵌 Hono）
@@ -111,6 +114,9 @@ cms/
 - 文章信息读取（列表 / 分类 / 概览统计）由 `server/store.mjs` 统一处理：目录并发遍历、文件并发读取，并按文件 `mtime + size` 缓存解析结果。文件被 CMS 保存或外部修改后缓存会自动失效，无需重启。
 - Typst 首次编译需加载原生编译器，约 1-3 秒；失败时预览区显示错误信息。
 - 修改 `server/` 目录下的代码后需要重启 `pnpm cms`（服务端模块不参与 HMR）。
+- **下拉选择一律用 `src/select.ts` 的 `createSelect()`**（界面里的原生 `<select>` 已全部替换）：返回值就是触发器本身，`.value` / `setOptions(options)` 照旧可用，值变化走 `onChange` 回调。选项面板挂在 `body` 上并用 `position: fixed` 定位（编辑器工具栏 / 弹窗 / 配置网格各有层叠上下文与 overflow，留在原地会被裁掉或压住），靠近视口底部自动向上翻转、超出可用高度时面板内部滚动；键盘支持 ↑↓ / Home / End / Enter / Esc / 首字母跳转，焦点始终留在触发器上。样式在 `styles.css` 的 `.cms-select-*`（箭头用两条边框画，颜色跟 `currentColor`，深浅色共用一套变量）。⚠️ 不要用触发器的 `blur` 来收起面板：触屏上点选项会先让按钮失焦，选项就永远选不上。
+- **配置页悬浮目录栏**在 `src/pages/config-toc.ts`：目录项必须是 `<button>`，**不能**用 `#anchor` 链接——CMS 是 hash 路由，改 hash 会直接把页面切走；分区列表由 `renderBody` 每次重建表单后调 `setSections()` 刷新；「主题与动效」的分组靠 `FieldDef.group`（同名连续字段为一组，组间一条 `--border-soft` 横线）。
+- **编辑页自动保存**在 `src/pages/EditorPage.ts`：定时器跟界面一起建、在 `__cleanup` 里 `clearInterval`（换路由不残留）。`doSave` 三处要点：① 请求前先固化 `payload` 并按它算快照，请求期间的新输入才不会被误标成已保存（手动保存同样受益）；② 成功后同步 `state.detail.files[lang]`，否则切到另一种语言再切回来会读到打开页面时的旧内容，并被自动保存写回磁盘；③ 自动保存不调 `navigate`——那会重建编辑器 DOM、丢掉光标与撤销栈，slugId 改名真的移动文件夹时才用 `history.replaceState` 静默对齐地址栏。
 - 博客根目录相对路径图片（`/images/xxx.png`）在预览中不会加载（仅本地文件相对路径可用）。
 
 ## 测试
@@ -121,3 +127,5 @@ cms/
 pnpm cms        # 终端 1：启动服务
 pnpm smoke      # 终端 2：运行冒烟测试
 ```
+
+自动保存要等满 60 秒才有动作，没有进冒烟测试（会拖慢整个套件），需要验证时可临时把 `EditorPage.ts` 的 `AUTOSAVE_INTERVAL` 改小。

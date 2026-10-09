@@ -381,14 +381,31 @@
       return thumb && thumb.isConnected ? thumb : null
     }
 
-    // 原缩略图当前是否还可见（用于关闭动画）
+    // 关闭动画的飞回目标框。
+    // ⚠️ 缩略图滚出视口时（切过图、或灯箱打开期间页面被滚动过）不能直接交出 null：
+    // 调用方拿到 null 会退化成「立刻隐藏」，观感就是灯箱**直接闪退**、没有飞回动画。
+    // 正确做法是把缩略图中心夹回视口内再算 FLIP —— 方向仍指向缩略图那一侧
+    // （缩略图在视口上方就朝上飞、下方就朝下飞），位移被限制在一屏内，
+    // 观感是「朝缩略图缩小着飞出去」。
     function sourceRect(): DOMRect | null {
       const source = currentThumb()
       if (!source) return null
       const rect = source.getBoundingClientRect()
+      // 量不出尺寸（图片还没解码 / 被隐藏）时不兜底：没有目标尺寸就算不出缩放比例
       if (rect.width < 8 || rect.height < 8) return null
-      if (rect.bottom < 0 || rect.top > window.innerHeight) return null
-      return rect
+      const centerX = rect.left + rect.width / 2
+      const centerY = rect.top + rect.height / 2
+      // 留一点边距，飞回的终点不贴死在屏幕边缘
+      const margin = 12
+      const clampedX = clamp(centerX, margin, Math.max(margin, window.innerWidth - margin))
+      const clampedY = clamp(centerY, margin, Math.max(margin, window.innerHeight - margin))
+      if (clampedX === centerX && clampedY === centerY) return rect
+      return new DOMRect(
+        clampedX - rect.width / 2,
+        clampedY - rect.height / 2,
+        rect.width,
+        rect.height,
+      )
     }
 
     function waitForImage() {
@@ -451,7 +468,10 @@
       await waitForImage()
       if (!open || seq !== transitionSeq) return
       playOpenAnimation(thumbRect)
-      ;(root.querySelector('.lightbox-close') as HTMLElement)?.focus()
+      // preventScroll：浏览器把焦点移到关闭按钮时会尝试把它滚进视口，
+      // 而灯箱是 fixed、页面此时已锁滚动——这一下会把页面顶走几十像素，
+      // 点开的那张缩略图可能因此滑出视口（关闭时就没有飞回目标了）
+      ;(root.querySelector('.lightbox-close') as HTMLElement)?.focus({ preventScroll: true })
     }
 
     function playOpenAnimation(thumbRect: DOMRect | null) {

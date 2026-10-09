@@ -1,14 +1,17 @@
 import { api } from '../api'
 import { navigate } from '../router'
 import { el, encodePath } from '../dom'
+import { createSelect } from '../select'
 import { toast } from '../ui'
 
 // 新建文章弹窗（列表页 / 概览页共用）
 export function openNewModal(root: HTMLElement, categories: string[]) {
-  const langSelect = el('select', { class: 'input' }, [
-    el('option', { value: 'zh-cn' }, ['zh-cn']),
-    el('option', { value: 'en' }, ['en']),
-  ])
+  const langSelect = createSelect({
+    options: [
+      { value: 'zh-cn', label: 'zh-cn' },
+      { value: 'en', label: 'en' },
+    ],
+  })
   const catList = el('datalist', { id: 'cms-cat-list' })
   for (const c of categories) catList.append(el('option', { value: c }))
   const catInput = el('input', { class: 'input', placeholder: '分类（可选）', list: 'cms-cat-list' })

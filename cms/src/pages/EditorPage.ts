@@ -2,6 +2,7 @@ import { api } from '../api'
 import type { ArticleDetail, FrontmatterData } from '../types'
 import { navigate } from '../router'
 import { el, encodePath, escapeHtml } from '../dom'
+import { createSelect } from '../select'
 import { toast } from '../ui'
 
 interface EditorState {
@@ -20,6 +21,9 @@ interface EditorState {
 interface AppRoot extends HTMLElement {
   __cleanup?: () => void
 }
+
+// 自动保存间隔（毫秒）：编辑页每 60 秒检查一次，只在有改动且没有保存在进行时写盘
+const AUTOSAVE_INTERVAL = 60_000
 
 export async function renderEditor(root: HTMLElement, path: string) {
   let detail: ArticleDetail
@@ -83,13 +87,17 @@ interface InsertTool {
   template?: string
 }
 
-function buildToolbar(getMd: () => HTMLTextAreaElement | null): HTMLElement {  const noteSelect = el('select', { class: 'input tool-select', title: '提示块类型' }, [
-    el('option', { value: 'note' }, ['note']),
-    el('option', { value: 'tip' }, ['tip']),
-    el('option', { value: 'important' }, ['important']),
-    el('option', { value: 'caution' }, ['caution']),
-    el('option', { value: 'warning' }, ['warning']),
-  ])
+function buildToolbar(getMd: () => HTMLTextAreaElement | null): HTMLElement {  const noteSelect = createSelect({
+    class: 'tool-select',
+    title: '提示块类型',
+    options: [
+      { value: 'note', label: 'note' },
+      { value: 'tip', label: 'tip' },
+      { value: 'important', label: 'important' },
+      { value: 'caution', label: 'caution' },
+      { value: 'warning', label: 'warning' },
+    ],
+  })
   const btn = (t: InsertTool) =>
     el('button', { class: 'tool-btn', title: t.title, onclick: () => applyTool(getMd(), t) }, [t.label])
   const sep = () => el('span', { class: 'tool-sep' })
@@ -166,6 +174,7 @@ function buildShell(root: HTMLElement, state: EditorState) {
         el('div', { class: 'editor-tabs', id: 'lang-tabs' }),
         el('div', { class: 'editor-actions' }, [
           el('span', { class: 'dirty-badge', id: 'dirty-badge', hidden: true }, ['● 未保存']),
+          el('span', { class: 'autosave-hint', id: 'autosave-hint', hidden: true }, ['']),
           el('button', { class: 'btn', id: 'btn-open-blog', title: '在博客中打开当前文章（新标签页）', onclick: () => openInBlog(state) }, ['打开博客']),
           el('button', { class: 'btn', id: 'btn-open-folder', title: '用系统默认的文件管理器打开当前文章所在文件夹', onclick: () => openFolder(state) }, ['📁 打开文件夹']),
           el('button', { class: 'btn', onclick: () => togglePreview() }, ['预览开/关']),
@@ -284,9 +293,15 @@ function buildShell(root: HTMLElement, state: EditorState) {
   document.addEventListener('keydown', onKey)
   window.addEventListener('beforeunload', onBeforeUnload)
 
+  // 自动保存：定时器跟着编辑器界面走，换路由时在 __cleanup 里清掉
+  const autosaveTimer = window.setInterval(() => {
+    void autoSave(state)
+  }, AUTOSAVE_INTERVAL)
+
   ;(root as AppRoot).__cleanup = () => {
     document.removeEventListener('keydown', onKey)
     window.removeEventListener('beforeunload', onBeforeUnload)
+    clearInterval(autosaveTimer)
     offScrollSync()
   }
 }
@@ -421,6 +436,9 @@ function switchLang(state: EditorState, lang: string) {
   state.dirty = false
   const badge = document.querySelector('#dirty-badge') as HTMLElement | null
   if (badge) badge.hidden = true
+  // 自动保存时间属于上一个语言版本，切换后不再展示
+  const hint = document.querySelector('#autosave-hint') as HTMLElement | null
+  if (hint) hint.hidden = true
   syncForm(state)
   bindTabs(state)
   schedulePreview(state, true)
@@ -466,20 +484,51 @@ function togglePreview() {
   main?.classList.toggle('no-preview')
 }
 
-// ---------------- 保存 / 删除 / 上传 ----------------
+// ---------------- 保存 / 自动保存 / 删除 / 上传 ----------------
 
-async function doSave(state: EditorState) {
+// 自动保存：只在「有改动」且「没有保存在进行」时写盘，一分钟后自然重试
+async function autoSave(state: EditorState) {
+  if (!state.dirty || state.saving) return
+  await doSave(state, { auto: true })
+}
+
+// 自动保存的提示：顶栏显示最近一次保存时间，不弹 toast（每分钟弹一次太吵）
+function showAutosaveHint() {
+  const hint = document.querySelector('#autosave-hint') as HTMLElement | null
+  if (!hint) return
+  const now = new Date()
+  const pad = (n: number) => String(n).padStart(2, '0')
+  hint.textContent = `已自动保存 ${pad(now.getHours())}:${pad(now.getMinutes())}`
+  hint.hidden = false
+}
+
+async function doSave(state: EditorState, opts: { auto?: boolean } = {}) {
   if (state.saving) return
   state.saving = true
   const btn = document.querySelector('#btn-save') as HTMLButtonElement | null
   if (btn) btn.disabled = true
+  // 先固化本次要写盘的内容：请求期间用户还能继续输入，
+  // 快照按「已发出的那一份」算，这些新输入才不会被误标成已保存
+  const payload = { data: { ...state.data }, body: state.body }
+  const sent = JSON.stringify(payload)
+  const before = state.path
   try {
-    const res = await api.save(state.path, state.lang, { data: state.data, body: state.body })
+    const res = await api.save(before, state.lang, payload)
     state.path = res.path
-    state.snapshot = makeSnapshot(state)
-    state.dirty = false
+    // 更新本语言版本的本地副本：切走再切回来才会读到刚保存的内容
+    // （否则读到的是打开页面时的旧内容，再被自动保存写回去）
+    state.detail.files[state.lang] = { content: payload.body, data: payload.data }
+    state.snapshot = sent
+    state.dirty = makeSnapshot(state) !== state.snapshot
     const badge = document.querySelector('#dirty-badge') as HTMLElement | null
-    if (badge) badge.hidden = true
+    if (badge) badge.hidden = !state.dirty
+    if (opts.auto) {
+      // 自动保存不重建界面（navigate 会重建编辑器、丢掉光标与撤销栈），
+      // 只有真的移动过文件夹时才把地址栏静默对齐到新路径
+      if (res.path !== before) history.replaceState(null, '', `#/edit/${encodePath(res.path)}`)
+      showAutosaveHint()
+      return
+    }
     toast('已保存')
     const current = decodeURIComponent(location.hash.replace(/^#\/edit\//, ''))
     if (res.path !== current) {
