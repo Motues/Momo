@@ -91,6 +91,8 @@ const translation: Translation = {
         verifySuccess: "Verified",
         verifyFailed: "Verification failed",
         verifyRetry: "Click to retry",
+        verifyUnsupported: "Your browser is too old to complete verification",
+        verifyBackendOutdated: "The verification service is outdated, please ask the site owner to upgrade",
         adminKey: "Admin verification key",
         adminKeyPlaceholder: "Enter the admin comment key",
     },

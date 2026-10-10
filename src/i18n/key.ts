@@ -101,6 +101,8 @@ export interface Translation {
         verifySuccess: string;
         verifyFailed: string;
         verifyRetry: string;
+        verifyUnsupported: string;
+        verifyBackendOutdated: string;
         adminKey: string;
         adminKeyPlaceholder: string;
     },

@@ -1,11 +1,11 @@
 /**
- * 无感验证的工作量证明（Proof of Work）
+ * 纯 JS SHA-256（字节输入）
  *
- * 纯 JS SHA-256 实现，取代 crypto.subtle：
- * - crypto.subtle.digest 是异步的，几千次调用开销过大
- * - 纯 JS 版本可以按批次切片执行，每批之间让出主线程，避免输入框卡顿
+ * 用途：HashWX 的函数种子派生 —— seed = SHA256(c(32B) ‖ u8le(index) ‖ u64le(block))。
+ * 每个 block（默认 65536 个 nonce）只需一次，因此同步的纯 JS 实现完全够用；
+ * 这里也不能用 crypto.subtle —— 它是异步的，会打断同步解题循环。
  *
- * 摘要口径必须与三套后端完全一致：SHA256(`${prefix}:${nonce}`)
+ * 摘要口径必须与三端后端完全一致。
  */
 
 const K = new Uint32Array([
@@ -23,15 +23,14 @@ const W = new Uint32Array(64);
 const DIGEST = new Uint32Array(8);
 const encoder = new TextEncoder();
 
-/** 对 UTF-8 字符串做 SHA-256，返回 32 字节摘要 */
-export function sha256Bytes(message: string): Uint8Array {
-  const msg = encoder.encode(message);
-  const len = msg.length;
+/** 对字节序列做 SHA-256，返回 32 字节摘要 */
+export function sha256(data: Uint8Array): Uint8Array {
+  const len = data.length;
 
   // 填充：原文 + 1 字节 0x80 + 补零 + 8 字节比特长度（大端），总长为 64 的整数倍
   const total = (Math.floor((len + 8) / 64) + 1) * 64;
   const padded = new Uint8Array(total);
-  padded.set(msg);
+  padded.set(data);
   padded[len] = 0x80;
 
   const dv = new DataView(padded.buffer);
@@ -87,66 +86,19 @@ export function sha256Bytes(message: string): Uint8Array {
   return out;
 }
 
-/** 转成小写十六进制，便于与后端日志/测试比对 */
-export function sha256Hex(message: string): string {
-  const bytes = sha256Bytes(message);
+/** 字符串按 UTF-8 编码后求摘要 */
+export function sha256Text(text: string): Uint8Array {
+  return sha256(encoder.encode(text));
+}
+
+/** 转成小写十六进制 */
+export function toHex(bytes: Uint8Array): string {
   let hex = '';
   for (let i = 0; i < bytes.length; i++) hex += bytes[i].toString(16).padStart(2, '0');
   return hex;
 }
 
-/** 统计前导 0 比特数，与后端算法一致 */
-export function leadingZeroBits(bytes: Uint8Array): number {
-  let count = 0;
-  for (let i = 0; i < bytes.length; i++) {
-    if (bytes[i] === 0) {
-      count += 8;
-      continue;
-    }
-    count += Math.clz32(bytes[i]) - 24;
-    break;
-  }
-  return count;
-}
-
-export class CancelledError extends Error {
-  constructor() {
-    super('verification cancelled');
-    this.name = 'CancelledError';
-  }
-}
-
-export interface PowSolution {
-  nonce: number;
-  attempts: number;
-}
-
-/**
- * 寻找满足难度要求的 nonce。
- *
- * @param prefix     后端签发的挑战前缀
- * @param difficulty 要求的前导 0 比特数
- * @param isCancelled 每批开始前检查，返回 true 则抛 CancelledError
- * @param batchSize  每批哈希次数，越小主线程越流畅但总耗时略增
- */
-export async function mineNonce(
-  prefix: string,
-  difficulty: number,
-  isCancelled: () => boolean,
-  batchSize = 1500
-): Promise<PowSolution> {
-  let nonce = 0;
-  const yieldToMain = () => new Promise<void>((resolve) => setTimeout(resolve, 0));
-
-  for (;;) {
-    for (let i = 0; i < batchSize; i++) {
-      if (isCancelled()) throw new CancelledError();
-      if (leadingZeroBits(sha256Bytes(`${prefix}:${nonce}`)) >= difficulty) {
-        return { nonce, attempts: nonce + 1 };
-      }
-      nonce++;
-    }
-    // 让出主线程：输入框、滚动、动画都不会被长时间阻塞
-    await yieldToMain();
-  }
+/** 字符串按 UTF-8 编码后的十六进制摘要 */
+export function sha256Hex(text: string): string {
+  return toHex(sha256Text(text));
 }

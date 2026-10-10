@@ -1,7 +1,9 @@
 <script lang="ts">
   import { onMount, onDestroy } from 'svelte';
   import i18nit from '@i18n/translation';
-  import { mineNonce, CancelledError } from '@utils/pow';
+  import { solvePow, PowCancelledError, PowUnsupportedError } from './hashwx';
+  import { runInstrumentation } from './instrumentation';
+  import type { PowChallenge } from './hashwxCore';
 
   export let apiUrl: string;
   export let postSlug: string;
@@ -14,7 +16,11 @@
   const t = i18nit(language);
 
   type Status = 'loading' | 'success' | 'error';
+  /** 失败原因决定展示哪一句提示，便于用户自助排障 */
+  type FailureKind = 'failed' | 'unsupported' | 'backendOutdated';
+
   let status: Status = 'loading';
+  let failureKind: FailureKind = 'failed';
 
   // 是否处于移动端（与 CommentItem.svelte 保持同一个断点 767px）
   let isMobile = false;
@@ -29,16 +35,34 @@
   let attempt = 0;
   let cancelled = false;
   let initialized = false;
-  let sleepTimer: ReturnType<typeof setTimeout> | null = null;
-
-  function sleep(ms: number): Promise<void> {
-    return new Promise((resolve) => {
-      sleepTimer = setTimeout(resolve, ms);
-    });
-  }
 
   function notify(ticket: string | null) {
     if (onTicket) onTicket(ticket);
+  }
+
+  /**
+   * 挑战参数是否构成一个可解的 v2 挑战。
+   *
+   * 只有 c 合法而 d/n/count 缺失（或非正整数）时，说明后端下发的是不完整/旧协议数据，
+   * 这类情况必须与「答案算错」区分开：前者重试无用，后者才值得让用户点重试。
+   */
+  function isValidPowChallenge(pow: any): boolean {
+    if (!pow || typeof pow !== 'object') return false;
+    if (typeof pow.c !== 'string' || !pow.c) return false;
+    return (
+      Number.isInteger(Number(pow.d)) &&
+      Number(pow.d) >= 1 &&
+      Number.isInteger(Number(pow.n)) &&
+      Number(pow.n) >= 1 &&
+      Number.isInteger(Number(pow.count)) &&
+      Number(pow.count) >= 1
+    );
+  }
+
+  function fail(kind: FailureKind) {
+    failureKind = kind;
+    status = 'error';
+    notify(null);
   }
 
   async function runVerification(slug: string, attemptId: number) {
@@ -69,25 +93,55 @@
         return;
       }
 
-      const prefix = String(challenge.prefix || '');
-      const sig = String(challenge.sig || '');
-      const difficulty = Number(challenge.difficulty) || 16;
+      const pow = challenge.pow;
+      // 协议 v2 的挑战参数在 data.pow 里。字段缺失或不合法说明后端不是 v2 实现，
+      // 此时不能按「验证失败」笼统处理——真人再点也没用，必须提示升级。
+      if (!isValidPowChallenge(pow)) {
+        fail('backendOutdated');
+        return;
+      }
 
-      // 静默解题：分批执行，不阻塞输入框
-      const solution = await mineNonce(prefix, difficulty, isCancelled);
+      const powChallenge: PowChallenge = {
+        c: pow.c,
+        d: Number(pow.d),
+        n: Number(pow.n),
+        count: Number(pow.count),
+      };
 
-      // 后端要求总耗时高于最小阈值（300ms），太快会被判定为脚本
-      const remain = 320 - (Date.now() - startedAt);
-      if (remain > 0) await sleep(remain);
+      // 第二层（Instrumentation 质询）：先跑程序再挖矿。
+      // 提前执行的理由是失败快 —— 程序执行只要几毫秒，没必要先烧掉几秒的算力再发现环境不可用。
+      let instrAnswer: unknown = undefined;
+      if (challenge.instr !== undefined && challenge.instr !== null) {
+        const ops = challenge.instr?.ops;
+        // 下发了 instr 但程序结构不合法，同样属于「前后端协议不配套」，
+        // 不能当成普通失败让用户白点重试
+        if (!Array.isArray(ops) || ops.length === 0 || ops.length % 3 !== 0) {
+          fail('backendOutdated');
+          return;
+        }
+        try {
+          instrAnswer = runInstrumentation(ops);
+        } catch (e) {
+          // 拿不到第二层答案时提交也没有意义（服务端会判寄存器畸形），直接进入可重试的失败态
+          console.warn('环境质询执行失败:', e);
+          fail('failed');
+          return;
+        }
+        if (isCancelled()) return;
+      }
+
+      // 静默解题：优先多 Worker 并行，宿主页面禁止 Worker 时自动降级到主线程分片
+      const nonces = await solvePow(powChallenge, { isCancelled });
       if (isCancelled()) return;
 
       const body: Record<string, unknown> = {
         post_slug: slug,
-        prefix,
-        sig,
-        nonce: solution.nonce,
+        prefix: challenge.prefix,
+        sig: challenge.sig,
+        nonces,
         elapsed_ms: Date.now() - startedAt,
       };
+      if (instrAnswer) body.instr = instrAnswer;
       // 蜜罐字段名 + 值一起提交，由后端识别是否被脚本填写
       if (honeypotField) body.hp = honeypotValue;
 
@@ -115,13 +169,21 @@
         return;
       }
 
-      status = 'error';
-      notify(null);
+      // 前后端协议不配套（后端仍按 v1 校验）
+      if (solutionData?.reason === 'PROTOCOL_OUTDATED') {
+        fail('backendOutdated');
+        return;
+      }
+
+      fail('failed');
     } catch (e) {
-      if (e instanceof CancelledError || isCancelled()) return;
+      if (e instanceof PowCancelledError || isCancelled()) return;
+      if (e instanceof PowUnsupportedError) {
+        fail('unsupported');
+        return;
+      }
       console.warn('人机验证失败:', e);
-      status = 'error';
-      notify(null);
+      fail('failed');
     }
   }
 
@@ -138,8 +200,18 @@
   }
 
   function handleClick() {
-    if (status === 'error') retry();
+    // 只有「验证失败」值得重试；浏览器不支持、后端协议过旧这两类重试无用，
+    // 按钮同时设为 disabled，避免用户点了没反应又反复点。
+    if (status === 'error' && failureKind === 'failed') retry();
   }
+
+  /** 错误态的提示文案 */
+  $: errorText =
+    failureKind === 'unsupported'
+      ? t('comments.verifyUnsupported') || '浏览器版本过低，不支持验证'
+      : failureKind === 'backendOutdated'
+        ? t('comments.verifyBackendOutdated') || '验证服务版本过旧，请联系博主升级'
+        : `${t('comments.verifyFailed') || '验证失败'} · ${t('comments.verifyRetry') || '点击重试'}`;
 
   onMount(() => {
     const mql = window.matchMedia('(max-width: 767px)');
@@ -161,7 +233,6 @@
 
   onDestroy(() => {
     cancelled = true;
-    if (sleepTimer) clearTimeout(sleepTimer);
   });
 </script>
 
@@ -169,17 +240,21 @@
   <button
     type="button"
     class="verify-box relative flex items-center gap-1.5 rounded px-2.5 h-[38px] border text-sm select-none
-      border-red-400 text-red-500 cursor-pointer hover:bg-red-500/5"
-    title={`${t('comments.verifyFailed')} · ${t('comments.verifyRetry')}`}
+      border-red-400 text-red-500
+      {failureKind === 'failed' ? 'cursor-pointer hover:bg-red-500/5' : 'cursor-default'}"
+    title={errorText}
+    disabled={failureKind !== 'failed'}
     on:click={handleClick}
   >
     <svg class="h-4 w-4 shrink-0" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
       <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd" />
     </svg>
     {#if !isMobile}
-      <span class="whitespace-nowrap">{t('comments.verifyFailed') || '验证失败'}</span>
-      <span class="opacity-70">·</span>
-      <span class="whitespace-nowrap underline">{t('comments.verifyRetry') || '点击重试'}</span>
+      <span class="whitespace-nowrap">{errorText.split(' · ')[0]}</span>
+      {#if failureKind === 'failed'}
+        <span class="opacity-70">·</span>
+        <span class="whitespace-nowrap underline">{t('comments.verifyRetry') || '点击重试'}</span>
+      {/if}
     {/if}
   </button>
 {:else}
