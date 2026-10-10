@@ -22,7 +22,7 @@ Momo originates from Xiaohongshu📕, serving as the default nickname for every 
 * **Internationalization (i18n)**: Supports multilingual switching, currently available in Simplified Chinese and English
 * **Commenting**: Supports local deployment and Cloudflare deployment. See [Backend](https://github.com/Motues/Momo-Backend) for details; with silent verification enabled on the backend, visitors pass the human check automatically without solving puzzles or typing codes
 * **SEO**: canonical URLs, hreflang alternates, Open Graph / Twitter Cards, structured data, `sitemap.xml` and `robots.txt`
-* **Local CMS**: Start it with `pnpm cms` to edit posts with live preview (sharing the same Markdown pipeline as the blog) instead of editing Markdown by hand
+* **Local CMS**: Start it with `pnpm cms` to edit posts with live preview (sharing the same Markdown pipeline as the blog) and to edit the site config, with autosave every 60 seconds while editing — no Markdown by hand
 * **Command line tool**: `pnpm momo` provides config backup/restore, one-command updates, new post creation and environment checks
 * Other core features: Article categories, directory, RSS subscription, text statistics, reading time
 

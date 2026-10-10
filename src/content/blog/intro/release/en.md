@@ -38,6 +38,16 @@ Below are general modification suggestions.
 
 > Version numbers follow the `YY.MM.DD` format
 
+### 26.10.10
+
+* **Upgraded silent comment verification**: the quiet human check now uses a HashWX (WebAssembly) proof of work solved in parallel, plus a new "environment challenge" that runs a small random program, so it finishes faster and is much harder to fake; visitors still pass it without solving puzzles or typing codes. **The comment backend must be upgraded as well** ([Momo-Backend](https://github.com/Motues/Momo-Backend)) — an outdated backend is reported in the comment area instead of leaving people waiting
+* **Clearer verification failures**: "your browser is too old to complete verification" and "the verification service is outdated, please ask the site owner to upgrade" are now told apart, instead of a generic failure that invites pointless retries
+* **The local CMS config page gained a floating table of contents**: the sections are listed along the right edge, clicking one scrolls smoothly to it and the current section highlights as you scroll; it can be collapsed at any time and starts collapsed in narrow windows, and "Theme and effects" is grouped by topic so you no longer scroll through everything
+* **Every CMS dropdown is now a custom component**: it matches the site's look, is no longer clipped or covered by toolbars and dialogs, flips upwards near the bottom of the screen, and works with both the keyboard (↑↓ / Home / End / Enter / Esc / first-letter jump) and touch
+* **The CMS editor autosaves**: every 60 seconds it saves a changed post and shows "autosaved HH:MM" in the top bar — no dialogs and no editor rebuild, so the cursor and undo history stay put
+* **Fixes**: closing the image lightbox no longer blinks away — when its thumbnail has scrolled out of view it now flies back in that direction, and focusing the close button no longer nudges the page; the search modal locks page scrolling while it is open, so the wheel no longer leaks through to the page behind
+* This update modifies the config files `src/i18n/` (new comment translations `comments.verifyUnsupported` / `comments.verifyBackendOutdated`) — merge them as prompted. The bundled HashWX component is distributed under LGPL-3.0; see the new `THIRD_PARTY_NOTICES.md` for its origin and licence
+
 ### 26.10.8
 
 * **Comments support silent verification**: once the backend turns it on, visitors pass the human check quietly in the background — no puzzles to solve, no codes to type — and then submit as usual. The check runs in batches so the input box and page scrolling stay smooth. Whether it is enabled is decided by the comment backend, so there is nothing to configure on the front end; with it off, the comment area behaves exactly as before
