@@ -103,6 +103,7 @@ export interface Translation {
         verifyRetry: string;
         verifyUnsupported: string;
         verifyBackendOutdated: string;
+        verifyDomainBlocked: string;
         adminKey: string;
         adminKeyPlaceholder: string;
     },

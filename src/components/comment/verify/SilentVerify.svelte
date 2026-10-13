@@ -17,7 +17,7 @@
 
   type Status = 'loading' | 'success' | 'error';
   /** 失败原因决定展示哪一句提示，便于用户自助排障 */
-  type FailureKind = 'failed' | 'unsupported' | 'backendOutdated';
+  type FailureKind = 'failed' | 'unsupported' | 'backendOutdated' | 'domainBlocked';
 
   let status: Status = 'loading';
   let failureKind: FailureKind = 'failed';
@@ -78,9 +78,19 @@
       const challengeRes = await fetch(`${apiUrl}/api/verify/challenge`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ post_slug: slug }),
+        // post_url 与浏览器自动带上的 Origin/Referer 一起参与服务端来源校验：
+        // 开启「来源域名绑定」时，后端要求三者全部落在 allow_origin 白名单内。
+        body: JSON.stringify({ post_slug: slug, post_url: location.href }),
       });
-      if (!challengeRes.ok) throw new Error('challenge failed');
+      if (!challengeRes.ok) {
+        // 域名未授权：后端拒绝签发挑战，重试无用（需要博主把当前域名加进白名单）
+        const failure = await challengeRes.json().catch(() => null);
+        if (failure?.reason === 'DOMAIN_NOT_ALLOWED') {
+          fail('domainBlocked');
+          return;
+        }
+        throw new Error('challenge failed');
+      }
       const challengeData = await challengeRes.json();
       if (isCancelled()) return;
 
@@ -136,6 +146,8 @@
 
       const body: Record<string, unknown> = {
         post_slug: slug,
+        // 与挑战签发时保持一致，一起参与后端的域名绑定校验
+        post_url: location.href,
         prefix: challenge.prefix,
         sig: challenge.sig,
         nonces,
@@ -175,6 +187,19 @@
         return;
       }
 
+      // 来源域名绑定（comment_verify_domain_enabled）：
+      // - DOMAIN_NOT_ALLOWED / domain mismatch：域名未授权或挑战来自别的域名，重试无用；
+      // - domain required：挑战签发时该开关还没打开，重新验证一次即可拿到带域名的挑战，
+      //   因此归入可重试的失败态。
+      if (solutionData?.reason === 'DOMAIN_NOT_ALLOWED' || solutionData?.reason === 'domain mismatch') {
+        fail('domainBlocked');
+        return;
+      }
+      if (solutionData?.reason === 'domain required') {
+        fail('failed');
+        return;
+      }
+
       fail('failed');
     } catch (e) {
       if (e instanceof PowCancelledError || isCancelled()) return;
@@ -211,7 +236,9 @@
       ? t('comments.verifyUnsupported') || '浏览器版本过低，不支持验证'
       : failureKind === 'backendOutdated'
         ? t('comments.verifyBackendOutdated') || '验证服务版本过旧，请联系博主升级'
-        : `${t('comments.verifyFailed') || '验证失败'} · ${t('comments.verifyRetry') || '点击重试'}`;
+        : failureKind === 'domainBlocked'
+          ? t('comments.verifyDomainBlocked') || '当前域名未通过验证，请在本站页面内评论'
+          : `${t('comments.verifyFailed') || '验证失败'} · ${t('comments.verifyRetry') || '点击重试'}`;
 
   onMount(() => {
     const mql = window.matchMedia('(max-width: 767px)');

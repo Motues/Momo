@@ -93,6 +93,7 @@ const translation: Translation = {
         verifyRetry: "点击重试",
         verifyUnsupported: "浏览器版本过低，不支持验证",
         verifyBackendOutdated: "验证服务版本过旧，请联系博主升级",
+        verifyDomainBlocked: "当前域名未通过验证，请在本站页面内评论",
         adminKey: "管理员验证密钥",
         adminKeyPlaceholder: "请输入管理员评论密钥",
     },

@@ -93,6 +93,7 @@ const translation: Translation = {
         verifyRetry: "Click to retry",
         verifyUnsupported: "Your browser is too old to complete verification",
         verifyBackendOutdated: "The verification service is outdated, please ask the site owner to upgrade",
+        verifyDomainBlocked: "This domain is not authorized. Please comment from the original site page",
         adminKey: "Admin verification key",
         adminKeyPlaceholder: "Enter the admin comment key",
     },
