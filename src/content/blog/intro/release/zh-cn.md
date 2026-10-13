@@ -21,7 +21,7 @@ pinTop: 1
 
 可以直接克隆本项目，然后将自己原本的配置文件覆盖到新项目，然后运行 `pnpm install` 安装依赖，然后运行 `pnpm build` 本地编译，然后运行 `pnpm preview` 预览编译后的项目。
 
-在本仓库内更新时，可以直接执行 `pnpm momo update`：它会读取 [Release](https://github.com/Motues/Momo/releases) 里的最新版本，与 `package.json` 的版本号对比后下载该版本源码，**保留你自己的文章与图片**（`src/content`、`src/assets`、`public`）和 `src/config.ts`，覆盖其余代码，**删除新版本已经移除的旧文件**并安装依赖，最后列出本次更新中**需要手工合并的配置文件**。
+在本仓库内更新时，可以直接执行 `pnpm momo update`：它会读取 [Release](https://github.com/Motues/Momo/releases) 里的最新版本，与 `package.json` 的版本号对比后下载该版本源码，**保留你自己的文章与图片**（`src/content`、`src/assets`、`public`）和 `src/config.ts`，覆盖其余代码，**删除新版本已经移除的旧文件**并安装依赖，最后列出本次更新中**需要手工合并的配置文件**。默认对比的是**最新 Release**；想第一时间用上尚未发版的新代码，加 `--commit <分支/标签/SHA>`（如 `pnpm momo update --commit main`）即可改为同步某个提交，`--check` / `--dry-run` 不用下载源码包就能列出差异。
 
 ## 版本号改变
 

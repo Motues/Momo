@@ -1,7 +1,9 @@
-// release.js — momo update 的数据源：从 GitHub Release 获取模板新代码
+// release.js — momo update 的数据源：从 GitHub Release 或某个 commit 获取模板新代码
 //
 // 设计要点：
-// - 不依赖本地 git 仓库，直接读 https://github.com/<repo>/releases（版本对比）与 release 源码包；
+// - 不依赖本地 git 仓库，直接读 https://github.com/<repo>/releases（版本对比）与源码包；
+//   也可以按分支 / 标签 / commit SHA 同步（`--commit`），此时按不可变的 SHA 下载，
+//   并先用 git/trees 拿到的 blob 哈希与本地文件比对，不下载源码包就能判断是否需要更新；
 // - 只使用 Node 内置模块（全局 fetch / node:zlib），下载 tar.gz 后自己解析 tar（不引入解压依赖）；
 // - 访问 GitHub 时优先走「自动探测出来的最快镜像」（见 mirrors.js），直连不可用也能更新；
 // - 解压出来的文件先落到临时目录，再由 update 命令比对、保留用户内容后逐个覆盖。
@@ -10,10 +12,11 @@
 // 下载源用 --mirror / MOMO_MIRROR 指定（默认 auto：直连 + 公共镜像里自动选最快的）。
 import { gunzip } from 'node:zlib'
 import { promisify } from 'node:util'
+import { createHash } from 'node:crypto'
 import { statSync } from 'node:fs'
 import { mkdir, readFile, readdir, writeFile } from 'node:fs/promises'
 import { dirname, join } from 'node:path'
-import { SourceError, createSourcePlan, fetchFile, isGzip, looksLikeArchive } from './mirrors.js'
+import { SourceError, DIRECT_SOURCE, createSourcePlan, fetchFile, isGzip, looksLikeArchive } from './mirrors.js'
 
 const gunzipAsync = promisify(gunzip)
 
@@ -163,18 +166,68 @@ export async function findRelease({ repo = DEFAULT_REPO, version, releases, toke
 }
 
 /**
- * 拉取某个 ref（tag / 分支 / commit）下的文件清单。
- * 用途：本地没有模板文件清单时（首次用 momo update），用它推断「上一版模板有哪些文件」，
- * 从而知道新版本删掉了哪些文件。git/trees 一次就能拿到全部路径，且不下载文件内容。
+ * 拉取某个 ref（tag / 分支 / commit SHA）下的文件树。
+ * git/trees 一次就能拿到全部路径与每个文件的 blob 哈希（不下载文件内容），因此既能用来
+ * 推断「上一版模板有哪些文件」，也能和本地文件的哈希逐个比对来判断是否需要更新。
+ *
+ * @returns {Promise<{entries: {path: string, sha: string, size: number}[], files: string[], truncated: boolean, sha: string|null}>}
  */
-export async function listTreeFiles({ repo = DEFAULT_REPO, ref, token, plan, onStatus } = {}) {
+export async function fetchTree({ repo = DEFAULT_REPO, ref, token, plan, onStatus } = {}) {
   const probeUrl = `${API_ROOT}/repos/${repo}/releases?per_page=1`
   const data = await apiGet(`/repos/${repo}/git/trees/${encodeURIComponent(ref)}?recursive=1`, { token, plan, probeUrl, onStatus })
-  const entries = Array.isArray(data?.tree) ? data.tree : []
-  return {
-    files: entries.filter((item) => item.type === 'blob' && item.path).map((item) => item.path),
-    truncated: Boolean(data?.truncated),
+  const entries = (Array.isArray(data?.tree) ? data.tree : [])
+    .filter((item) => item.type === 'blob' && item.path)
+    .map((item) => ({ path: item.path, sha: item.sha, size: Number(item.size) || 0 }))
+  return { entries, files: entries.map((item) => item.path), truncated: Boolean(data?.truncated), sha: data?.sha ?? null }
+}
+
+/** 只取文件名清单（见 fetchTree） */
+export async function listTreeFiles(options) {
+  const { files, truncated } = await fetchTree(options)
+  return { files, truncated }
+}
+
+/**
+ * 把 ref（分支名 / 标签 / 完整或短 commit SHA）解析成一个具体的提交。
+ * 用于 `momo update --commit <ref>`：分支名会解析成它当前的最新提交，
+ * 之后一律按这个不可变的 SHA 下载源码包，避免「比对与下载之间分支又前进了」。
+ *
+ * @returns {Promise<{ref: string, sha: string, shortSha: string, subject: string, date: string|null, htmlUrl: string}>}
+ */
+export async function resolveCommit({ repo = DEFAULT_REPO, ref, token, plan, onStatus } = {}) {
+  const probeUrl = `${API_ROOT}/repos/${repo}/releases?per_page=1`
+  let data
+  try {
+    data = await apiGet(`/repos/${repo}/commits/${encodeURIComponent(ref)}`, { token, plan, probeUrl, onStatus })
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error)
+    // 所有源都回 404/422：不是网络问题，而是远端根本没有这个 ref（GH 对不存在的 ref 回 422）
+    if (missingRef(message)) {
+      throw new Error(
+        `远端仓库 ${repo} 里找不到 ${ref}：请确认分支 / 标签名是否写对，或这个 commit 是否已经推送到 GitHub` +
+          '（只存在于本地的提交无法同步）',
+      )
+    }
+    throw error
   }
+  if (!data?.sha) throw new Error(`无法解析 ${repo} 的 ${ref}，请确认分支 / 标签 / commit 是否存在`)
+  return {
+    ref: String(ref),
+    sha: String(data.sha),
+    shortSha: String(data.sha).slice(0, 7),
+    subject: String(data.commit?.message ?? '').split('\n')[0].trim(),
+    date: data.commit?.committer?.date ?? data.commit?.author?.date ?? null,
+    htmlUrl: data.html_url ?? `https://github.com/${repo}/commit/${data.sha}`,
+  }
+}
+
+/** 直连 GitHub 回了 404/422：说明不是网络问题，而是远端没有这个 ref（GH 对不存在的 ref 回 422） */
+function missingRef(message) {
+  const line = String(message)
+    .split('\n')
+    .map((item) => item.trim())
+    .find((item) => item.startsWith(`- ${DIRECT_SOURCE.name}：`))
+  return Boolean(line) && /HTTP (404|422)\b/.test(line)
 }
 
 // ---------------- tar 解析 ----------------
@@ -274,33 +327,47 @@ async function extractTar(tar, dir) {
  * 1. github.com/<repo>/archive/... —— 公开镜像普遍支持，也是探测用的地址
  * 2. codeload.github.com/... —— 直连与部分镜像只认这个
  * 3. api.github.com/repos/.../tarball/... —— Release 接口给的原始地址
+ *
+ * target.kind === 'commit' 时 ref 是不可变的 commit SHA（不加 refs/tags 前缀）；
+ * 否则按标签取包，先试镜像支持最广的 refs/tags 形式，再退回通用形式。
  */
-function tarballForms(source, repo, tag) {
-  const ref = encodeURIComponent(tag)
+function archiveForms(source, repo, target) {
+  const ref = encodeURIComponent(target.ref)
+  const generic = [
+    `${source.prefix}https://github.com/${repo}/archive/${ref}.tar.gz`,
+    `${source.prefix}https://codeload.github.com/${repo}/tar.gz/${ref}`,
+    `${source.prefix}${API_ROOT}/repos/${repo}/tarball/${ref}`,
+  ]
+  if (target.kind === 'commit') return generic
   return [
     `${source.prefix}https://github.com/${repo}/archive/refs/tags/${ref}.tar.gz`,
     `${source.prefix}https://codeload.github.com/${repo}/tar.gz/refs/tags/${ref}`,
-    `${source.prefix}${API_ROOT}/repos/${repo}/tarball/${ref}`,
+    ...generic,
   ]
 }
 
 /**
- * 下载 release 源码包并解压到 dir。
+ * 下载 release（或某个 commit）的源码包并解压到 dir。
  * 会自动选择可用的镜像：先按一小时内的记录（没有则先探测），失败就换下一个源、
  * 再试同源的备用地址；沿用缓存失败时立刻重新探测一遍，仍失败才报错。
  *
+ * @param {{kind?: 'release'|'commit', ref: string, tag?: string|null, version?: string|null, label?: string}} target
+ *   要下载的目标：release 模式传标签，commit 模式传 SHA（见 update 命令）
+ * @param {(dir: string) => Promise<string|null>} [verify]
+ *   解压后的额外校验：返回一段问题描述即视为内容不可信，自动换下一个源（commit 模式用它核对文件哈希）
  * @returns {Promise<{files:number, bytes:number, version:string|null, source:string, url:string, ms:number}>}
  */
-export async function downloadRelease({ release, repo = DEFAULT_REPO, token, dir, mirror, plan, onStatus = () => {}, onProgress } = {}) {
+export async function downloadRelease({ target, repo = DEFAULT_REPO, token, dir, mirror, plan, onStatus = () => {}, onProgress, verify } = {}) {
   const planner = plan ?? createSourcePlan({ mirror, onStatus })
-  const probeUrl = tarballForms({ prefix: '' }, repo, release.tag)[0]
+  const probeUrl = archiveForms({ prefix: '' }, repo, target)[0]
+  const label = target.label ?? target.tag ?? target.ref
   const errors = []
 
   /** 依次尝试若干源（每个源再依次尝试几种 URL 形式）；stopEarly 见 apiGet 的说明 */
   const trySources = async (sources, stopEarly) => {
-    onStatus(`下载 ${release.tag} 源码包…`)
+    onStatus(`下载 ${label} 源码包…`)
     for (const source of sources) {
-      const forms = tarballForms(source, repo, release.tag)
+      const forms = archiveForms(source, repo, target)
       for (let i = 0; i < forms.length; i++) {
         const url = forms[i]
         try {
@@ -315,9 +382,26 @@ export async function downloadRelease({ release, repo = DEFAULT_REPO, token, dir
           if (!version) throw new SourceError('源码包里没有 package.json（镜像返回了错误内容）', { kind: 'content' })
 
           const extracted = await extractTar(tar, dir)
+          // 额外校验（commit 模式：解压结果必须与远端文件树逐个哈希一致）
+          const problem = verify ? await verify(dir) : null
+          if (problem) throw new SourceError(problem, { kind: 'content' })
+
           await writeFile(
             join(dir, '.momo-release.json'),
-            `${JSON.stringify({ tag: release.tag, version, files: extracted.files, bytes: extracted.bytes, source: source.name }, null, 2)}\n`,
+            `${JSON.stringify(
+              {
+                kind: target.kind ?? 'release',
+                ref: target.ref,
+                tag: target.tag ?? null,
+                sha: target.kind === 'commit' ? target.ref : null,
+                version,
+                files: extracted.files,
+                bytes: extracted.bytes,
+                source: source.name,
+              },
+              null,
+              2,
+            )}\n`,
             'utf8',
           )
           if (!source.direct) await planner.remember('file', source)
@@ -364,6 +448,45 @@ export function isPreserved(rel, preserve) {
   return preserve.some((entry) => rel === entry || rel.startsWith(`${entry}/`))
 }
 
+/**
+ * 生成「哪些相对路径不参与更新」的判断函数（构建产物、仓库配置等）。
+ * planChanges（读源码包目录）与 compareTree（读远端文件树）共用同一套规则，
+ * 两条路径的结论才会一致。
+ */
+function makeSkipFilter(skip) {
+  const set = new Set([...skip, '.momo-release.json'])
+  return (rel) => {
+    if (set.has(rel)) return true
+    const parts = rel.split('/')
+    parts.pop()
+    return parts.some((part) => set.has(part))
+  }
+}
+
+/** 把 CRLF 归一成 LF：Windows 检出（core.autocrlf=true）的工作区与仓库里的 LF 内容只差行尾 */
+function normalizeEol(buffer) {
+  return Buffer.from(buffer.toString('utf8').replace(/\r\n/g, '\n'), 'utf8')
+}
+
+/** 计算 git blob 哈希（与 `git hash-object` 一致）：sha1('blob <字节数>\0' + 内容) */
+export function gitBlobHash(buffer, { normalize = false } = {}) {
+  const data = normalize && buffer.includes(0x0d) ? normalizeEol(buffer) : buffer
+  return createHash('sha1').update(`blob ${data.length}\u0000`, 'utf8').update(data).digest('hex')
+}
+
+/** 本地文件内容是否等于远端 blob（容忍只差 CRLF/LF 的情况） */
+export function blobMatches(buffer, sha) {
+  if (gitBlobHash(buffer) === sha) return true
+  return buffer.includes(0x0d) && gitBlobHash(buffer, { normalize: true }) === sha
+}
+
+/** 两份内容是否一致（先比字节，再容忍行尾差异） */
+export function sameContent(left, right) {
+  if (left.equals(right)) return true
+  if (!left.includes(0x0d) && !right.includes(0x0d)) return false
+  return normalizeEol(left).equals(normalizeEol(right))
+}
+
 /** 列出目录下所有文件的相对路径（/ 分隔），跳过 skipDirs */
 export async function collectFiles(dir, { skip = new Set() } = {}) {
   const out = []
@@ -384,6 +507,65 @@ export async function collectFiles(dir, { skip = new Set() } = {}) {
   return out
 }
 
+/**
+ * 把远端文件树（fetchTree 的结果）与本地项目逐个文件比对。
+ * 只读本地文件、逐个算哈希即可判断「新增 / 修改 / 相同 / 保留 / 删除」，不需要下载源码包。
+ * 返回结构与 planChanges 一致，两者可以共用同一套打印逻辑。
+ */
+export async function compareTree(entries, { root, preserve = [], skip = [], previous = [] }) {
+  const isSkipped = makeSkipFilter(skip)
+  const added = []
+  const modified = []
+  const same = []
+  const preserved = []
+  const files = []
+
+  for (const entry of entries) {
+    const rel = entry.path
+    if (isSkipped(rel)) continue
+    files.push(rel)
+    if (isPreserved(rel, preserve)) {
+      preserved.push(rel)
+      continue
+    }
+    const local = await readFile(join(root, ...rel.split('/'))).catch(() => null)
+    if (!local) added.push(rel)
+    else if (!blobMatches(local, entry.sha)) modified.push(rel)
+    else same.push(rel)
+  }
+  files.sort()
+
+  // 删除：与 planChanges 同一套规则，只删「上一版模板有、新版本没有」的普通文件
+  const current = new Set(files)
+  const removed = []
+  for (const rel of previous) {
+    if (current.has(rel)) continue
+    if (rel.startsWith('/') || rel.split('/').includes('..')) continue
+    if (isPreserved(rel, preserve)) continue
+    if (isSkipped(rel)) continue
+    if (!statSync(join(root, ...rel.split('/')), { throwIfNoEntry: false })?.isFile()) continue
+    removed.push(rel)
+  }
+  removed.sort()
+
+  return { added: added.sort(), modified: modified.sort(), same, preserved, removed, files, total: files.length }
+}
+
+/**
+ * 校验解压出来的源码包：每个远端 blob 都要在解压目录里找到且哈希一致。
+ * 用来挡住「镜像缓存了旧内容」「镜像返回了别的分支」这类问题——
+ * 返回问题描述时下载会自动换下一个源。
+ * @returns {Promise<string|null>} null 表示通过
+ */
+export async function verifyTree(dir, entries) {
+  for (const entry of entries) {
+    const buffer = await readFile(join(dir, ...entry.path.split('/'))).catch(() => null)
+    if (!buffer) return `源码包里缺少 ${entry.path}`
+    if (gitBlobHash(buffer) !== entry.sha) return `源码包里的 ${entry.path} 与远端内容不一致`
+  }
+  return null
+}
+
 /** 比对源码目录与项目目录，得到「新增 / 修改 / 保留 / 删除」四个清单 */
 export async function planChanges(sourceDir, { root, preserve = [], skip = [], previous = [] }) {
   const skipSet = new Set([...skip, '.momo-release.json'])
@@ -402,7 +584,8 @@ export async function planChanges(sourceDir, { root, preserve = [], skip = [], p
     const sourceBuffer = await readFile(join(sourceDir, ...rel.split('/')))
     const localBuffer = await readFile(localPath).catch(() => null)
     if (!localBuffer) added.push(rel)
-    else if (!localBuffer.equals(sourceBuffer)) modified.push(rel)
+    // 只差行尾（Windows 检出的 CRLF）不算修改，避免每次更新都重写一批内容相同的文件
+    else if (!sameContent(sourceBuffer, localBuffer)) modified.push(rel)
     else same.push(rel)
   }
 

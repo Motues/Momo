@@ -39,7 +39,7 @@ Momo 取自小红书📕，每个新用户最初的昵称，象征着初始新�
 
 参考 [更新指南](./doc/release_zh-cn.md)，介绍如何更新项目，详细信息可以访问 [Momo](https://momo.motues.top/intro/release)。
 
-执行 `pnpm momo update` 可以自动完成「检查 GitHub Release → 下载新版本源码 → 备份 → 覆盖代码 → 删除新版本已移除的旧文件 → 安装依赖」，并提示本次更新中需要手工合并的配置文件。你自己的文章与图片（`src/content`、`src/assets`、`public`）和 `src/config.ts` 会原样保留；删除只针对上一版模板里有、而新版本已移除的文件（依据更新时写下的 `.momo/manifest.json`，你自己新增的文件不受影响，加 `--no-delete` 可只覆盖不删除）。先加 `--dry-run` 可以只预览变更、不写入任何文件。国内直连 GitHub 超时也不用额外配置：它会自动并行探测 GitHub 直连与公共镜像并挑最快的下载，超时或镜像返回错误内容就自动换源（可用 `--mirror <镜像前缀>` 或环境变量 `MOMO_MIRROR` 指定镜像，`--mirror direct` 强制只用直连）。
+执行 `pnpm momo update` 可以自动完成「检查 GitHub Release → 下载新版本源码 → 备份 → 覆盖代码 → 删除新版本已移除的旧文件 → 安装依赖」，并提示本次更新中需要手工合并的配置文件。默认比对**最新 Release**；想第一时间用上尚未发版的新代码时，加 `--commit <分支/标签/SHA>`（例如 `pnpm momo update --commit main`）即可改为同步某个提交，它会先读远端文件树与本地文件逐个比对，`--check` / `--dry-run` 不用下载源码包就能列出差异。你自己的文章与图片（`src/content`、`src/assets`、`public`）和 `src/config.ts` 会原样保留；删除只针对上一版模板里有、而新版本已移除的文件（依据更新时写下的 `.momo/manifest.json`，你自己新增的文件不受影响，加 `--no-delete` 可只覆盖不删除）。先加 `--dry-run` 可以只预览变更、不写入任何文件。国内直连 GitHub 超时也不用额外配置：它会自动并行探测 GitHub 直连与公共镜像并挑最快的下载，超时或镜像返回错误内容就自动换源（可用 `--mirror <镜像前缀>` 或环境变量 `MOMO_MIRROR` 指定镜像，`--mirror direct` 强制只用直连）。
 
 ## 🍃 分支
 

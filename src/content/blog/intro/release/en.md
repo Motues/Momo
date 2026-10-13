@@ -21,7 +21,7 @@ Blog text, images, and other content are stored in the `src/content/`, `src/asse
 
 You can directly clone this project, then overwrite the new project with your original configuration files. Run `pnpm install` to install dependencies, followed by `pnpm build` for local compilation. Finally, execute `pnpm preview` to preview the compiled project.
 
-When updating inside this repository, run `pnpm momo update`: it reads the latest [release](https://github.com/Motues/Momo/releases), compares it with the version in `package.json`, downloads that version's source, **keeps your own posts and images** (`src/content`, `src/assets`, `public`) and `src/config.ts`, overwrites the rest of the code, **deletes files the new version no longer ships** and installs dependencies, then lists the **configuration files that need to be merged by hand**. 
+When updating inside this repository, run `pnpm momo update`: it reads the latest [release](https://github.com/Motues/Momo/releases), compares it with the version in `package.json`, downloads that version's source, **keeps your own posts and images** (`src/content`, `src/assets`, `public`) and `src/config.ts`, overwrites the rest of the code, **deletes files the new version no longer ships** and installs dependencies, then lists the **configuration files that need to be merged by hand**. The **latest release** is what it compares against by default; to use code that has not been released yet, add `--commit <branch/tag/SHA>` (for example `pnpm momo update --commit main`) to sync a specific commit instead — `--check` / `--dry-run` list the differences without downloading any archive.
 
 ## Version Number Changed
 
