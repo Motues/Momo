@@ -192,13 +192,18 @@ export async function listTreeFiles(options) {
  * 用于 `momo update --commit <ref>`：分支名会解析成它当前的最新提交，
  * 之后一律按这个不可变的 SHA 下载源码包，避免「比对与下载之间分支又前进了」。
  *
+ * ⚠️ 这里带一个每次都变的时间戳：公共镜像普遍会缓存 API 响应（实测刚推送完，
+ * gh.catmak.name 仍然回上一次的 SHA），而分支名要的恰恰是「此刻的最新提交」。
+ * GitHub 会忽略不认识的查询参数，所以加了也不影响直连。
+ *
  * @returns {Promise<{ref: string, sha: string, shortSha: string, subject: string, date: string|null, htmlUrl: string}>}
  */
 export async function resolveCommit({ repo = DEFAULT_REPO, ref, token, plan, onStatus } = {}) {
   const probeUrl = `${API_ROOT}/repos/${repo}/releases?per_page=1`
+  const path = `/repos/${repo}/commits/${encodeURIComponent(ref)}?momo=${Date.now()}`
   let data
   try {
-    data = await apiGet(`/repos/${repo}/commits/${encodeURIComponent(ref)}`, { token, plan, probeUrl, onStatus })
+    data = await apiGet(path, { token, plan, probeUrl, onStatus })
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error)
     // 所有源都回 404/422：不是网络问题，而是远端根本没有这个 ref（GH 对不存在的 ref 回 422）
