@@ -29,6 +29,14 @@ Below are general modification suggestions.
 
 > Version numbers follow the `YY.MM.DD` format
 
+### 26.10.16
+
+* **The comment area gained an emoji panel**: the comment box and every reply box now have an emoji button in the lower-left corner, with both image emoji and text emoticons; one click inserts it at the cursor and it works while writing a reply too. Emoji are stored as `:name:` shortcodes and rendered as small inline images in the body, so existing plain-text comments are untouched
+* **Emoji only go online when you open the panel**: the emoji pack URL is provided by the comment backend (no button is shown when it is not configured), and the browser fetches that URL directly and caches it for 7 days — visitors who only read comments make no extra third-party requests, and emoji already in comments render straight from the local cache
+* **Unauthorized domains now say why**: with "source domain binding" enabled on the backend, visitors whose domain is not on the allowlist see "this domain is not authorized, please comment from the original site page" instead of a generic verification failure that invites pointless retries
+* **`momo update` can sync a specific commit**: add `--commit <branch/tag/SHA>` (for example `pnpm momo update --commit main`) to use the newest unreleased code, earlier than waiting for the next release; `--check` / `--dry-run` list the differences without downloading any archive
+* This update modifies the config files `src/i18n/` (new comment emoji and domain-verification text) — merge them as prompted. The emoji panel requires comment backend support ([Momo-Backend](https://github.com/Motues/Momo-Backend))
+
 ### 26.10.10
 
 * **Upgraded silent comment verification**: the quiet human check now uses a HashWX (WebAssembly) proof of work solved in parallel, plus a new "environment challenge" that runs a small random program, so it finishes faster and is much harder to fake; visitors still pass it without solving puzzles or typing codes. **The comment backend must be upgraded as well** ([Momo-Backend](https://github.com/Motues/Momo-Backend)) — an outdated backend is reported in the comment area instead of leaving people waiting
