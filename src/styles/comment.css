@@ -1,0 +1,23 @@
+/*
+ * 评论组件（src/components/comment）的宿主样式契约。
+ */
+.comment-container {
+  --button-hover-bg-color: var(--button-hover-color);
+}
+
+.comment-container [data-aos][data-aos].aos-animate {
+  transform: none;
+}
+
+.comment-container .comment-content img.momo-emoji,
+.comment-container .comment-preview img.momo-emoji,
+.comment-container img.momo-emoji {
+  display: inline-block;
+  width: 1.25em;
+  height: 1.25em;
+  max-width: none;
+  margin: 0 1px;
+  vertical-align: -0.2em;
+  border-radius: 2px;
+  object-fit: contain;
+}

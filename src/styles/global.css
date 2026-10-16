@@ -2,6 +2,7 @@
 @import "./variables.css";
 @import "./special.css";
 @import "./scrollbar.css";
+@import "./comment.css";
 
 @layer base {
 

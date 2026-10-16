@@ -1,7 +1,10 @@
 <script lang="ts">
-  import { onMount } from 'svelte';
+  import { onMount, tick } from 'svelte';
   import { siteConfig } from '@/config.ts';
   import CommentItem from './CommentItem.svelte';
+  import EmojiPicker from './emoji/EmojiPicker.svelte';
+  import { getCachedEmojiSet, type EmojiSet } from './emoji/owo';
+  import { emojify } from './emoji/render';
   import SilentVerify from './verify/SilentVerify.svelte';
   import i18nit from '../../i18n/translation.ts';
   import { parseMarkdown, validateMarkdown } from '@utils/markdown';
@@ -33,6 +36,9 @@
   let placeholderUrl = '';
   let adminCommentKeyConfigured = false;
   let adminEmailHash = '';
+  let emojiEnabled = true;
+  let emojiCdnUrl = '';
+  let emojiSet: EmojiSet | null = null;
   let adminKey = '';
   let isAdminEmail = false;
 
@@ -60,6 +66,7 @@
 
   // 防止重复提交
   let submitting = false;
+  let contentEl: HTMLTextAreaElement | undefined;
 
   // 当前正在回复的评论ID
   let replyingToId: number | null = null;
@@ -152,6 +159,31 @@
     return chars <= 2000 && words <= 1000;
   }
 
+  /**
+   * 表情是否可用：后端关闭表情（`emoji_enabled = "false"`）或地址为空时，
+   * 既不渲染表情按钮，也不水合、不拉取任何地址（`emoji_set` 视为空）。
+   *
+   * 注意这里用普通函数而不是直接读 `$:` 变量：`$:` 是**批量刷新**的，
+   * `loadComments` 里刚赋值就调用 `refreshEmojiHydration()` 时读到的还是旧值。
+   */
+  function emojiUsable(enabled: boolean, cdnUrl: string): boolean {
+    return enabled && cdnUrl !== '';
+  }
+
+  $: emojiAvailable = emojiUsable(emojiEnabled, emojiCdnUrl);
+
+  /** 短代码 → 图片地址；表情不可用时恒为 null（水合器只做跳过的空操作） */
+  $: emojiImages = emojiAvailable ? emojiSet?.images ?? null : null;
+
+  /**
+   * 首屏水合：**同步、零请求**，只用本地缓存（7 天 TTL）里的表情包。
+   * 访客只读评论时不会产生任何第三方请求，也不会请求本站表情接口；
+   * 缓存缺失/过期时图片表情暂时显示为 `:name:` 文本，打开一次面板后即恢复。
+   */
+  function refreshEmojiHydration() {
+    emojiSet = emojiUsable(emojiEnabled, emojiCdnUrl) ? getCachedEmojiSet({ cdnUrl: emojiCdnUrl }) : null;
+  }
+
   function countComments(comments: any[]): number {
     let count = 0;
     for (const c of comments) {
@@ -200,12 +232,15 @@
       placeholderUrl = data?.data?.placeholder_url || '';
       adminCommentKeyConfigured = data?.data?.admin_comment_key_configured === 'true';
       adminEmailHash = data?.data?.admin_email_hash || '';
+      emojiEnabled = data?.data?.emoji_enabled !== 'false';
+      emojiCdnUrl = data?.data?.emoji_cdn_url || '';
       if (!adminCommentKeyConfigured) adminKey = '';
       verifyEnabled = parseBool(data?.data?.verify_enabled);
       verifyHoneypot = data?.data?.verify_honeypot || '';
       // 成功后必须重置错误态：否则一次失败会让评论区在本次会话内再也不显示
       error = '';
       page = targetPage;
+      refreshEmojiHydration();
       return true;
     } catch (err: any) {
       // 静默刷新失败时保留已渲染的列表与原有错误态，不把界面切成错误页
@@ -333,6 +368,22 @@
     }
   }
 
+  /** 把表情插入到输入框光标处（没有输入框时追加到末尾），并保持焦点与光标位置 */
+  async function insertEmoji(text: string) {
+    const el = contentEl;
+    if (!el) {
+      content += text;
+      return;
+    }
+    const start = el.selectionStart ?? content.length;
+    const end = el.selectionEnd ?? start;
+    content = `${content.slice(0, start)}${text}${content.slice(end)}`;
+    await tick();
+    const position = start + text.length;
+    el.focus();
+    el.setSelectionRange(position, position);
+  }
+
   function setReplyingTo(id: number | null) {
     replyingToId = id;
   }
@@ -346,7 +397,7 @@
   });
 </script>
 
-<div class="mt-4 max-w-3xl mx-auto border-t border-[var(--button-border-color)]" id="comments">
+<div class="comment-container mt-4 max-w-3xl mx-auto border-t border-[var(--button-border-color)]" id="comments">
   <!-- <div class="my-6 border border-[var(--text-color)]/70"></div> -->
   <!-- 评论输入 -->
   <div data-aos="fade-up" class="mt-4">
@@ -377,9 +428,11 @@
         {/if}
       </div>
 
-       <div>
+       <div class="mb-2">
         {#if showPreview}
-          <div class="rounded border text-[var(--text-color)] border-[var(--button-border-color)] p-3 min-h-[100px] text-sm leading-relaxed comment-preview">
+          <div
+            class="rounded border text-[var(--text-color)] border-[var(--button-border-color)] p-3 min-h-[100px] text-sm leading-relaxed comment-preview"
+            use:emojify={{ images: emojiImages, html: content }}>
             {#if content.trim() === ''}
               <p>{t('comments.preview') || '预览'}</p>
             {:else}
@@ -396,6 +449,7 @@
         {:else}
           <textarea placeholder={placeholderContent || t('comments.welcome')}
             class="rounded w-full border text-[var(--text-color)] border-[var(--button-border-color)] focus:outline-none focus:border-[var(--link-color)] text-sm p-3 min-h-[100px]"
+            bind:this={contentEl}
             bind:value={content}></textarea>
         {/if}
 
@@ -406,29 +460,37 @@
         </div>
       </div>
 
-      <div class="relative flex flex-wrap justify-end items-center gap-3">
-        {#if verifyEnabled}
-          <SilentVerify
-            bind:this={verifyComponent}
-            {apiUrl}
-            {postSlug}
-            {language}
-            honeypotField={verifyHoneypot}
-            onTicket={(ticket) => (verifyTicket = ticket)}
-          />
+      <div class="relative flex flex-wrap justify-between items-center gap-3">
+        <!-- 表情按钮固定在输入框下方左侧；后端关闭表情或地址为空时整体不渲染 -->
+        {#if emojiAvailable}
+          <EmojiPicker {language} cdnUrl={emojiCdnUrl} disabled={showPreview}
+            bind:emojiSet onPick={insertEmoji} />
         {/if}
-        <button
-          type="button"
-          on:click={togglePreview}
-          disabled={!showPreview && !content.trim()}
-          class="rounded px-4 py-2 text-sm font-medium text-[var(--text-color)] border border-[var(--button-border-color)] hover:bg-[var(--button-hover-color)] disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          {showPreview ? t('comments.write') : t('comments.preview')}
-        </button>
-        <button type="submit" disabled={submitting || !isContentWithinLimit(content) || (verifyEnabled && verifyTicket === null)}
-          class="rounded px-4 py-2 text-sm font-medium text-[var(--text-color)] border border-[var(--button-border-color)] hover:bg-[var(--button-hover-color)] disabled:opacity-50">
-          {submitting ? t('comments.sending') : t('comments.send')}
-        </button>
+
+        <div class="flex flex-wrap items-center gap-3">
+          {#if verifyEnabled}
+            <SilentVerify
+              bind:this={verifyComponent}
+              {apiUrl}
+              {postSlug}
+              {language}
+              honeypotField={verifyHoneypot}
+              onTicket={(ticket) => (verifyTicket = ticket)}
+            />
+          {/if}
+          <button
+            type="button"
+            on:click={togglePreview}
+            disabled={!showPreview && !content.trim()}
+            class="rounded px-4 py-2 text-sm font-medium text-[var(--text-color)] border border-[var(--button-border-color)] hover:bg-[var(--button-hover-bg-color)] disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {showPreview ? t('comments.write') : t('comments.preview')}
+          </button>
+          <button type="submit" disabled={submitting || !isContentWithinLimit(content) || (verifyEnabled && verifyTicket === null)}
+            class="rounded px-4 py-2 text-sm font-medium text-[var(--text-color)] border border-[var(--button-border-color)] hover:bg-[var(--button-hover-bg-color)] disabled:opacity-50">
+            {submitting ? t('comments.sending') : t('comments.send')}
+          </button>
+        </div>
       </div>
     </form>
   </div>
@@ -440,7 +502,7 @@
     {:else if error}
       <p data-aos="fade-up" class="text-red-500 text-center">{t('comments.loadFailed') || '加载失败：'}{error}</p>
     {:else}
-      <h4 data-aos="fade-up" class="text-[var(--text-color)] text-base font-semibold mb-4">{countComments(comments)} {t('comments.comments')}</h4>
+      <h4 data-aos="fade-up" class="text-[var(--text-color)] text-base font-semibold mt-6 mb-4">{countComments(comments)} {t('comments.comments')}</h4>
 
       <div class="space-y-6">
         {#each comments as c}
@@ -448,6 +510,8 @@
             <CommentItem {c} {postSlug} {author} {email} {url} {language}
               {bloggerBadgeEnabled} {bloggerBadgeText}
               {adminCommentKeyConfigured} {adminEmailHash}
+              emojiImages={emojiImages} {emojiCdnUrl} {emojiEnabled}
+              on:emojiSetChange={(e) => (emojiSet = e.detail)}
               on:reply={(e) => setReplyingTo(e.detail)} 
               on:cancel={() => setReplyingTo(null)}
               on:submit={async (e) => {

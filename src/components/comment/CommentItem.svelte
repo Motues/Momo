@@ -1,6 +1,8 @@
 <script lang="ts">
-  import { createEventDispatcher } from 'svelte';
-  import { onMount } from 'svelte';
+  import { createEventDispatcher, onMount, tick } from 'svelte';
+  import EmojiPicker from './emoji/EmojiPicker.svelte';
+  import { emojify } from './emoji/render';
+  import type { EmojiSet } from './emoji/owo';
   import { slide } from 'svelte/transition';
   import DOMPurify from 'dompurify';
   // 👇 自引用，递归必须这样导入
@@ -22,6 +24,9 @@
   export let bloggerBadgeText: string = '博主';
   export let adminCommentKeyConfigured: boolean = false;
   export let adminEmailHash: string = '';
+  export let emojiImages: Map<string, string> | null = null;
+  export let emojiCdnUrl: string = '';
+  export let emojiEnabled: boolean = true;
 
   export let depth: number = 0; // 记录评论的层级，顶层为 0
   export let isFlattened: boolean = false; // 是否处于移动端被“拍平”的状态
@@ -61,6 +66,26 @@
   let replyShowPreview = false;
   let replyPreviewHtml = '';
   let replyMarkdownWarnings: string[] = [];
+  let replyContentEl: HTMLTextAreaElement | undefined;
+  let replyEmojiSet: EmojiSet | null = null;
+
+  $: replyEmojiImages = replyEmojiSet?.images ?? emojiImages;
+
+  /** 把表情插入回复输入框的光标处 */
+  async function insertReplyEmoji(text: string) {
+    const el = replyContentEl;
+    if (!el) {
+      replyContent += text;
+      return;
+    }
+    const start = el.selectionStart ?? replyContent.length;
+    const end = el.selectionEnd ?? start;
+    replyContent = `${replyContent.slice(0, start)}${text}${replyContent.slice(end)}`;
+    await tick();
+    const position = start + text.length;
+    el.focus();
+    el.setSelectionRange(position, position);
+  }
 
   // 提交中状态由父组件维护，避免子组件状态残留导致回复按钮被永久禁用
   $: isReplySubmitting = replySubmittingId === c.id;
@@ -101,6 +126,10 @@
   
   const dispatch = createEventDispatcher();
   
+  // 回复框里的表情面板加载出完整集合后，冒泡给 Comments，让整页评论一起水合
+  // （放在 dispatch 声明之后，避免依赖 TDZ 顺序）
+  $: if (replyEmojiSet) dispatch('emojiSetChange', replyEmojiSet);
+
   const avatarUrl = c.avatar;
 
   /**
@@ -237,7 +266,8 @@
       <span class="text-sm text-[var(--text-color-70)]">{formatFullDate(new Date(c.pubDate), language)}</span>
     </div>
 
-    <div class="text-[var(--text-color)] mt-1 leading-relaxed w-full max-w-full min-w-0 text-sm comment-markdown">
+    <div class="text-[var(--text-color)] mt-1 leading-relaxed w-full max-w-full min-w-0 text-sm comment-content"
+      use:emojify={{ images: emojiImages, html: c.contentHtml }}>
       {#if c.contentHtml && typeof c.contentHtml === 'string' && isValidHtml(c.contentHtml)}
         <div class="break-words w-full max-w-full">{@html DOMPurify.sanitize(c.contentHtml)}</div>
       {:else if c.contentText && typeof c.contentText === 'string' && c.contentText.trim() !== ''}
@@ -322,9 +352,10 @@
             </div>
           {/if}
 
-          <div>
+          <div class="mb-2">
             {#if replyShowPreview}
-              <div class="rounded border text-[var(--text-color)] border-[var(--button-border-color)] p-2 min-h-[80px] text-sm leading-relaxed comment-markdown">
+              <div class="rounded border text-[var(--text-color)] border-[var(--button-border-color)] p-2 min-h-[80px] text-sm leading-relaxed comment-content"
+                use:emojify={{ images: replyEmojiImages, html: replyContent }}>
                 {#if replyContent.trim() === ''}
                   <p>{t('comments.preview') || '预览'}</p>
                 {:else}
@@ -341,6 +372,7 @@
             {:else}
               <textarea placeholder={t('comments.replyPlaceholder') || "写下你的回复..."}
                 class="rounded w-full border text-[var(--text-color)] border-[var(--button-border-color)] focus:outline-none focus:border-[var(--link-color)] text-sm p-2 min-h-[80px]"
+                bind:this={replyContentEl}
                 bind:value={replyContent}></textarea>
             {/if}
             <div class="text-right text-xs text-[var(--text-color)]/70 mt-1">
@@ -350,20 +382,27 @@
             </div>
           </div>
 
-          <div class="flex justify-end gap-2">
+          <div class="flex flex-wrap justify-between items-center gap-2 mt-2">
+            {#if emojiEnabled && emojiCdnUrl}
+              <EmojiPicker {language} cdnUrl={emojiCdnUrl} disabled={replyShowPreview}
+                bind:emojiSet={replyEmojiSet}
+                onPick={insertReplyEmoji} />
+            {/if}
+            <div class="flex flex-wrap justify-end gap-2">
             <button type="button" on:click={toggleReplyPreview}
               disabled={!replyContent.trim()}
-              class="rounded px-3 py-1 text-sm text-[var(--text-color)] border border-[var(--button-border-color)] hover:bg-[var(--button-hover-color)] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-transparent">
+              class="rounded px-3 py-1 text-sm text-[var(--text-color)] border border-[var(--button-border-color)] hover:bg-[var(--button-hover-bg-color)] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-transparent">
               {replyShowPreview ? (t('comments.write') || '撰写') : (t('comments.preview') || '预览')}
             </button>
             <button type="button" on:click={() => {
               dispatch('cancel');
-            }} class="rounded px-3 py-1 text-sm text-[var(--text-color)] border border-[var(--button-border-color)] hover:bg-[var(--button-hover-color)]">
+            }} class="rounded px-3 py-1 text-sm text-[var(--text-color)] border border-[var(--button-border-color)] hover:bg-[var(--button-hover-bg-color)]">
               {t('comments.cancel')}
             </button>
             <button type="submit" disabled={isReplySubmitting || !isContentWithinLimit(replyContent)} class="rounded px-3 py-1 text-sm font-medium text-[var(--text-color)] border border-[var(--button-border-color)] hover:bg-[var(--button-hover-bg-color)] disabled:opacity-50">
               {isReplySubmitting ? t('comments.sending') : t('comments.reply')}
             </button>
+            </div>
           </div>
         </form>
       </div>
@@ -385,6 +424,10 @@
               {bloggerBadgeText}
               {adminCommentKeyConfigured}
               {adminEmailHash}
+              {emojiImages}
+              {emojiCdnUrl}
+              {emojiEnabled}
+              on:emojiSetChange={(e) => dispatch('emojiSetChange', e.detail)}
               depth={depth + 1}
               isFlattened={false}
               on:reply={(e) => dispatch('reply', e.detail)} 
@@ -420,6 +463,10 @@
               {bloggerBadgeText}
               {adminCommentKeyConfigured}
               {adminEmailHash}
+              {emojiImages}
+              {emojiCdnUrl}
+              {emojiEnabled}
+              on:emojiSetChange={(e) => dispatch('emojiSetChange', e.detail)}
               depth={1}
               isFlattened={true}
               parentAuthorName={flatReply._parentName}
@@ -449,34 +496,34 @@
 </div>
 
 <style>
-  .comment-markdown :global(h1),
-  .comment-markdown :global(h2),
-  .comment-markdown :global(h3),
-  .comment-markdown :global(h4) {
+  .comment-content :global(h1),
+  .comment-content :global(h2),
+  .comment-content :global(h3),
+  .comment-content :global(h4) {
     margin-top: 1rem;
     margin-bottom: 0.5rem;
     font-weight: 600;
     line-height: 1.3;
   }
-  .comment-markdown :global(h1) { font-size: 1.5rem; }
-  .comment-markdown :global(h2) { font-size: 1.25rem; }
-  .comment-markdown :global(h3) { font-size: 1.1rem; }
-  .comment-markdown :global(p) { margin-bottom: 0.5rem; }
-  .comment-markdown :global(ul),
-  .comment-markdown :global(ol) {
+  .comment-content :global(h1) { font-size: 1.5rem; }
+  .comment-content :global(h2) { font-size: 1.25rem; }
+  .comment-content :global(h3) { font-size: 1.1rem; }
+  .comment-content :global(p) { margin-bottom: 0.5rem; }
+  .comment-content :global(ul),
+  .comment-content :global(ol) {
     margin-bottom: 0.5rem;
     padding-left: 1.5rem;
   }
-  .comment-markdown :global(ul) { list-style-type: disc; }
-  .comment-markdown :global(ol) { list-style-type: decimal; }
-  .comment-markdown :global(li) { margin-bottom: 0.25rem; }
-  .comment-markdown :global(blockquote) {
+  .comment-content :global(ul) { list-style-type: disc; }
+  .comment-content :global(ol) { list-style-type: decimal; }
+  .comment-content :global(li) { margin-bottom: 0.25rem; }
+  .comment-content :global(blockquote) {
     border-left: 3px solid var(--link-color, #6366f1);
     padding-left: 0.75rem;
     margin: 0.5rem 0;
     opacity: 0.85;
   }
-  .comment-markdown :global(pre) {
+  .comment-content :global(pre) {
     background: color-mix(in srgb, var(--text-color) 8%, transparent);
     border-radius: 4px;
     padding: 0.75rem;
@@ -484,50 +531,50 @@
     margin: 0.5rem 0;
     font-size: 0.85rem;
   }
-  .comment-markdown :global(code) {
+  .comment-content :global(code) {
     background: color-mix(in srgb, var(--text-color) 6%, transparent);
     border-radius: 3px;
     padding: 0.15rem 0.3rem;
     font-size: 0.85rem;
     font-family: monospace;
   }
-  .comment-markdown :global(pre code) {
+  .comment-content :global(pre code) {
     background: none;
     padding: 0;
     border-radius: 0;
   }
-  .comment-markdown :global(a) {
+  .comment-content :global(a) {
     color: var(--link-color, #6366f1);
     text-decoration: underline;
   }
-  .comment-markdown :global(img) {
+  .comment-content :global(img) {
     max-width: 100%;
     height: auto;
     border-radius: 4px;
     margin: 0.5rem 0;
   }
-  .comment-markdown :global(hr) {
+  .comment-content :global(hr) {
     border: none;
     border-top: 1px solid var(--button-border-color, #ddd);
     margin: 1rem 0;
   }
-  .comment-markdown :global(table) {
+  .comment-content :global(table) {
     border-collapse: collapse;
     width: 100%;
     margin: 0.5rem 0;
     font-size: 0.9rem;
   }
-  .comment-markdown :global(th),
-  .comment-markdown :global(td) {
+  .comment-content :global(th),
+  .comment-content :global(td) {
     border: 1px solid var(--button-border-color, #ddd);
     padding: 0.4rem 0.6rem;
     text-align: left;
   }
-  .comment-markdown :global(th) {
+  .comment-content :global(th) {
     font-weight: 600;
     background: color-mix(in srgb, var(--text-color) 8%, transparent);
   }
-  .comment-markdown :global(del) {
+  .comment-content :global(del) {
     text-decoration: line-through;
     opacity: 0.7;
   }
