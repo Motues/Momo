@@ -1,10 +1,17 @@
 /**
  * 表情面板的数据层：拉取 owo.json、短代码推导与标签构建。
  *
- * 契约 v2（见 `doc/emoji.md`，三端读同一份 `doc/vectors/emoji-v2.json`）：
- * 表情只有一个来源 —— 管理员配置的一个 OwO 格式地址（`emoji_cdn_url`），
- * 由访客浏览器直接拉取；v1 的「自定义表情包」与本站公开表情接口已整体删除，
- * 这里不再有任何指向本站的表情请求。
+ * 契约 v3（见 `doc/emoji.md`，三端读同一份 `doc/vectors/emoji-v3.json`）：
+ * 表情来源是管理员配置的**一组** OwO 格式地址（`emoji_cdn_urls`，最多 5 个），
+ * 由访客浏览器**按数组顺序并发拉取后拼接合并**成一个面板；本站既不代理也不存储。
+ * 旧的单地址 `emoji_cdn_url` 只在数组为空时作为回落（调用方归一化成数组后传进来）。
+ * v1 的「自定义表情包」与本站公开表情接口已整体删除，这里不再有任何指向本站的表情请求。
+ *
+ * 多来源合并口径（doc/emoji.md 第 3.3 节）：
+ *  - 顶层标签按「首次出现」的顺序排列；
+ *  - 后面的来源出现同名标签时，把它的 `container` **追加**进已有标签（不新建标签页）；
+ *  - `sanitizePacks` 逐个来源执行（脏数据在合并前就丢掉）；
+ *  - 某个来源失败只丢这一个来源（`partial: true`），全部失败才回退本地缓存（`stale: true`）。
  *
  * 这里只做**渲染侧**的两件事：
  *  1. 把「标签名 → { type, container }」的 owo 形状转成标签页数据；
@@ -57,6 +64,8 @@ export interface EmojiSet {
 	images: Map<string, string>;
 	/** 表情包是否来自过期缓存（面板据此提示「加载失败，用的是旧缓存」） */
 	stale?: boolean;
+	/** 是否只加载到**部分**来源（另有来源失败；面板据此提示可重试） */
+	partial?: boolean;
 }
 
 export const EMOJI_CACHE_TTL_MS = 7 * 24 * 60 * 60 * 1000;
@@ -186,8 +195,39 @@ export function sanitizePacks(raw: unknown): OwoShape {
 	return packs;
 }
 
-function cacheKey(cdnUrl: string): string {
-	return `${EMOJI_CACHE_PREFIX}${cdnUrl}`;
+/**
+ * 归一化表情地址列表：只保留非空字符串，顺序原样保留。
+ *
+ * 兼容传进来单个字符串（旧调用方/旧测试）的情况；空值一律得到空数组。
+ */
+export function normalizeCdnUrls(cdnUrls: string | string[] | null | undefined): string[] {
+	const list = Array.isArray(cdnUrls) ? cdnUrls : typeof cdnUrls === 'string' ? [cdnUrls] : [];
+	return list.filter((url): url is string => typeof url === 'string' && url !== '');
+}
+
+/**
+ * 合并两个来源的 owo 形状：顶层标签保持**首次出现**的顺序，
+ * 后面的来源遇到同名标签时把 `container` 追加进已有标签（不新建标签页）。
+ *
+ * 标签自身的元数据（`type` / `enabled`）以**首次出现**的来源为准：标签的顺序与身份
+ * 都按数组顺序确定，与 doc/emoji.md 第 3.3 节一致。`sanitizePacks` 已在合并前
+ * 逐个来源执行过，因此这里的 container 里只会有结构正确的项。
+ */
+export function mergePacks(target: OwoShape, source: OwoShape): OwoShape {
+	for (const [label, pack] of Object.entries(source)) {
+		const existing = target[label];
+		if (!existing) {
+			target[label] = { ...pack, container: [...(pack.container ?? [])] };
+			continue;
+		}
+		existing.container = [...(existing.container ?? []), ...(pack.container ?? [])];
+	}
+	return target;
+}
+
+/** 缓存键 = `EMOJI_CACHE_PREFIX` + 地址列表的 JSON（顺序即语义：不同列表 = 不同缓存） */
+function cacheKey(cdnUrlsKey: string): string {
+	return `${EMOJI_CACHE_PREFIX}${cdnUrlsKey}`;
 }
 
 interface EmojiCacheEntry {
@@ -195,7 +235,12 @@ interface EmojiCacheEntry {
 	packs: OwoShape;
 }
 
-/** 读取 owo.json 的本地缓存（同步、不发请求） */
+/**
+ * 读取 owo.json 的本地缓存（同步、不发请求）。
+ *
+ * 第一个参数是**整个地址列表**的 JSON（`JSON.stringify(cdnUrls)`，见 doc/emoji.md 第 6 节），
+ * 不是单个地址 —— 参数名保留 `cdnUrl` 只是为了少改调用点。
+ */
 export function readEmojiCache(cdnUrl: string, storage: Storage | null = safeStorage()): EmojiCacheEntry | null {
 	if (!cdnUrl || !storage) return null;
 	try {
@@ -210,7 +255,7 @@ export function readEmojiCache(cdnUrl: string, storage: Storage | null = safeSto
 	}
 }
 
-/** 写入 owo.json 缓存（存储被禁用时静默失败） */
+/** 写入 owo.json 缓存（存储被禁用时静默失败）；`cdnUrl` 同样是地址列表的 JSON */
 export function writeEmojiCache(
 	cdnUrl: string,
 	packs: OwoShape,
@@ -253,49 +298,78 @@ export interface OwoLoadResult {
 	fromCache: boolean;
 	/** 拉取失败但用了旧缓存 */
 	stale: boolean;
+	/** 只拿到了部分来源（另有来源失败）；成功的那几个照常合并 */
+	partial?: boolean;
+}
+
+/** 拉取单个来源并做形状净化；不是合法 owo.json（没有任何标签）视为该来源失败 */
+async function fetchPack(url: string, fetchImpl: typeof fetch): Promise<OwoShape> {
+	const raw = await fetchJson(url, fetchImpl);
+	const packs = sanitizePacks(raw);
+	if (Object.keys(packs).length === 0) throw new Error('owo.json 结构不正确');
+	return packs;
 }
 
 /**
- * 拉取配置的 owo.json。
- * 命中 7 天内的缓存不发请求；拉取失败时回退旧缓存（并标记 stale）。
+ * 拉取配置的 owo.json（可多个来源，按数组顺序并发拉取后合并）。
+ *
+ * - 命中 7 天内的缓存（键 = 整个地址列表的 JSON）不发请求；
+ * - 全部来源成功 → 合并结果（`partial: false`）；部分成功 → 合并成功的那几个并标 `partial: true`；
+ * - 全部失败 → 回退旧缓存（标 `stale: true`）；连缓存都没有则抛错（由面板显示错误态）。
  */
 export async function loadDefaultPacks(
-	cdnUrl: string,
+	cdnUrls: string | string[],
 	options: { force?: boolean; fetchImpl?: typeof fetch; storage?: Storage | null; now?: number } = {}
 ): Promise<OwoLoadResult> {
 	const { force = false, fetchImpl = globalThis.fetch, storage = safeStorage(), now = Date.now() } = options;
-	if (!cdnUrl) return { packs: {}, fromCache: true, stale: false };
+	const urls = normalizeCdnUrls(cdnUrls);
+	if (urls.length === 0) return { packs: {}, fromCache: true, stale: false, partial: false };
 
-	const cached = readEmojiCache(cdnUrl, storage);
+	const cdnUrlsKey = JSON.stringify(urls);
+	const cached = readEmojiCache(cdnUrlsKey, storage);
 	if (!force && cached && isEmojiCacheFresh(cached, now)) {
-		return { packs: cached.packs, fromCache: true, stale: false };
+		return { packs: cached.packs, fromCache: true, stale: false, partial: false };
 	}
 	if (typeof fetchImpl !== 'function') {
-		if (cached) return { packs: cached.packs, fromCache: true, stale: true };
+		if (cached) return { packs: cached.packs, fromCache: true, stale: true, partial: false };
 		throw new Error('当前环境不支持 fetch');
 	}
 
-	try {
-		const raw = await fetchJson(cdnUrl, fetchImpl);
-		const packs = sanitizePacks(raw);
-		if (Object.keys(packs).length === 0) throw new Error('owo.json 结构不正确');
-		writeEmojiCache(cdnUrl, packs, storage, now);
-		return { packs, fromCache: false, stale: false };
-	} catch (error) {
-		if (cached) return { packs: cached.packs, fromCache: true, stale: true };
-		throw error;
+	// 并发拉取：一个来源失败不影响其他来源（Promise.allSettled 不会短路）
+	const settled = await Promise.allSettled(urls.map((url) => fetchPack(url, fetchImpl)));
+	const merged: OwoShape = {};
+	const errors: unknown[] = [];
+	for (const result of settled) {
+		if (result.status === 'fulfilled') {
+			mergePacks(merged, result.value);
+		} else {
+			errors.push(result.reason);
+		}
 	}
+
+	// 全部失败：回退旧缓存（哪怕已过期），没有缓存才抛错
+	if (errors.length === settled.length) {
+		if (cached) return { packs: cached.packs, fromCache: true, stale: true, partial: false };
+		const first = errors[0];
+		throw first instanceof Error ? first : new Error('owo.json 加载失败');
+	}
+
+	writeEmojiCache(cdnUrlsKey, merged, storage, now);
+	return { packs: merged, fromCache: false, stale: false, partial: errors.length > 0 };
 }
 
 /**
  * 把一份 owo 形状的数据转成标签页 + 短代码映射。
- * 标签顺序 = owo.json 里键的顺序。
+ * 标签顺序 = owo.json 里键的顺序（多来源合并后 = 各来源首次出现的顺序）。
+ *
+ * 短代码跨标签/跨来源去重：靠前的标签先占名，后来的追加 `-2`/`-3`……，
+ * 因此**不同来源的同名表情**也能各自水合回它自己那张图。
  *
  * `type` 口径（doc/emoji.md 第 2 节）：只有显式声明 `emoji` / `emoticon` 的标签走文本分支；
  * 缺省与**无法识别**的值一律按 `image` 处理（面板的在线校验会挡未知 type，
  * 能走到这里的未知值基本来自第三方文件里的图片包，按 image 处理才不会整包消失）。
  */
-export function buildEmojiSet(packs: OwoShape, options: { stale?: boolean } = {}): EmojiSet {
+export function buildEmojiSet(packs: OwoShape, options: { stale?: boolean; partial?: boolean } = {}): EmojiSet {
 	const tabs: EmojiTab[] = [];
 	const images = new Map<string, string>();
 
@@ -350,15 +424,20 @@ export function buildEmojiSet(packs: OwoShape, options: { stale?: boolean } = {}
 		tabs,
 		images,
 		stale: options.stale ?? false,
+		partial: options.partial ?? false,
 	};
 }
 
-/** 只读本地缓存构建的表情集合（同步、零请求；用于首屏已有缓存时直接水合） */
+/**
+ * 只读本地缓存构建的表情集合（同步、零请求；用于首屏已有缓存时直接水合）。
+ * `cdnUrls` 是完整地址列表（缓存键就是它的 JSON）。
+ */
 export function getCachedEmojiSet(
-	options: { cdnUrl?: string; storage?: Storage | null; now?: number } = {}
+	options: { cdnUrls?: string | string[]; cdnUrl?: string | string[]; storage?: Storage | null; now?: number } = {}
 ): EmojiSet {
-	const { cdnUrl = '', storage = safeStorage(), now = Date.now() } = options;
-	const cached = cdnUrl ? readEmojiCache(cdnUrl, storage) : null;
+	const { storage = safeStorage(), now = Date.now() } = options;
+	const urls = normalizeCdnUrls(options.cdnUrls ?? options.cdnUrl ?? []);
+	const cached = urls.length > 0 ? readEmojiCache(JSON.stringify(urls), storage) : null;
 	const packs = cached && isEmojiCacheFresh(cached, now) ? cached.packs : {};
 	return buildEmojiSet(packs);
 }
@@ -373,33 +452,36 @@ export function resetEmojiSetCache(): void {
 }
 
 /**
- * 加载表情集合（唯一来源就是配置的 owo.json）。
+ * 加载表情集合（来源 = 配置的一组 owo.json 地址，按数组顺序合并）。
  *
- * - 命中 7 天缓存不发请求，否则拉取（可 force）；拉取失败回退旧缓存并标 `stale`。
- * - 同一个 `cdnUrl` 的并发调用共享一次请求；结果缓存在模块级，
+ * - 命中 7 天缓存不发请求，否则并发拉取全部地址（可 force）；
+ *   部分来源失败 → 成功的那几个照常渲染并标 `partial`；全部失败 → 回退旧缓存并标 `stale`。
+ * - 同一个地址列表的并发调用共享一次加载；结果缓存在模块级，
  *   因此评论区里每个回复框的 picker 不会各拉一份。
  */
 export async function loadEmojiSet(options: {
-	cdnUrl: string;
+	cdnUrls: string | string[];
 	force?: boolean;
 	fetchImpl?: typeof fetch;
 	storage?: Storage | null;
 	now?: number;
 }): Promise<EmojiSet> {
-	const { cdnUrl = '', force = false, fetchImpl = globalThis.fetch } = options;
-	const key = cdnUrl;
+	const { cdnUrls = [], force = false, fetchImpl = globalThis.fetch } = options;
+	const urls = normalizeCdnUrls(cdnUrls);
+	// 模块级缓存/并发去重的键 = 地址列表的 JSON（顺序不同就是不同的一批来源）
+	const key = JSON.stringify(urls);
 
 	if (!force && moduleCache && moduleCache.key === key) return moduleCache.set;
 	if (!force && inflight && inflight.key === key) return inflight.promise;
 
 	const promise = (async () => {
-		const result = await loadDefaultPacks(cdnUrl, {
+		const result = await loadDefaultPacks(urls, {
 			force,
 			fetchImpl,
 			storage: options.storage,
 			now: options.now,
 		});
-		return buildEmojiSet(result.packs, { stale: result.stale });
+		return buildEmojiSet(result.packs, { stale: result.stale, partial: result.partial });
 	})();
 
 	inflight = { key, promise };

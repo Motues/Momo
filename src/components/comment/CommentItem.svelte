@@ -23,8 +23,10 @@
   export let bloggerBadgeEnabled: boolean = false;
   export let bloggerBadgeText: string = '博主';
   export let adminCommentKeyConfigured: boolean = false;
+  export let adminEmailHashes: string[] = [];
   export let adminEmailHash: string = '';
   export let emojiImages: Map<string, string> | null = null;
+  export let emojiCdnUrls: string[] = [];
   export let emojiCdnUrl: string = '';
   export let emojiEnabled: boolean = true;
 
@@ -99,9 +101,12 @@
     replyMarkdownWarnings = [];
   }
 
+  $: adminHashList = adminEmailHashes.length > 0 ? adminEmailHashes : (adminEmailHash ? [adminEmailHash] : []);
+  $: emojiUrlList = emojiCdnUrls.length > 0 ? emojiCdnUrls : (emojiCdnUrl ? [emojiCdnUrl] : []);
+
   $: isAdminEmail = false;
-  $: if (email && adminEmailHash) {
-    sha256(email).then(hash => { isAdminEmail = hash === adminEmailHash; });
+  $: if (email && adminHashList.length > 0) {
+    sha256(email).then(hash => { isAdminEmail = adminHashList.includes(hash); });
   } else {
     isAdminEmail = false;
   }
@@ -151,6 +156,63 @@
   }
 
   $: commentUrl = safeUrl(c.url);
+
+  /**
+   * 休眠链接（doc/link_security.md 第 2.3 节）：`urlDormant === true` 且确实有可跳转的
+   * 个人网址时，昵称与头像不再渲染成 `<a>`，点击只在昵称旁弹一个**小浮窗**告知
+   * 「该评论已经休眠，暂时无法由本站跳转访问」——没有任何继续访问的入口
+   * （管理员可在后台人工确认该链接安全，确认期内不再休眠）。
+   *
+   * 功能关闭 / 该评论没有网址 / 网址不安全（协议被拦）时 `urlDormant` 恒为 false，
+   * 行为与以前完全一致（普通 `<a>`）。
+   */
+  $: isDormantUrl = c?.urlDormant === true && commentUrl !== '';
+
+  /** 浮窗是否打开；位置按触发元素的实时位置算（见 toggleDormantTip） */
+  let showDormantTip = false;
+  let dormantTipStyle = '';
+  let dormantTipEl: HTMLElement | null = null;
+
+  /**
+   * 用 `position: fixed` + 实测坐标而不是 `absolute`：嵌套回复外面套了 `overflow-hidden`
+   * 的容器，absolute 浮窗会被裁掉，fixed 不受其影响（祖先没有 transform/filter）。
+   */
+  function toggleDormantTip(event: MouseEvent) {
+    if (showDormantTip) {
+      showDormantTip = false;
+      return;
+    }
+    const trigger = event.currentTarget as HTMLElement | null;
+    if (!trigger) return;
+    const rect = trigger.getBoundingClientRect();
+    // 右侧留 8px 边距，避免窄屏上浮窗跑出视口
+    const maxLeft = Math.max(8, (window.innerWidth || 0) - 288);
+    const left = Math.min(Math.max(8, rect.left), maxLeft);
+    dormantTipStyle = `left: ${left}px; top: ${rect.bottom + 6}px;`;
+    showDormantTip = true;
+  }
+
+  function closeDormantTip() {
+    showDormantTip = false;
+  }
+
+  /** 点浮窗与触发元素之外关闭（触发元素自己负责 toggle，这里跳过） */
+  function handleDormantWindowClick(event: MouseEvent) {
+    if (!showDormantTip) return;
+    const target = event.target as Node | null;
+    if (dormantTipEl && target && dormantTipEl.contains(target)) return;
+    if (target instanceof Element && target.closest('[data-dormant-trigger]')) return;
+    closeDormantTip();
+  }
+
+  function handleDormantKeydown(event: KeyboardEvent) {
+    if (event.key === 'Escape') closeDormantTip();
+  }
+
+  /** 滚动/改窗口大小时浮窗会与昵称脱位，直接关掉最不容易出错 */
+  function handleDormantViewportChange() {
+    if (showDormantTip) closeDormantTip();
+  }
 
   // 计算内容字数
   function getWordCount(text: string): { chars: number; words: number } {
@@ -215,7 +277,13 @@
 </script>
 
 <div id="comment-{c.id}" data-aos="fade-up" class="flex gap-2 md:gap-3 w-full max-w-full">
-  {#if commentUrl}
+  {#if isDormantUrl}
+  <button type="button" class="w-10 h-10 shrink-0" data-test="link-dormant-avatar" data-dormant-trigger
+    title={t('comments.linkDormantTip')} aria-label={t('comments.linkDormantTip')} aria-expanded={showDormantTip}
+    on:click={toggleDormantTip}>
+    <img src={avatarUrl} alt="avatar" class="w-10 h-10 rounded-full object-cover"/>
+  </button>
+  {:else if commentUrl}
   <a href={commentUrl} target="_blank" rel="noopener noreferrer" class="w-10 h-10 shrink-0">
     <img src={avatarUrl} alt="avatar" class="w-10 h-10 rounded-full object-cover"/>
   </a>
@@ -225,7 +293,15 @@
 
   <div class="flex-1 min-w-0">
     <div class="flex items-center flex-wrap gap-x-2 gap-y-1">
-      {#if commentUrl}
+      {#if isDormantUrl}
+        <!-- 徽章已移除：休眠状态改为「点昵称弹小浮窗」告知，不再额外占位 -->
+        <button type="button" data-test="link-dormant-author" data-dormant-trigger
+          class="font-semibold text-[var(--text-color)] hover:text-[var(--link-color)] transition-colors"
+          title={t('comments.linkDormantTip')} aria-expanded={showDormantTip}
+          on:click={toggleDormantTip}>
+          {c.author}
+        </button>
+      {:else if commentUrl}
         <a href={commentUrl} target="_blank" rel="noopener noreferrer" class="font-semibold text-[var(--text-color)] hover:text-[var(--link-color)] transition-colors">
           {c.author}
         </a>
@@ -383,8 +459,8 @@
           </div>
 
           <div class="flex flex-wrap justify-between items-center gap-2 mt-2">
-            {#if emojiEnabled && emojiCdnUrl}
-              <EmojiPicker {language} cdnUrl={emojiCdnUrl} disabled={replyShowPreview}
+            {#if emojiEnabled && emojiUrlList.length > 0}
+              <EmojiPicker {language} cdnUrls={emojiUrlList} disabled={replyShowPreview}
                 bind:emojiSet={replyEmojiSet}
                 onPick={insertReplyEmoji} />
             {/if}
@@ -423,9 +499,9 @@
               {bloggerBadgeEnabled}
               {bloggerBadgeText}
               {adminCommentKeyConfigured}
-              {adminEmailHash}
+              {adminEmailHashes}
               {emojiImages}
-              {emojiCdnUrl}
+              {emojiCdnUrls}
               {emojiEnabled}
               on:emojiSetChange={(e) => dispatch('emojiSetChange', e.detail)}
               depth={depth + 1}
@@ -462,9 +538,9 @@
               {bloggerBadgeEnabled}
               {bloggerBadgeText}
               {adminCommentKeyConfigured}
-              {adminEmailHash}
+              {adminEmailHashes}
               {emojiImages}
-              {emojiCdnUrl}
+              {emojiCdnUrls}
               {emojiEnabled}
               on:emojiSetChange={(e) => dispatch('emojiSetChange', e.detail)}
               depth={1}
@@ -493,7 +569,19 @@
   </div>
 
   </div>
+
+  <!-- 休眠链接的小浮窗：贴在昵称旁、只说明「暂时无法由本站跳转访问」，没有任何继续访问的入口 -->
+  {#if showDormantTip && isDormantUrl}
+    <span bind:this={dormantTipEl} role="tooltip" data-test="link-dormant-tip"
+      class="link-dormant-tip fixed z-50 block w-max max-w-[17rem] rounded px-3 py-2 text-xs leading-relaxed text-[var(--text-color)] shadow-lg"
+      style={dormantTipStyle}>
+      {t('comments.linkDormantTip')}
+    </span>
+  {/if}
 </div>
+
+<svelte:window on:click={handleDormantWindowClick} on:keydown={handleDormantKeydown}
+  on:scroll={handleDormantViewportChange} on:resize={handleDormantViewportChange} />
 
 <style>
   .comment-content :global(h1),
@@ -577,6 +665,11 @@
   .comment-content :global(del) {
     text-decoration: line-through;
     opacity: 0.7;
+  }
+  /* 休眠小浮窗底色：只用评论区既有的 CSS 变量，深色模式自动跟随（不新增依赖） */
+  .link-dormant-tip {
+    background-color: var(--momo-panel-bg, var(--button-hover-bg-color));
+    border: 1px solid var(--button-border-color);
   }
   .blogger-badge {
     background-color: rgba(34, 197, 94, 0.1);

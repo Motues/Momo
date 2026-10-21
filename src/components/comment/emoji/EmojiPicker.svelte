@@ -7,7 +7,12 @@
   } from './owo';
 
   export let language: string = 'zh-cn';
-  /** 表情包地址（由评论列表接口的 emoji_cdn_url 下发；空串表示没有可用地址，按钮不可用） */
+  /**
+   * 表情来源地址列表（由评论列表接口的 `emoji_cdn_urls` 下发，旧后端的单地址
+   * `emoji_cdn_url` 由调用方归一化成单元素数组）。空数组表示没有可用地址，按钮不可用。
+   */
+  export let cdnUrls: string[] = [];
+  /** 兼容旧调用方：单个地址（列表为空时作为回落） */
   export let cdnUrl: string = '';
   export let disabled: boolean = false;
   /** 选中表情时回调，参数是要插入输入框的文本 */
@@ -30,14 +35,19 @@
   let loading = false;
   let error = '';
   let stale = false;
+  /** 部分来源加载失败（成功的那几个照常渲染，底部提示可重试） */
+  let partial = false;
   let activeTabId = '';
   let panelEl: HTMLDivElement;
   let buttonEl: HTMLButtonElement;
   /** 面板的 max-height（px）：面板开在按钮下方，按视口剩余空间自适应 */
   let panelMaxHeight = PANEL_MAX_HEIGHT;
 
+  /** 实际使用的地址列表：空数组时回落到旧的单地址（旧调用方兼容） */
+  $: urlList = cdnUrls.length > 0 ? cdnUrls : (cdnUrl ? [cdnUrl] : []);
+
   /** 没有可用地址（或调用方禁用）时按钮不可点：绝不请求空地址 */
-  $: unavailable = disabled || !cdnUrl;
+  $: unavailable = disabled || urlList.length === 0;
 
   $: activeTab = emojiSet?.tabs.find((tab) => tab.id === activeTabId) ?? emojiSet?.tabs[0] ?? null;
   $: activeTabItems = activeTab?.items ?? [];
@@ -58,9 +68,10 @@
     loading = true;
     error = '';
     try {
-      const set = await loadEmojiSet({ cdnUrl, force });
+      const set = await loadEmojiSet({ cdnUrls: urlList, force });
       emojiSet = set;
       stale = Boolean(set.stale);
+      partial = Boolean(set.partial);
       if (!activeTabId || !set.tabs.some((tab) => tab.id === activeTabId)) {
         activeTabId = set.tabs[0]?.id ?? '';
       }
@@ -87,7 +98,7 @@
     open = !open;
     if (open) {
       // 先用手上的缓存立刻渲染（可能是空集合），再按需拉取
-      if (!emojiSet) emojiSet = getCachedEmojiSet({ cdnUrl });
+      if (!emojiSet) emojiSet = getCachedEmojiSet({ cdnUrls: urlList });
       if (emojiSet.tabs.length > 0) activeTabId = activeTabId || emojiSet.tabs[0].id;
       // 打开瞬间量一次；面板尺寸与按钮位置变化时由 window 的 resize/scroll 继续修正
       adjustPanelHeight();
@@ -214,6 +225,13 @@
           <p class="py-6 text-center text-xs text-[var(--text-color)]/60" data-test="emoji-empty">
             {t('comments.emojiEmpty')}
           </p>
+        {/if}
+
+        {#if partial && !loading}
+          <button type="button" class="mt-1 w-full text-center text-[10px] text-amber-500 underline"
+            data-test="emoji-partial" on:click={() => ensureLoaded(true)}>
+            {t('comments.emojiPartial')}
+          </button>
         {/if}
 
         {#if stale && !loading}

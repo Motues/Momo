@@ -35,9 +35,9 @@
   let placeholderContent = '';
   let placeholderUrl = '';
   let adminCommentKeyConfigured = false;
-  let adminEmailHash = '';
+  let adminEmailHashes: string[] = [];
   let emojiEnabled = true;
-  let emojiCdnUrl = '';
+  let emojiCdnUrls: string[] = [];
   let emojiSet: EmojiSet | null = null;
   let adminKey = '';
   let isAdminEmail = false;
@@ -53,12 +53,43 @@
     return value === true || value === 'true';
   }
 
-  $: if (email && adminEmailHash) {
-    sha256(email).then(hash => { isAdminEmail = hash === adminEmailHash; });
+  $: if (email && adminEmailHashes.length > 0) {
+    sha256(email).then(hash => { isAdminEmail = adminEmailHashes.includes(hash); });
   } else {
     isAdminEmail = false;
   }
-  // 顶层评论表单数据
+
+  /**
+   * 管理员邮箱哈希列表：优先用 `admin_email_hashes` 数组（契约 1.8.0），
+   * 数组缺失/为空时回落到旧的单哈希 `admin_email_hash`，保证旧后端照常工作。
+   */
+  function resolveAdminEmailHashes(data: any): string[] {
+    const list = data?.admin_email_hashes;
+    if (Array.isArray(list)) {
+      const hashes = list.filter((hash) => typeof hash === 'string' && hash !== '');
+      if (hashes.length > 0) return hashes;
+    }
+    const legacy = data?.admin_email_hash;
+    return typeof legacy === 'string' && legacy !== '' ? [legacy] : [];
+  }
+
+  /**
+   * 表情来源地址列表：优先用 `emoji_cdn_urls` 数组（契约 v3），
+   * 数组缺失/为空时回落到旧的单地址 `emoji_cdn_url`，保证旧后端照常工作。
+   */
+  function resolveEmojiCdnUrls(data: any): string[] {
+    const list = data?.emoji_cdn_urls;
+    if (Array.isArray(list)) {
+      const urls = list
+        .filter((url) => typeof url === 'string')
+        .map((url) => url.trim())
+        .filter((url) => url !== '');
+      if (urls.length > 0) return urls;
+    }
+    const legacy = data?.emoji_cdn_url;
+    return typeof legacy === 'string' && legacy.trim() !== '' ? [legacy.trim()] : [];
+  }
+
   let author = '';
   let email = '';
   let url = '';
@@ -159,29 +190,29 @@
     return chars <= 2000 && words <= 1000;
   }
 
-  /**
-   * 表情是否可用：后端关闭表情（`emoji_enabled = "false"`）或地址为空时，
+   /**
+   * 表情是否可用：后端关闭表情（`emoji_enabled = "false"`）或地址列表为空时，
    * 既不渲染表情按钮，也不水合、不拉取任何地址（`emoji_set` 视为空）。
    *
    * 注意这里用普通函数而不是直接读 `$:` 变量：`$:` 是**批量刷新**的，
    * `loadComments` 里刚赋值就调用 `refreshEmojiHydration()` 时读到的还是旧值。
    */
-  function emojiUsable(enabled: boolean, cdnUrl: string): boolean {
-    return enabled && cdnUrl !== '';
+  function emojiUsable(enabled: boolean, cdnUrls: string[]): boolean {
+    return enabled && cdnUrls.length > 0;
   }
 
-  $: emojiAvailable = emojiUsable(emojiEnabled, emojiCdnUrl);
+  $: emojiAvailable = emojiUsable(emojiEnabled, emojiCdnUrls);
 
   /** 短代码 → 图片地址；表情不可用时恒为 null（水合器只做跳过的空操作） */
   $: emojiImages = emojiAvailable ? emojiSet?.images ?? null : null;
 
   /**
-   * 首屏水合：**同步、零请求**，只用本地缓存（7 天 TTL）里的表情包。
+   * 首屏水合：**同步、零请求**，只用本地缓存（7 天 TTL，键是**整个地址列表**的 JSON）里的表情包。
    * 访客只读评论时不会产生任何第三方请求，也不会请求本站表情接口；
    * 缓存缺失/过期时图片表情暂时显示为 `:name:` 文本，打开一次面板后即恢复。
    */
   function refreshEmojiHydration() {
-    emojiSet = emojiUsable(emojiEnabled, emojiCdnUrl) ? getCachedEmojiSet({ cdnUrl: emojiCdnUrl }) : null;
+    emojiSet = emojiUsable(emojiEnabled, emojiCdnUrls) ? getCachedEmojiSet({ cdnUrls: emojiCdnUrls }) : null;
   }
 
   function countComments(comments: any[]): number {
@@ -231,9 +262,9 @@
       placeholderContent = data?.data?.placeholder_content || '';
       placeholderUrl = data?.data?.placeholder_url || '';
       adminCommentKeyConfigured = data?.data?.admin_comment_key_configured === 'true';
-      adminEmailHash = data?.data?.admin_email_hash || '';
+      adminEmailHashes = resolveAdminEmailHashes(data?.data);
       emojiEnabled = data?.data?.emoji_enabled !== 'false';
-      emojiCdnUrl = data?.data?.emoji_cdn_url || '';
+      emojiCdnUrls = resolveEmojiCdnUrls(data?.data);
       if (!adminCommentKeyConfigured) adminKey = '';
       verifyEnabled = parseBool(data?.data?.verify_enabled);
       verifyHoneypot = data?.data?.verify_honeypot || '';
@@ -461,9 +492,9 @@
       </div>
 
       <div class="relative flex flex-wrap justify-between items-center gap-3">
-        <!-- 表情按钮固定在输入框下方左侧；后端关闭表情或地址为空时整体不渲染 -->
+        <!-- 表情按钮固定在输入框下方左侧；后端关闭表情或地址列表为空时整体不渲染 -->
         {#if emojiAvailable}
-          <EmojiPicker {language} cdnUrl={emojiCdnUrl} disabled={showPreview}
+          <EmojiPicker {language} cdnUrls={emojiCdnUrls} disabled={showPreview}
             bind:emojiSet onPick={insertEmoji} />
         {/if}
 
@@ -507,12 +538,11 @@
       <div class="space-y-6">
         {#each comments as c}
           <div in:fly={{ y: 24, duration: 400, opacity: 0 }}>
-            <CommentItem {c} {postSlug} {author} {email} {url} {language}
-              {bloggerBadgeEnabled} {bloggerBadgeText}
-              {adminCommentKeyConfigured} {adminEmailHash}
-              emojiImages={emojiImages} {emojiCdnUrl} {emojiEnabled}
+            <CommentItem {c} {postSlug} {author} {email} {url} {language} {apiUrl}
+              {bloggerBadgeEnabled} {bloggerBadgeText} {adminCommentKeyConfigured} {adminEmailHashes}
+              emojiImages={emojiImages} {emojiCdnUrls} {emojiEnabled}
               on:emojiSetChange={(e) => (emojiSet = e.detail)}
-              on:reply={(e) => setReplyingTo(e.detail)} 
+              on:reply={(e) => setReplyingTo(e.detail)}
               on:cancel={() => setReplyingTo(null)}
               on:submit={async (e) => {
                 await submitComment(e.detail.parentId, e.detail);
