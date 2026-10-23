@@ -20,6 +20,20 @@ export async function getStaticPaths() {
 // 获取所有博客文章并按发布日期降序排序
 const allBlogPosts = await getBlogEntrySort(currentLang);
 
+// ⚠️ 只把**归档列表真正用到的字段**传给客户端组件。
+// CollectionEntry 上挂着构建期 render() 缓存下来的 rendered.html（单篇可达 75 KB）
+// 和 body（markdown 原文），直接传整个 entry 会被 Svelte 序列化进 HTML 的 props 里
+// ——实测归档页 431 KB 中有 370 KB 是这份 props。这里收窄成最小 DTO 后约 2 KB。
+const archiveItems = allBlogPosts.map((post) => ({
+    id: post.id,
+    isFallback: post.isFallback ?? false,
+    data: {
+        title: post.data.title,
+        pubDate: post.data.pubDate,
+        category: post.data.category,
+    },
+}));
+
 const pageTitle = t("header.archive") + " - " + siteConfig.title;
 // SEO：用该页 Cover 文案（含文章总数）作为描述，避免多个页面共用同一段描述
 const pageDescription = `${t("cover.title.archive")} - ${t("cover.subTitle.archive", { count: allBlogPosts.length })}`;
@@ -28,7 +42,7 @@ const pageDescription = `${t("cover.title.archive")} - ${t("cover.subTitle.archi
 <MainPageLayout title={pageTitle} lang={currentLang} description={pageDescription}>
     <ArchivePanel
         client:visible
-        sortedPosts={allBlogPosts}
+        sortedPosts={archiveItems}
         currentLang={currentLang}
         defaultLocale={i18n!.defaultLocale}
     />

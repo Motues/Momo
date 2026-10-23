@@ -121,7 +121,7 @@ const postJsonLd = articleJsonLd({
         {image && (
             <div class="cover overflow-hidden">
                 {/* 文章封面通常就是本页的 LCP 元素：优先加载 */}
-                <ImageModule src={image} alt={entry.data.title} class="w-full h-full object-cover" priority />
+                <ImageModule src={image} alt={entry.data.title} class="w-full h-full object-cover" priority widths={[480, 776, 1080]} sizes="(max-width: 862px) 90vw, 776px" quality={65} />
             </div>
         )}
         {entry.data.draft && (
@@ -178,7 +178,7 @@ const postJsonLd = articleJsonLd({
     <div slot="overlay">
         {
             siteConfig.toc.enable &&
-            <TOC headings={headings} language={currentLang} client:load/>
+            <TOC headings={headings} language={currentLang} client:idle/>
         }
         <FabMenu headings={headings} showComment={siteConfig.comments.enable} showBackBottom={!siteConfig.comments.enable}/>
     </div>

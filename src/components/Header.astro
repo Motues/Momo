@@ -381,6 +381,7 @@ import { registerPageInit } from '@utils/pageInit';
 import { lockPageScroll, unlockPageScroll } from '@utils/scrollLock';
 import { currentLangFromUrl, DEFAULT_LOCALE, LOCALES, syncDocumentLang } from '@utils/locale';
 import { getRelativeLocaleUrl } from '@utils/urlUtils';
+import { subscribeScroll } from '@utils/scrollBus';
 
 // 客户端换页时本脚本只会被执行一次（Astro 产出的是带 src 的 module，模块表去重）；
 // 但每次换页都要重新初始化：统一挂在 registerPageInit（首屏 + 每次 astro:page-load）。
@@ -442,13 +443,11 @@ function initMobileNav() {
     link.onclick = closeMenu;
   });
 
-  // ---- 顶部导航条吸顶：rAF 合并 + class 直接由滚动位置推导 ----
-  let ticking = false;
+  // ---- 顶部导航条吸顶：class 直接由滚动位置推导 ----
+  // 滚动统一走全局调度器（@utils/scrollBus），回调直接拿到当帧的 scrollY
   let lastScrollY = -1;
 
-  function updateNavBar() {
-    ticking = false;
-    const y = window.scrollY;
+  function updateNavBar(y) {
     if (y === lastScrollY) return;
     lastScrollY = y;
     if (!navBar || !navBarList) return;
@@ -465,17 +464,11 @@ function initMobileNav() {
     navBarList.classList.toggle('nav-scrolled', scrolled);
   }
 
-  function onScroll() {
-    if (ticking) return;
-    ticking = true;
-    window.requestAnimationFrame(updateNavBar);
-  }
-
-  window.addEventListener('scroll', onScroll, { passive: true });
+  const unsubscribeScroll = subscribeScroll(updateNavBar);
 
   // 首屏与每次换页都对一次齐：此刻的滚动位置是权威值，
   // DOM 上的 class 可能还停留在上一页的状态（顶栏不重建）
-  updateNavBar();
+  updateNavBar(window.scrollY);
 
   // 换页开始时收掉抽屉：顶栏在 swup 容器外不会重建，以前靠「整页替换」复位；
   // 抽屉开着时 body 的滚动还是锁住的，不复位会把新页面一起锁住。
@@ -485,7 +478,7 @@ function initMobileNav() {
   window.__momoMobileNav = {
     cleanup() {
       clearTimeout(closeTimer);
-      window.removeEventListener('scroll', onScroll);
+      unsubscribeScroll();
       document.removeEventListener('swup:visit:start', onVisitStart);
     },
   };
@@ -713,13 +706,15 @@ function syncPersistedHeader() {
     .querySelector('#main-header .header-logo a')
     ?.setAttribute('href', getRelativeLocaleUrl(currentLang, '/'));
 
-  // 3. 导航链接（桌面端顶栏 + 移动端抽屉共用同一套 data 标记）
-  document.querySelectorAll('[data-i18n-path]').forEach((link) => {
-    link.setAttribute('href', getRelativeLocaleUrl(currentLang, link.getAttribute('data-i18n-path') || '/'));
-  });
+  // 3. 导航链接 / 文案 / 选中态：一次遍历解决。
+  //    原来这里要分别 querySelectorAll 三遍（[data-i18n-path]、[data-i18n-labels]、
+  //    #nav-bar 与 #mobile-menu-drawer 各自的选中态），每次换页都多扫几遍 DOM。
+  //    顺序仍然是「先写 href 与文案，再判选中」——选中态依赖写好的 href 才判得准。
+  const here = normalizePath(pathname);
+  const isActiveHref = (href) =>
+    normalizePath(new URL(href, window.location.origin).pathname) === here;
 
-  // 4. 导航文案：每种语言的文案在构建时都渲染进了 data-i18n-labels，这里按当前语言取用
-  document.querySelectorAll('[data-i18n-labels]').forEach((el) => {
+  const applyLabel = (el) => {
     const raw = el.getAttribute('data-i18n-labels');
     if (!raw) return;
     let labels;
@@ -732,33 +727,35 @@ function syncPersistedHeader() {
     if (typeof text === 'string') {
       el.querySelector('[data-i18n-text]')?.replaceChildren(document.createTextNode(text));
     }
-  });
-
-  // 5. 导航选中态：服务端渲染时是落地页的判定，换页后必须重算
-  const here = normalizePath(pathname);
-  const isActiveLink = (link) => {
-    const href = link.getAttribute('href');
-    if (!href) return false;
-    return normalizePath(new URL(href, window.location.origin).pathname) === here;
   };
-  // 桌面端顶栏：选中态只记在 aria-current 上，底色交给独立的浮动色块（#nav-indicator）
-  document.querySelectorAll('#nav-bar [data-i18n-path]').forEach((link) => {
-    if (isActiveLink(link)) link.setAttribute('aria-current', 'page');
-    else link.removeAttribute('aria-current');
-  });
-  // 移动端抽屉：选中项是「底色 + 主题色文字」（与 mobileNavLinkClass 保持一致）
-  document.querySelectorAll('#mobile-menu-drawer [data-i18n-path]').forEach((link) => {
-    const active = isActiveLink(link);
-    link.classList.toggle('bg-[var(--button-hover-color)]', active);
-    link.classList.toggle('text-[var(--link-color)]', active);
-    link.classList.toggle('hover:bg-[var(--button-hover-color)]', !active);
-    link.classList.toggle('hover:text-[var(--link-color)]', !active);
+
+  document.querySelectorAll('[data-i18n-path]').forEach((link) => {
+    link.setAttribute('href', getRelativeLocaleUrl(currentLang, link.getAttribute('data-i18n-path') || '/'));
+    applyLabel(link);
+
+    const active = isActiveHref(link.getAttribute('href'));
+    // 桌面端顶栏：选中态只记在 aria-current 上，底色交给独立的浮动色块（#nav-indicator）
+    if (link.closest('#nav-bar')) {
+      if (active) link.setAttribute('aria-current', 'page');
+      else link.removeAttribute('aria-current');
+      return;
+    }
+    // 移动端抽屉：选中项是「底色 + 主题色文字」（与 mobileNavLinkClass 保持一致）
+    if (link.closest('#mobile-menu-drawer')) {
+      link.classList.toggle('bg-[var(--button-hover-color)]', active);
+      link.classList.toggle('text-[var(--link-color)]', active);
+      link.classList.toggle('hover:bg-[var(--button-hover-color)]', !active);
+      link.classList.toggle('hover:text-[var(--link-color)]', !active);
+    }
   });
 
-  // 6. 移动端分类筛选的选中态与链接（含当前语言前缀）
+  // 4. 只有文案、没有 href 的节点（移动端「分类」折叠按钮、未分类胶囊等）
+  document.querySelectorAll('[data-i18n-labels]:not([data-i18n-path])').forEach(applyLabel);
+
+  // 5. 移动端分类筛选的选中态与链接（含当前语言前缀）
   syncMobileCategoryFilter();
 
-  // 7. 桌面端顶栏底色块：必须排在最后 —— 上面 3 / 4 步刚改过 href 与文案，
+  // 6. 桌面端顶栏底色块：必须排在最后 —— 上面刚改过 href 与文案，
   //    链接宽度变了才量得准
   syncNavIndicator();
 }
@@ -809,10 +806,8 @@ function initHeaderScroll() {
   window.__momoHeaderScroll?.cleanup?.();
 
   let lastScrollY = window.scrollY;
-  let ticking = false;
 
-  function updateHeader() {
-    const currentScrollY = window.scrollY;
+  function updateHeader(currentScrollY) {
     const scrollDelta = currentScrollY - lastScrollY;
 
     if (window.innerWidth < 776) {
@@ -829,21 +824,13 @@ function initHeaderScroll() {
       header?.classList.remove('header-hidden');
     }
     lastScrollY = currentScrollY;
-    ticking = false;
   }
 
-  function onScroll() {
-    if (!ticking) {
-      window.requestAnimationFrame(updateHeader);
-      ticking = true;
-    }
-  }
-
-  window.addEventListener('scroll', onScroll, { passive: true });
+  const unsubscribeScroll = subscribeScroll(updateHeader);
 
   window.__momoHeaderScroll = {
     cleanup() {
-      window.removeEventListener('scroll', onScroll);
+      unsubscribeScroll();
     },
   };
 }

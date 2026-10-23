@@ -15,9 +15,18 @@ interface Props {
     height?: number;
     /** 首屏关键图片（文章封面 / 首张卡片封面）：eager + 高优先级，避免被 lazy 拖成 LCP */
     priority?: boolean;
+    /**
+     * 响应式宽度档位（只对 src/ 下的本地图片生效）。
+     * 不传就退化成「一张原图」——卡片封面 1920px 原图有 400 KB，而实际显示宽度不到 776px。
+     */
+    widths?: number[];
+    /** 配合 widths 的 sizes，决定浏览器挑哪一档 */
+    sizes?: string;
+    /** 输出质量，默认交给 Astro/sharp */
+    quality?: number;
 }
 
-const { src, alt, id, width, height, priority = false } = Astro.props;
+const { src, alt, id, width, height, priority = false, widths, sizes, quality } = Astro.props;
 const className = Astro.props.class;
 
 // 非首屏图片保持 lazy（Astro 的 <Image> 默认就是 lazy）
@@ -61,6 +70,13 @@ if (isLocal) {
     if(enableLQIP) lqipGradient = await getLqipGradient(imageLoad.fsPath);
   }
 }
+
+// 响应式档位：超过原图宽度的档位要去掉（sharp 的 withoutEnlargement 不会放大，
+// 留着只会生成一个「标称 1080w、实际 811px」的错误描述符）；
+// 过滤后一个不剩（原图本来就很小）就退回单张，不要传空数组给 <Image>
+const filteredWidths =
+  widths && imageLoad ? widths.filter((w) => w <= imageLoad.width) : widths;
+const safeWidths = filteredWidths && filteredWidths.length > 0 ? filteredWidths : undefined;
 ---
 <div 
   class:list={["image-wrapper", className]} 
@@ -76,6 +92,9 @@ if (isLocal) {
             id={id} 
             width={width} 
             height={height}
+            widths={safeWidths}
+            sizes={sizes}
+            quality={quality}
             class=""
             {...loadingAttrs}
             onload="this.parentElement.dataset.loaded = 'true'" 
@@ -114,10 +133,12 @@ if (isLocal) {
     right: 0;
     bottom: 0;
     background: var(--lqip);
-    filter: blur(40px); 
-    transform: scale(1.2); /* 放大一点防止边缘出现白边 */
     z-index: 0;
     transition: opacity 0.8s ease;
+    /* 这里原本还有 filter: blur(40px) 与 transform: scale(1.2)：
+       --lqip 本身就是多条 radial-gradient（过渡是平滑的），再叠 40px 模糊观感几乎无差别，
+       代价却是每张卡片常驻一个全尺寸模糊合成层（首页 6 张 = 6 个），滚动时纯属白烧填充率。
+       正文图片的 .lqip-markdown-img（markdown.css）本来就没有 blur，这里与它对齐。 */
 }
 
 .image-wrapper img {
@@ -139,6 +160,9 @@ if (isLocal) {
 
 .image-wrapper[data-loaded="true"][data-lqip-enabled="true"] .lqip-bg {
     opacity: 0; /* 加载完后隐藏背景层 */
+    /* 淡出结束后真正移出合成树：visibility 延迟 0.8s 再翻，不打断上面的淡出 */
+    visibility: hidden;
+    transition: opacity 0.8s ease, visibility 0s 0.8s;
 }
 
 .image-wrapper[data-lqip-enabled="false"] .lqip-bg {

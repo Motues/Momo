@@ -107,6 +107,7 @@ const tocHeadings = headings.filter(h => h.depth > 1 && h.depth < 5);
 
 <script>
 import { registerPageInit } from '@utils/pageInit';
+import { subscribeScroll } from '@utils/scrollBus';
 
 // 本脚本是带 src 的 module（模块表去重 ⇒ 换页不会重跑），而 FabMenu 在 swup 容器内、
 // 每次换页 DOM 都是全新的：初始化统一挂在 registerPageInit 上。
@@ -131,8 +132,7 @@ function initFabMenu() {
   let isTocOpen = false;
   let scrollPosOnTocOpen = 0;
 
-  // ---- 滚动处理：rAF 合并 + 缓存文档高度 + 进度条去抖 ----
-  let ticking = false;
+  // ---- 滚动处理：统一调度 + 缓存文档高度 + 进度条去抖 ----
   let docHeight = 0;
   // 上一次真正写进 DOM 的进度（百分比），变化小于 0.5% 时不再触碰样式
   let lastPercent = -1;
@@ -142,10 +142,7 @@ function initFabMenu() {
     docHeight = document.documentElement.scrollHeight - document.documentElement.clientHeight;
   }
 
-  function updateScroll() {
-    ticking = false;
-    const scrollTop = window.scrollY || document.documentElement.scrollTop;
-
+  function updateScroll(scrollTop) {
     // 控制 FAB 整体显示/隐藏（只在状态真的变化时改 class）。
     // 这里切的是 is-visible（CSS 里对应 visibility）而不是 opacity，原因见文件底部样式：
     // 容器只要 opacity < 1 就会成为 backdrop 根，内部按钮的 backdrop-blur 在动画期间失效。
@@ -180,15 +177,12 @@ function initFabMenu() {
     }
   }
 
-  function handleScroll() {
-    if (ticking) return;
-    ticking = true;
-    window.requestAnimationFrame(updateScroll);
-  }
+  // 滚动统一走全局调度器（见 @utils/scrollBus）：一帧只读一次 scrollY
+  const unsubscribeScroll = subscribeScroll(updateScroll);
 
   function handleResize() {
     measure();
-    handleScroll();
+    updateScroll(window.scrollY);
   }
 
   // 目录高亮观察器（换页时必须断开，否则会持续观察已卸载的标题节点）
@@ -327,16 +321,15 @@ tocLinks.forEach(link => {
     }
   };
 
-  window.addEventListener('scroll', handleScroll, { passive: true });
   window.addEventListener('resize', handleResize, { passive: true });
   document.addEventListener('click', onDocumentClick);
 
   measure();
-  updateScroll();
+  updateScroll(window.scrollY);
 
   window.__momoFabMenu = {
     cleanup() {
-      window.removeEventListener('scroll', handleScroll);
+      unsubscribeScroll();
       window.removeEventListener('resize', handleResize);
       document.removeEventListener('click', onDocumentClick);
       tocObserver?.disconnect();

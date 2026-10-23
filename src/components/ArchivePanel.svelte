@@ -2,7 +2,7 @@
   import { onMount } from 'svelte';
   import { flip } from 'svelte/animate';
   import { fade } from 'svelte/transition';
-  import Icon from '@iconify/svelte';
+  import HashtagIcon from './misc/HashtagIcon.svelte';
   import i18nit from '@i18n/translation';
   import { formatMonthDay } from '@/utils/time'
   import { getRelativeLocaleUrl } from '@utils/urlUtils';
@@ -159,7 +159,7 @@
                                 </span>
 
                                 <span class="hidden md:flex items-center font-mono text-sm text-[var(--text-color-70)]">
-                                    <Icon icon="fa6-solid:hashtag" class="mr-1" />
+                                    <HashtagIcon class="mr-1" />
                                     {post.data.category || t("pagecard.uncategorized")}
                                 </span>
                             </a>
@@ -176,7 +176,7 @@
         class="hidden lg:block absolute left-[var(--toc-offset-left)] top-70 bottom-0 w-[var(--category-width)]">
         <div class="sticky top-24">
             <div class="flex items-center gap-2 text-[var(--text-color)] font-bold mb-4 border-b border-[var(--button-border-color)] pb-2 uppercase tracking-wider">
-                <Icon icon="fa6-solid:hashtag" class="text-xs" />
+                <HashtagIcon class="text-xs" />
                 <span>{t("category")}</span>
             </div>
 

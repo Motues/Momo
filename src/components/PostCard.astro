@@ -42,11 +42,11 @@ const isBgMode = siteConfig.theme.postCard.imageMode === "background";
         <>
         {isBgMode ? (
             <div class="bg-image">
-                <ImageModule src={image} alt={title} class="w-full h-full" priority={priority} />
+                <ImageModule src={image} alt={title} class="w-full h-full" priority={priority} widths={[360, 540, 776, 1080]} sizes="(max-width: 862px) 90vw, 776px" quality={65} />
             </div>
         ) : (
             <a href={pageUrl} class="cover h-60 overflow-hidden hover-scale block">
-                <ImageModule src={image} alt={title} class="w-full h-full object-cover" priority={priority} />
+                <ImageModule src={image} alt={title} class="w-full h-full object-cover" priority={priority} widths={[360, 540, 776, 1080]} sizes="(max-width: 862px) 90vw, 776px" quality={65} />
             </a>
         )}
         </>

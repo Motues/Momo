@@ -3,6 +3,7 @@
 	import { spring } from 'svelte/motion';
 	import { siteConfig } from "@/config";
 	import i18nit from '@i18n/translation'
+	import { subscribeScroll } from '@utils/scrollBus';
 
 	let { headings = [], language,} = $props();
 	const t = $derived(i18nit(language));
@@ -64,43 +65,36 @@
 		}
 	}
 
-	// 动态样式算法：基于弹簧数值计算透明度与字重
-	// 透明度取两位小数：数值不变时字符串也不变，Svelte 会跳过这次 DOM 写入
+	// 动态样式算法：基于弹簧数值计算透明度
+	// 透明度取两位小数：数值不变时字符串也不变，Svelte 会跳过这次 DOM 写入。
+	//
+	// ⚠️ 这里只写 opacity，不再写 font-weight：弹簧动画期间每帧都会给所有条目重写 style，
+	// 而 font-weight 变化会让整列文字重新排版（列表宽度一帧一变），滚动时最容易掉帧。
+	// 字重改由 .active 类承担，只在选中项切换时生效一次。
 	function getSpringStyle(index, currentSpring) {
 		const distance = Math.abs(index - currentSpring);
 		// 距离当前激活项越近，越明显
 		const opacity = Math.round(Math.max(0.2, 1 - distance * 0.2) * 100) / 100;
-		// 只有距离非常近时才加粗
-		const fontWeight = distance < 0.5 ? '700' : '400';
-		
-		return `opacity: ${opacity}; font-weight: ${fontWeight};`;
+
+		return `opacity: ${opacity};`;
 	}
 
 	onMount(() => {
-		// ---- 滚动：rAF 合并 + 迟滞，避免在阈值附近反复切换显示状态 ----
+		// ---- 滚动：统一走全局调度器 + 迟滞，避免在阈值附近反复切换显示状态 ----
 		const SHOW_AT = 200;
 		const HIDE_AT = 150;
-		let ticking = false;
 
-		function updateVisibility() {
-			ticking = false;
-			const scrollY = window.scrollY || window.pageYOffset;
+		function updateVisibility(scrollY) {
 			if (!tocVisible && scrollY > SHOW_AT) tocVisible = true;
 			else if (tocVisible && scrollY < HIDE_AT) tocVisible = false;
 		}
 
-		function handleScroll() {
-			if (ticking) return;
-			ticking = true;
-			window.requestAnimationFrame(updateVisibility);
-		}
-
-		window.addEventListener('scroll', handleScroll, { passive: true });
-		updateVisibility();
+		const unsubscribeScroll = subscribeScroll(updateVisibility);
+		updateVisibility(window.scrollY || window.pageYOffset);
 		const observer = initObserver();
 
 		const teardown = () => {
-			window.removeEventListener('scroll', handleScroll);
+			unsubscribeScroll();
 			observer.disconnect();
 			document.removeEventListener('astro:before-swap', teardown);
 		};
@@ -132,6 +126,7 @@
 					<a
 						href={`#${heading.slug}`}
 						class="block py-1 text-sm transition-colors duration-300 hover:text-[var(--link-color)]"
+						class:active={i === activeIndex}
 						style:padding-left="{(heading.depth - minDepth) * 1.2}rem" 
 						style={getSpringStyle(i, $focusSpring)}
 						onclick={(e) => {
@@ -158,5 +153,10 @@
 		white-space: nowrap;
 		overflow: hidden;
 		text-overflow: ellipsis;
+	}
+
+	/* 选中项的字重由类承担（原来是弹簧每帧写 inline style，会带动整列重排） */
+	a.active {
+		font-weight: 700;
 	}
 </style>
