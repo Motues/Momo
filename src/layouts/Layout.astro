@@ -102,8 +102,12 @@ const commentOrigin =
 // 只由 AOS.init() 用 JS 挂上去的属性活不过换页 —— 结果就是「从别的页面点进来时
 // 内容直接出现、刷新一下才恢复上浮」（实测跳转后 transition-duration 从 .5s 变成 0s）。
 // 所以把这三个属性写进 body 标签，让每一页的 HTML 都自带正确的值。
+// 时长必须是 50 的整数倍：aos.css 只给 50/100/…/3000 这些档位写了 transition-duration，
+// 写 560 这种值会一条规则都匹配不上，动画直接没有时长。
+// easing 用自造的名字 momo：AOS 内置名字的曲线都不过冲，momo 那条规则在 global.css 里，
+// 是唯一带「轻微 Q」的（--momo-ease-pop）。
 const aosBodyAttrs = siteConfig.theme.AOS
-  ? { 'data-aos-duration': '500', 'data-aos-easing': 'ease', 'data-aos-delay': '0' }
+  ? { 'data-aos-duration': '550', 'data-aos-easing': 'momo', 'data-aos-delay': '0' }
   : {};
 
 // ---- OverlayScrollbars（悬浮滚动条）----
@@ -416,10 +420,10 @@ const photoCoverOn = photoCoverEnabled();
     //    客户端跳转换掉 <body> 后，只要 HTML 上带着这个属性就仍然有过渡；
     //    这里再做一次兜底，保证即使属性被移除也不会退化成「瞬间出现」。
     const body = document.body;
-    const duration = Number(body.dataset.aosDuration) || 500;
+    const duration = Number(body.dataset.aosDuration) || 550;
     if (!body.hasAttribute('data-aos-duration')) {
       body.setAttribute('data-aos-duration', String(duration));
-      body.setAttribute('data-aos-easing', 'ease');
+      body.setAttribute('data-aos-easing', 'momo');
       body.setAttribute('data-aos-delay', '0');
     }
 

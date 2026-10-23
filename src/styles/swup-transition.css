@@ -12,7 +12,7 @@
  *    「等过渡结束」要等多久，读不到会在控制台告警。
  */
 html.is-changing .transition-swup-fade {
-  transition: opacity 200ms ease;
+  transition: opacity 180ms var(--momo-ease-out);
 }
 
 html.is-animating .transition-swup-fade {

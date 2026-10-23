@@ -33,3 +33,60 @@
   }
 
 }
+
+/* ---------------- 动效：通用按压反馈 ----------------
+ * 按下 90ms 到 0.96，松手用 --momo-ease-pop 弹回（约 5% 过冲，观感是「按了一下」，
+ * 而不是原来 active:scale-90 那种「陷进去」）。
+ * 写法放在层外（不在 @layer 里）：这样能稳定压过 Tailwind 的 active:scale-* 工具类。
+ */
+.press {
+  transition:
+    transform var(--momo-t-base) var(--momo-ease-pop),
+    background-color var(--momo-t-fast) var(--momo-ease-out),
+    color var(--momo-t-fast) var(--momo-ease-out),
+    border-color var(--momo-t-fast) var(--momo-ease-out),
+    opacity var(--momo-t-fast) var(--momo-ease-out);
+}
+
+.press:active {
+  transform: scale(0.96);
+  transition-duration: 90ms;
+}
+
+/* ---------------- 动效：AOS 自定义入场 ----------------
+ * AOS 的 CSS 只给内置名字（ease / ease-out / …）配了 transition-timing-function，
+ * 想要弹簧就得换一个自造的名字，再自己补一条规则。Layout 里把 body 的
+ * data-aos-easing 写成 momo，这里用 :root 提高特异性，稳定压过 aos.css。
+ */
+:root body[data-aos-easing='momo'] [data-aos] {
+  transition-timing-function: var(--momo-ease-pop);
+}
+
+/* pop-in：比 AOS 自带的 fade-up 多一层轻微缩放，落下来时有重量感。
+   时长仍由 body[data-aos-duration=…] 那条规则提供，这里只声明属性与起止态。 */
+[data-aos='pop-in'] {
+  opacity: 0;
+  transform: translate3d(0, 18px, 0) scale(0.985);
+  transition-property: opacity, transform;
+}
+
+[data-aos='pop-in'].aos-animate {
+  opacity: 1;
+  transform: none;
+}
+
+/* 用户要求减弱动画时：时长归零，入场直接到位（swup 的 0.01ms 规则单独保留） */
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --momo-t-fast: 1ms;
+    --momo-t-base: 1ms;
+    --momo-t-slow: 1ms;
+  }
+
+  [data-aos],
+  [data-aos].aos-animate {
+    transition: none !important;
+    opacity: 1 !important;
+    transform: none !important;
+  }
+}

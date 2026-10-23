@@ -99,18 +99,18 @@ if (profileConfig.indexPage) {
     <!-- tools -->
     <div class="ml-auto flex gap-2 pl-4 py-2 justify-end z-30">
         <!-- Search -->
-        <button id="search-button" class="flex items-center justify-center w-10 h-10 hover:bg-[var(--button-hover-color)] active:scale-90 rounded-lg hover:text-current border border-[var(--button-border-color)] transition duration-300" aria-label="Search">
+        <button id="search-button" class="press flex items-center justify-center w-10 h-10 hover:bg-[var(--button-hover-color)] rounded-lg hover:text-current border border-[var(--button-border-color)]" aria-label="Search">
             <Icon name="fa6-solid:magnifying-glass" class="w-4 h-4" />
         </button>
         <!-- Dark Mode -->
-        <ThemeIcon class="flex items-center justify-center w-10 h-10 hover:bg-[var(--button-hover-color)] rounded-lg hover:text-current active:scale-90 border border-[var(--button-border-color)] transition duration-300"/>
+        <ThemeIcon class="press flex items-center justify-center w-10 h-10 hover:bg-[var(--button-hover-color)] rounded-lg hover:text-current border border-[var(--button-border-color)]"/>
         <!-- RSS -->
         <!-- <a href="/rss.xml" target="_blank" class="flex items-center justify-center w-10 h-10 hover:bg-[var(--button-hover-color)] active:scale-90 rounded-lg hover:text-current border border-[var(--button-border-color)] transition duration-300">
             <Icon name="simple-icons:rss" class="w-4 h-4" />
         </a> -->
         <!-- Language Switcher -->
         {showLanguageSwitcher && <div class="relative">
-            <button id="language-button" class="flex items-center justify-center w-10 h-10 hover:bg-[var(--button-hover-color)] active:scale-90 rounded-lg hover:text-current border border-[var(--button-border-color)] transition duration-300" aria-label="Language Switcher">
+            <button id="language-button" class="press flex items-center justify-center w-10 h-10 hover:bg-[var(--button-hover-color)] rounded-lg hover:text-current border border-[var(--button-border-color)]" aria-label="Language Switcher">
                 <Icon name="fa6-solid:globe" class="w-4 h-4" />
             </button>
             
@@ -131,7 +131,7 @@ if (profileConfig.indexPage) {
         </div>}
         <div class="relative md:hidden">
           <!-- Mobile Menu -->
-          <button id="mobile-menu-button" class="flex items-center justify-center w-10 h-10 hover:bg-[var(--button-hover-color)] active:scale-90 rounded-lg hover:text-current border border-[var(--button-border-color)] transition duration-300" aria-label="Mobile Menu">
+          <button id="mobile-menu-button" class="press flex items-center justify-center w-10 h-10 hover:bg-[var(--button-hover-color)] rounded-lg hover:text-current border border-[var(--button-border-color)]" aria-label="Mobile Menu">
               <Icon name="fa6-solid:align-justify" class="w-5 h-5" />
           </button>
               
@@ -169,9 +169,9 @@ if (profileConfig.indexPage) {
 <!-- 层级：与搜索弹层同层（z-[1100]），必须高于右下角 FabMenu（z-[1000]），
      否则抽屉的遮罩盖不住浮动按钮，FAB 会浮在遮罩之上 -->
 <div id="mobile-menu-container" class="fixed inset-0 z-[1100] hidden">
-    <div id="mobile-menu-overlay" class="absolute inset-0 bg-black/60 backdrop-blur-sm opacity-0 transition-opacity duration-300 ease-in-out"></div>
+    <div id="mobile-menu-overlay" class="absolute inset-0 bg-black/60 backdrop-blur-sm opacity-0"></div>
     
-    <div id="mobile-menu-drawer" class="absolute top-0 left-0 bottom-0 w-[70%] max-w-[300px] bg-[var(--bg-color)] shadow-2xl transform -translate-x-full transition-transform duration-300 ease-in-out flex flex-col">
+    <div id="mobile-menu-drawer" class="absolute top-0 left-0 bottom-0 w-[70%] max-w-[300px] bg-[var(--bg-color)] shadow-2xl transform -translate-x-full flex flex-col">
         
         <div class="flex items-center justify-between p-5 border-b border-[var(--button-border-color)]">
             <span class="text-xl font-bold header-logo">{ siteConfig.title }</span>
@@ -249,6 +249,24 @@ if (profileConfig.indexPage) {
 .header-logo {
   font-family: "EB Garamond", cursive;
   letter-spacing: 1px;
+}
+
+/* 移动端顶栏上滑隐藏：原来 300ms ease-in-out 配每帧判方向，容易在手指来回时抖动。
+   这里先只把曲线换成不过冲的快收尾（250ms），方向判定的阈值调整留到下一批。 */
+#main-header {
+  transition: transform 250ms var(--momo-ease-out);
+}
+
+/* 移动端抽屉：快起慢收（--momo-ease-sheet）。整屏高度用 pop 会「弹」得发假。
+   遮罩比抽屉短一点，收的时候先暗下去再滑走。 */
+#mobile-menu-overlay {
+  transition: opacity 260ms var(--momo-ease-out);
+}
+#mobile-menu-drawer {
+  /* ⚠️ Tailwind v4 的 -translate-x-full 写的是 translate 属性（不是 transform），
+     只过渡 transform 的话抽屉会直接跳到位、完全没有动画。两个都列上更稳。 */
+  transition: translate 380ms var(--momo-ease-sheet),
+              transform 380ms var(--momo-ease-sheet);
 }
   /* 移动端 (小于 776px) 的毛玻璃和阴影 */
   @media (max-width: 775px) {
@@ -337,9 +355,11 @@ if (profileConfig.indexPage) {
     pointer-events: none;
     opacity: 0;
     transition:
-      transform 300ms cubic-bezier(0.4, 0, 0.2, 1),
-      width 300ms cubic-bezier(0.4, 0, 0.2, 1),
-      height 300ms cubic-bezier(0.4, 0, 0.2, 1);
+      /* 位移与宽度走「轻微 Q」：滑过去时轻轻过冲再回正，像有质量 */
+      transform 380ms var(--momo-ease-pop),
+      width 380ms var(--momo-ease-pop),
+      /* 高度过冲会露馅（会看到胶囊先鼓再收），用不过冲的收尾 */
+      height 220ms var(--momo-ease-out);
   }
 
   /* 系统/用户要求减弱动画时直接就位，不做滑行 */

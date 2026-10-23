@@ -2,6 +2,7 @@
   import { onMount } from 'svelte';
   import { flip } from 'svelte/animate';
   import { fade } from 'svelte/transition';
+  import { cubicOut } from 'svelte/easing';
   import HashtagIcon from './misc/HashtagIcon.svelte';
   import i18nit from '@i18n/translation';
   import { formatMonthDay } from '@/utils/time'
@@ -140,7 +141,7 @@
                 </h2>
                 <div class="space-y-2">
                     {#each postsByYear[year] as post (post.id)}
-                        <div animate:flip={{ duration: 600 }} in:fade={{ duration: 150 }} out:fade={{ duration: 150 }} >
+                        <div animate:flip={{ duration: 380, easing: cubicOut }} in:fade={{ duration: 180, easing: cubicOut }} out:fade={{ duration: 150 }} >
                             <a 
                                 href={getRelativeLocaleUrl(currentLang, `/blog/${post.id}`)} 
                                 class="flex items-center gap-4 active:bg-[var(--button-hover-color)] hover:bg-[var(--button-hover-color)] p-2 rounded transition-colors duration-200 group"

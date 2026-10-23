@@ -94,7 +94,7 @@
   }
 
   .lightbox-stage.is-animating .lightbox-img {
-    transition: transform 0.22s cubic-bezier(0.22, 0.61, 0.36, 1);
+    transition: transform 0.16s cubic-bezier(0.22, 1, 0.36, 1);
   }
 
   .lightbox-bar {
@@ -482,7 +482,7 @@
       img.style.opacity = ''
       // 用原始框算 FLIP（见 baseRect）：桌面端基准 86% 时它才是缩略图的放大目标
       const to = baseRect()
-      const duration = reduced || !to.width ? 0 : 340
+      const duration = reduced || !to.width ? 0 : 380
 
       if (duration && thumbRect) {
         img.animate(
@@ -490,7 +490,8 @@
             { transform: flipTransform(thumbRect, to), opacity: 0.65 },
             { transform: transformOf(), opacity: 1 },
           ],
-          { duration, easing: 'cubic-bezier(0.22, 0.61, 0.36, 1)' },
+          // 与全站一致的「轻微 Q」：飞入末尾轻轻过冲一下再落定
+          { duration, easing: 'cubic-bezier(0.34, 1.56, 0.64, 1)' },
         )
       }
       root.animate([{ opacity: 0 }, { opacity: 1 }], {
@@ -548,14 +549,15 @@
 
       // 起点是当前画面（含放大 / 平移），终点用原始框算，飞回缩略图才精确
       const natural = baseRect()
-      const duration = 280
+      // 关闭要「脆」：比打开短，且不做过冲（飞回去时过冲会显得拖泥带水）
+      const duration = 260
       animations.push(
         img.animate(
           [
             { transform: transformOf(), opacity: 1 },
             { transform: flipTransform(thumbRect, natural), opacity: 0.35 },
           ],
-          { duration, easing: 'cubic-bezier(0.4, 0, 0.2, 1)', fill: 'forwards' },
+          { duration, easing: 'cubic-bezier(0.32, 0.72, 0, 1)', fill: 'forwards' },
         ),
         root.animate([{ opacity: 1 }, { opacity: 0 }], {
           duration,

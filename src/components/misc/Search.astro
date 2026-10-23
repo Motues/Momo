@@ -56,7 +56,7 @@ const fakeResult: SearchResult[] = [
   <div class="absolute inset-0 modal-backdrop opacity-0" aria-hidden="true"></div>
 
   <div class="fixed inset-0 flex items-start justify-center p-4 pt-[25vh]">
-    <div class="search-modal-content bg-[var(--bg-color)] rounded-xl shadow-xl w-full max-w-2xl border border-[var(--button-border-color)] overflow-hidden scale-80 transition duration-300 opacity-0 flex flex-col max-h-[40vh]">
+    <div class="search-modal-content bg-[var(--bg-color)] rounded-xl shadow-xl w-full max-w-2xl border border-[var(--button-border-color)] overflow-hidden scale-90 opacity-0 flex flex-col max-h-[40vh]">
       <div class="flex items-center p-4 border-b border-[var(--button-border-color)]">
         <svg class="w-5 h-5 text-[var(--text-color-70)] mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
@@ -162,10 +162,10 @@ function initSearchModal() {
     requestAnimationFrame(() => {
       modalBackdrop?.classList.remove('opacity-0');
       modalBackdrop?.classList.add('show');
-      modalContent?.classList.remove('scale-80', 'opacity-0');
+      modalContent?.classList.remove('scale-90', 'opacity-0');
       modalContent?.classList.add('scale-100');
     });
-    setTimeout(() => searchInput?.focus(), 300);
+    setTimeout(() => searchInput?.focus(), 240);
     setPageScrollLocked(true);
   };
 
@@ -173,15 +173,15 @@ function initSearchModal() {
     requestAnimationFrame(() => {
       modalBackdrop?.classList.add('opacity-0');
       modalBackdrop?.classList.remove('show');
-      modalContent?.classList.add('scale-80', 'opacity-0');
+      modalContent?.classList.add('scale-90', 'opacity-0');
       modalContent?.classList.remove('scale-100');
     });
     clearTimeout(modalEl.__closeTimer);
     modalEl.__closeTimer = setTimeout(() => {
       searchModal.classList.add('opacity-0', 'pointer-events-none');
-      // 等淡出结束再解锁：解锁早了，淡出的这 300ms 里滚轮又能滚到后面的页面
+      // 等淡出结束再解锁：解锁早了，淡出的这几百毫秒里滚轮又能滚到后面的页面
       setPageScrollLocked(false);
-    }, 300);
+    }, 240);
   };
 
   // 搜索按钮在 swup 容器外的顶栏里，用 onclick 赋值保证幂等
@@ -236,6 +236,18 @@ registerPageInit(initSearchModal);
        当作同一属性合并、只保留后写的那条，所以标准属性必须单独放进 @supports。 */
     -webkit-backdrop-filter: blur(2px);
     transition: opacity 0.3s ease-out;
+  }
+
+  /* 弹窗本体：从 90% 弹出到 100%，带轻微过冲（--momo-ease-pop）。
+     过渡写在 CSS 里而不是用 Tailwind 的 `transition duration-300`：
+     那里是默认 ease、300ms，弹出来「软塌塌」的。
+     ⚠️ scale-90 / scale-100 在 Tailwind v4 里改的是 `scale` 属性，不是 transform，
+     所以这里必须单独列 scale，否则只有透明度在动、缩放是硬跳。 */
+  .search-modal-content {
+    transition:
+      transform 240ms var(--momo-ease-pop),
+      scale 240ms var(--momo-ease-pop),
+      opacity 200ms var(--momo-ease-out);
   }
 
   @supports (backdrop-filter: blur(1px)) {

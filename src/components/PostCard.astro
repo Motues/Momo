@@ -22,9 +22,11 @@ interface Props {
     url: string;
     fallback: boolean;
     priority?: boolean;
+    /** AOS 入场延迟（毫秒，必须是 50 的整数倍——aos.css 只给这些档位写了 transition-delay） */
+    delay?: number;
 }
 
-const { entry, title, description, image, pubDate, url, fallback, priority = false } = Astro.props;
+const { entry, title, description, image, pubDate, url, fallback, priority = false, delay = 0 } = Astro.props;
 
 const currentLang = Astro.currentLocale || i18n!.defaultLocale;
 const t = i18nit(currentLang);
@@ -35,9 +37,16 @@ const { remarkPluginFrontmatter } = await render(entry);
 
 // 首页文章卡片封面图模式："background" 将图片作为卡片背景，从右向左渐隐
 const isBgMode = siteConfig.theme.postCard.imageMode === "background";
+
+// ⚠️ 只有开启 AOS 时才输出 data-aos：global.css 里 [data-aos='pop-in'] 的初始态是
+// opacity: 0，而给元素加 .aos-animate 的是 AOS 脚本 —— 关掉开关时不输出这两个属性，
+// 否则卡片会永远停在不可见的状态。
+const aosAttrs = siteConfig.theme.AOS
+    ? { 'data-aos': 'pop-in', 'data-aos-delay': String(delay) }
+    : {};
 ---
 
-<div data-aos="fade-up"  class:list={["block min-w-0 w-full max-w-[var(--page-width)] mx-auto my-6  rounded-xl shadow border border-[var(--button-border-color)] overflow-hidden", isBgMode && "postcard-bg-mode", isBgMode && image && "has-image"]}>
+<div {...aosAttrs} class:list={["block min-w-0 w-full max-w-[var(--page-width)] mx-auto my-6  rounded-xl shadow border border-[var(--button-border-color)] overflow-hidden", isBgMode && "postcard-bg-mode", isBgMode && image && "has-image"]}>
     {image && (
         <>
         {isBgMode ? (
@@ -93,15 +102,23 @@ const isBgMode = siteConfig.theme.postCard.imageMode === "background";
 </div>
 
 <style is:global>
-.hover-scale {
-  transition: transform 0.3s ease;
+/* 悬停放大：慢一点、幅度小一点，收尾用不过冲的曲线。
+   1.05/300ms 配默认 ease 会显得「急」，1.035/460ms 更像有惯性的镜头推近。 */
+@media (hover: hover) {
+  .hover-scale {
+    transition: transform 460ms var(--momo-ease-out);
+  }
+
+  .hover-scale:hover {
+    transform: scale(1.035);
+  }
 }
 
-.hover-scale:hover {
-  transform: scale(1.05);
-}
 .category-tag {
-  transition: all 0.3s ease;
+  /* 原来写的是 transition: all —— 会把 text-shadow 之类也一起插值，而且 all 永不过时地危险 */
+  transition: color var(--momo-t-fast) var(--momo-ease-out),
+              background-color var(--momo-t-fast) var(--momo-ease-out),
+              text-shadow var(--momo-t-fast) var(--momo-ease-out);
   background-color: transparent;
   display: inline-block;
   border-radius: 0.25rem;

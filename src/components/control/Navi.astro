@@ -48,8 +48,9 @@ const currentLang = Astro.currentLocale || i18n!.defaultLocale;
 const t = i18nit(currentLang);
 
 // 样式类：整合了移动端和桌面端的差异
-const btnBaseClass = "p-2 md:px-4 md:py-2 flex items-center border rounded-lg transition duration-200";
-const btnActiveProps = "text-[var(--text-color)] hover:bg-[var(--button-hover-color)] border-[var(--button-border-color)] active:scale-90";
+// 按压反馈统一交给 .press（见 styles/global.css），不再用 active:scale-90
+const btnBaseClass = "press p-2 md:px-4 md:py-2 flex items-center border rounded-lg";
+const btnActiveProps = "text-[var(--text-color)] hover:bg-[var(--button-hover-color)] border-[var(--button-border-color)]";
 const btnDisabledProps = "text-[var(--text-color-30)] border-[var(--button-border-color)] opacity-40 cursor-not-allowed pointer-events-none";
 ---
 

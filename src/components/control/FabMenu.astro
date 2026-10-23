@@ -358,8 +358,10 @@ registerPageInit(initFabMenu);
   }
   #fabMenu.is-visible { visibility: visible; }
 
-  /* 菜单项按钮：淡入沿用原先 #menuItems 上的 300ms ease-out（--ease-out = cubic-bezier(0,0,.2,1)），
-     按压缩放保持原来的 200ms + 默认缓动（原由 transition-transform duration-200 提供） */
+  /* 菜单项按钮：淡入沿用 #menuItems 的 300ms ease-out（--ease-out = cubic-bezier(0,0,.2,1)），
+     按压缩放保持原来的 200ms + 默认缓动。
+     ⚠️ 这里保持原样：弹入/弹出由 #menuItems 上的 Tailwind `transition duration-300 ease-out`
+     驱动（它过渡的是 translate 属性），.fab-item 自己只负责 opacity 与按下时的 scale。 */
   #fabMenu .fab-item {
     transition: opacity 300ms cubic-bezier(0, 0, 0.2, 1),
                 scale 200ms cubic-bezier(0.4, 0, 0.2, 1);

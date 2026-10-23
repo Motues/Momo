@@ -9,6 +9,31 @@
   --category-width: min(calc((100vw - var(--page-width)) / 3), 200px);
 }
 
+/* ---------------- 动效 tokens ----------------
+ * 全站只从这里取时长与曲线，避免每个组件各写一套（以前同一屏里混着
+ * 150 / 200 / 300 / 340 / 500ms 和 5 条不同的缓动，看起来「各动各的」）。
+ *
+ * 用 momo- 前缀是因为 Tailwind v4 的 @theme 已经占用了 --ease-out / --ease-in-out
+ * 这些名字，重名会互相覆盖。
+ *
+ * 规矩：
+ *   --momo-ease-pop 只给「有物理体积」的东西（胶囊、卡片、按钮、弹窗、菜单项）；
+ *   文字颜色一律 --momo-t-fast + --momo-ease-out，不加回弹（文字回弹显廉价）。
+ */
+:root {
+  /* 时长：颜色快、位移中、入场慢 */
+  --momo-t-fast: 140ms;
+  --momo-t-base: 220ms;
+  --momo-t-slow: 360ms;
+
+  /* 丝滑收尾：位移 / 缩放，不过冲 */
+  --momo-ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  /* Q 弹：约 5% 过冲，收尾时轻轻回正（「轻微 Q」档） */
+  --momo-ease-pop: cubic-bezier(0.34, 1.56, 0.64, 1);
+  /* 抽屉 / 面板：快起慢收，不冲（整屏高度过冲会露馅） */
+  --momo-ease-sheet: cubic-bezier(0.32, 0.72, 0, 1);
+}
+
 
 /* 颜色变量 */
 /* --bg-color               页面背景色

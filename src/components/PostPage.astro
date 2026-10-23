@@ -16,6 +16,7 @@ const { page } = Astro.props;
             url={entry.id} 
             fallback={entry.isFallback}
             priority={index === 0}
+            delay={Math.min(index, 5) * 50}
         >
         </PostCard>
 ))}
