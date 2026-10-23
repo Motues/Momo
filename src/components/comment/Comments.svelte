@@ -227,6 +227,16 @@
   }
 
   /**
+   * 把加载异常翻译成**单一语言**的提示文案。
+   */
+  function describeLoadError(err: any): string {
+    const status = typeof err?.status === 'number' ? err.status : null;
+    // 状态码是协议标识（各语言都原样保留），文案部分始终取自当前语言
+    if (status !== null) return `${t('comments.loadFailed')} (HTTP ${status})`;
+    return t('comments.networkError');
+  }
+
+  /**
    * 拉取评论。
    * @param loadMore 是否为「加载更多」（决定使用 loadingMore 还是 loading 状态）
    * @param targetPage 目标页码（默认当前页）；成功后才会推进 page，保证失败可重试
@@ -246,7 +256,7 @@
         `${apiUrl}/api/comments?post_slug=${encodeURIComponent(postSlug)}&nested=true&page=${targetPage}&limit=${limit}`
       );
       // 只抛出 HTTP 状态，避免与渲染处的「加载失败」文案重复
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      if (!res.ok) throw Object.assign(new Error(`HTTP ${res.status}`), { status: res.status });
       const data = await res.json();
       const newComments = data?.data?.comments || [];
       if (targetPage === 1) {
@@ -275,7 +285,9 @@
       return true;
     } catch (err: any) {
       // 静默刷新失败时保留已渲染的列表与原有错误态，不把界面切成错误页
-      if (!silent) error = err?.message || t('comments.loadFailed');
+      // 错误态只保存**当前语言**的文案：绝不把浏览器抛出的英文原文（Failed to fetch 等）
+      // 拼在中文提示后面，否则会出现中英文混排
+      if (!silent) error = describeLoadError(err);
       return false;
     } finally {
       if (loadMore) {
@@ -498,7 +510,7 @@
             bind:emojiSet onPick={insertEmoji} />
         {/if}
 
-        <div class="flex flex-wrap items-center gap-3">
+        <div class="ml-auto flex flex-wrap items-center justify-end gap-3">
           {#if verifyEnabled}
             <SilentVerify
               bind:this={verifyComponent}
@@ -529,9 +541,19 @@
   <!-- 评论区 -->
   <div class="" id="comments-content">
     {#if !loadingMore && loading}
-      <p data-aos="fade-up" class="text-[var(--text-color)] text-center">{t('comments.loading') || '正在加载评论...'}</p>
+      <div data-aos="fade-up" data-test="comments-loading"
+        class="flex flex-col items-center justify-center gap-3 py-10 text-center">
+        <svg class="animate-spin h-6 w-6 text-[var(--text-color)]/70" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" aria-hidden="true">
+          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+          <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+        </svg>
+        <p class="text-sm text-[var(--text-color)]/80">{t('comments.loading') || '正在加载评论...'}</p>
+      </div>
     {:else if error}
-      <p data-aos="fade-up" class="text-red-500 text-center">{t('comments.loadFailed') || '加载失败：'}{error}</p>
+      <div data-aos="fade-up" data-test="comments-error"
+        class="flex flex-col items-center justify-center gap-3 py-10 text-center">
+        <p class="text-sm text-red-500" data-test="comments-error-text">{error}</p>
+      </div>
     {:else}
       <h4 data-aos="fade-up" class="text-[var(--text-color)] text-base font-semibold mt-6 mb-4">{countComments(comments)} {t('comments.comments')}</h4>
 

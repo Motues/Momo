@@ -60,6 +60,7 @@ const translation: Translation = {
         loadMore: "加载更多",
         loading: "正在加载评论...",
         loadFailed: "加载失败",
+        networkError: "加载失败，请检查网络连接后重试",
         submitSuccess: "提交成功",
         submitFailed: "提交失败，请稍后再试",
         verificationRequired: "邮箱需要认证，请查收验证邮件",

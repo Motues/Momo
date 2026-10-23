@@ -70,6 +70,7 @@ export interface Translation {
         loadMore: string;
         loading: string;
         loadFailed: string;
+        networkError: string;
         submitSuccess: string;
         submitFailed: string;
         verificationRequired: string;

@@ -60,6 +60,7 @@ const translation: Translation = {
         loadMore: "Load more",
         loading: "Loading comments...",
         loadFailed: "Failed to load",
+        networkError: "Failed to load. Please check your network connection and try again.",
         submitSuccess: "Submitted successfully",
         submitFailed: "Submission failed, please try again later",
         verificationRequired: "Email verification required. Please check your inbox.",
