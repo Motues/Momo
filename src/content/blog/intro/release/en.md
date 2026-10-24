@@ -38,6 +38,15 @@ Below are general modification suggestions.
 
 > Version numbers follow the `YY.MM.DD` format
 
+### 26.10.24
+
+* **Comments can pull from several emoji sources**: the backend may list multiple emoji pack URLs, which are fetched in parallel and merged into one panel; a failing source leaves the rest usable with a retry hint, and the panel's misaligned layout is fixed
+* **Clearer comment messages**: load failures are shown in the current language inside the comment area instead of mixing Chinese and English (network errors get their own wording), loading uses a spinner block, and dormant comment links are no longer clickable — tapping a nickname or avatar just explains why in a popover
+* **Lighter, faster pages**: the archive list no longer embeds whole post bodies (431 KB → 78 KB), card and post covers load responsive images sized for the screen (first cover 396 KB → 61 KB), the table of contents initializes when idle, and scroll work is batched into one frame
+* **One motion rhythm across the site**: the nav indicator, card entrances, button presses, the drawer and search modal, and the lightbox all share the same durations and spring curves, with a subtle rebound when pressing buttons, and page transitions are quicker
+* **Fixed the image lightbox on phones**: pinching no longer overshoots — small finger jitter leaves the zoom untouched and the overall sensitivity is calmer, and lifting your fingers after a pinch no longer flips to the previous or next photo by accident
+* This update modifies the config files `src/i18n/` (new comment translations `comments.networkError` / `comments.emojiPartial` / `comments.linkDormantTip`) — merge them as prompted
+
 ### 26.10.16
 
 * **The comment area gained an emoji panel**: the comment box and every reply box now have an emoji button in the lower-left corner, with both image emoji and text emoticons; one click inserts it at the cursor and it works while writing a reply too. Emoji are stored as `:name:` shortcodes and rendered as small inline images in the body, so existing plain-text comments are untouched
