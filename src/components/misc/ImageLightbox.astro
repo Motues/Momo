@@ -193,6 +193,20 @@
   const MAX_SCALE = 8
   const DOUBLE_TAP_SCALE = 2.5
 
+  // 双指缩放（移动端）：
+  // PINCH_DEAD_ZONE 是死区——双指间距变化在这个像素数以内当作手指抖动 / 按压变形，完全不缩放；
+  // PINCH_GAIN 是死区之外的对数域阻尼，1 表示「手指张合多少就缩放多少」，
+  // 小于 1 时同样的手指位移换来的缩放更少（移动端尤其明显：图片本来就按屏幕宽高比铺满，
+  // 1:1 会让轻轻一捏直接冲到 300% 以上）；
+  // PINCH_MIN_SPAN 是参与计算的最小起始间距——两根手指挨得很近时，同样 20px 的位移
+  // 会算出很大的比例（20 -> 40 就是 200%），按这个下限归一化后才不会「一碰就炸」。
+  const PINCH_DEAD_ZONE = 10
+  const PINCH_GAIN = 0.8
+  const PINCH_MIN_SPAN = 48
+  // 左右滑动切图：只认单指、位移够远且明显偏水平的这一种手势
+  const SWIPE_MIN_DISTANCE = 60
+  const SWIPE_DOMINANCE = 1.2
+
   // 移动端判定与样式的 @media (max-width: 776px) 对齐（777px 起算桌面端）
   const isMobileViewport = () => window.matchMedia('(max-width: 776px)').matches
   // 基准比例：打开、切换上/下一张、双击复位、「默认比例」按钮都回到这里
@@ -260,6 +274,11 @@
     const pointers = new Map<number, { x: number; y: number }>()
     let dragging = false
     let moved = false
+    // 本次手势里是否出现过第二根手指：一旦出现，这一轮就只可能是缩放 / 平移，
+    // 抬手时既不能切图，也不能被当成双击 / 点击空白关闭（见 endPointer）
+    let pinched = false
+    // 上一次单击的时间戳（双击判定），双指手势开始时就清零
+    let lastTap = 0
     let startX = 0
     let startY = 0
     let pinchStart = 0
@@ -666,20 +685,47 @@
     )
 
     // ---- 指针手势：拖拽平移 / 双指缩放 / 左右滑动切换 ----
+    // 双指缩放的目标比例：扣掉死区后在对数域阻尼（见 PINCH_DEAD_ZONE / PINCH_GAIN）。
+    // 用「相对 pinch 起点」的绝对值而不是逐帧累加，这样越过 MAX_SCALE 后再往回捏不会「先空转一段」。
+    function pinchScaleOf(distance: number) {
+      if (!pinchStart) return pinchScale
+      // 起始间距过近时按 PINCH_MIN_SPAN 归一化（见常量注释）
+      const span = Math.max(pinchStart, PINCH_MIN_SPAN)
+      const delta = distance - pinchStart
+      if (Math.abs(delta) <= PINCH_DEAD_ZONE) return pinchScale
+      const effective = span + delta - Math.sign(delta) * PINCH_DEAD_ZONE
+      return pinchScale * Math.pow(Math.max(effective, 1) / span, PINCH_GAIN)
+    }
+
+    // 重新以当前双指间距为基准开始缩放（第二根手指按下 / 三指回落到两指时）
+    function beginPinch() {
+      const [a, b] = [...pointers.values()]
+      if (!a || !b) return
+      pinchStart = Math.hypot(a.x - b.x, a.y - b.y)
+      pinchScale = scale
+    }
+
     stage.addEventListener('pointerdown', (event) => {
       pointers.set(event.pointerId, { x: event.clientX, y: event.clientY })
-      if (pointers.size === 1) {
-        dragging = true
-        moved = false
-        startX = event.clientX
-        startY = event.clientY
-        stage.setPointerCapture(event.pointerId)
-        if (scale > baseScale() + SCALE_EPSILON) stage.classList.add('is-dragging')
-      } else if (pointers.size === 2) {
-        const [a, b] = [...pointers.values()]
-        pinchStart = Math.hypot(a.x - b.x, a.y - b.y)
-        pinchScale = scale
+      if (pointers.size >= 2) {
+        // 第二根手指一落下，这一轮手势就定死为缩放：
+        // 越位切图、双击复位、点击空白关闭全部作废（以前双指捏合后抬起，很容易凑够 60px
+        // 的横向位移被当成左右滑动，刚缩完就翻了页）
+        pinched = true
+        moved = true
+        dragging = false
+        lastTap = 0
+        stage.classList.remove('is-dragging')
+        if (pointers.size === 2) beginPinch()
+        return
       }
+      pinched = false
+      dragging = true
+      moved = false
+      startX = event.clientX
+      startY = event.clientY
+      stage.setPointerCapture(event.pointerId)
+      if (scale > baseScale() + SCALE_EPSILON) stage.classList.add('is-dragging')
     })
 
     stage.addEventListener('pointermove', (event) => {
@@ -691,9 +737,9 @@
       pointer.y = event.clientY
 
       if (pointers.size >= 2) {
+        if (!pinchStart) return
         const [a, b] = [...pointers.values()]
-        const distance = Math.hypot(a.x - b.x, a.y - b.y)
-        if (pinchStart > 0) applyScale((pinchScale * distance) / pinchStart)
+        applyScale(pinchScaleOf(Math.hypot(a.x - b.x, a.y - b.y)))
         return
       }
 
@@ -707,25 +753,33 @@
       }
     })
 
-    const endPointer = (event: PointerEvent) => {
-      const pointer = pointers.get(event.pointerId)
+    const endPointer = (event: PointerEvent, cancelled = false) => {
       pointers.delete(event.pointerId)
-      if (pointers.size < 2) pinchStart = 0
+      if (pointers.size === 2) beginPinch()
+      else if (pointers.size < 2) pinchStart = 0
       if (pointers.size > 0) return
 
       stage.classList.remove('is-dragging')
-      // 没有放大（基准比例或更小）时，左右滑动用来切换上/下一张
-      if (dragging && scale <= baseScale() + SCALE_EPSILON) {
+      // 没有放大（基准比例或更小）时，左右滑动用来切换上/下一张。
+      // 但必须是「从按下到抬起始终单指」的手势：pinched 一旦置位就只认缩放，
+      // 否则双指缩放结束时残留那根手指的横向位移会被误判成滑动。
+      // cancelled（系统手势抢走指针）时一律不算，此时事件坐标不可信。
+      if (!cancelled && dragging && !pinched && scale <= baseScale() + SCALE_EPSILON) {
         const dx = event.clientX - startX
         const dy = event.clientY - startY
-        if (Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy)) go(dx < 0 ? 1 : -1)
+        if (
+          Math.abs(dx) > SWIPE_MIN_DISTANCE &&
+          Math.abs(dx) > Math.abs(dy) * SWIPE_DOMINANCE
+        ) {
+          go(dx < 0 ? 1 : -1)
+        }
       }
       dragging = false
       if (stage.hasPointerCapture?.(event.pointerId)) stage.releasePointerCapture(event.pointerId)
     }
 
-    stage.addEventListener('pointerup', endPointer)
-    stage.addEventListener('pointercancel', endPointer)
+    stage.addEventListener('pointerup', (event) => endPointer(event))
+    stage.addEventListener('pointercancel', (event) => endPointer(event, true))
 
     // ---- 双击图片缩放 / 点击空白处关闭 ----
     const isInsideImage = (event: { clientX: number; clientY: number }) => {
@@ -739,9 +793,9 @@
       )
     }
 
-    let lastTap = 0
     stage.addEventListener('pointerup', (event) => {
-      if (pointers.size > 0 || moved || !isInsideImage(event)) return
+      // pinched：双指缩放结束时的抬手不算单击，否则「捏两下」会被读成双击缩放
+      if (pointers.size > 0 || pinched || moved || !isInsideImage(event)) return
       const now = Date.now()
       if (now - lastTap < 320) {
         lastTap = 0
