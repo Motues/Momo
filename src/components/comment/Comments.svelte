@@ -3,7 +3,7 @@
   import { siteConfig } from '@/config.ts';
   import CommentItem from './CommentItem.svelte';
   import EmojiPicker from './emoji/EmojiPicker.svelte';
-  import { getCachedEmojiSet, type EmojiSet } from './emoji/owo';
+  import { getCachedEmojiSet, loadEmojiSet, containsShortcode, type EmojiSet } from './emoji/owo';
   import { emojify } from './emoji/render';
   import SilentVerify from './verify/SilentVerify.svelte';
   import i18nit from '../../i18n/translation.ts';
@@ -206,13 +206,71 @@
   /** 短代码 → 图片地址；表情不可用时恒为 null（水合器只做跳过的空操作） */
   $: emojiImages = emojiAvailable ? emojiSet?.images ?? null : null;
 
-  /**
-   * 首屏水合：**同步、零请求**，只用本地缓存（7 天 TTL，键是**整个地址列表**的 JSON）里的表情包。
-   * 访客只读评论时不会产生任何第三方请求，也不会请求本站表情接口；
-   * 缓存缺失/过期时图片表情暂时显示为 `:name:` 文本，打开一次面板后即恢复。
+
+   /**
+   * 首屏水合（第一层）：**同步、零请求**，只读本地缓存（7 天 TTL，键是**整个地址列表**的 JSON）。
+   * 缓存命中时打开页面立刻就是表情；缺失/过期时先保留 `:name:` 文本，
+   * 由 `scheduleEmojiPrefetch()` 在空闲时补齐（见下）。
    */
   function refreshEmojiHydration() {
     emojiSet = emojiUsable(emojiEnabled, emojiCdnUrls) ? getCachedEmojiSet({ cdnUrls: emojiCdnUrls }) : null;
+  }
+
+  /** 已经安排过预取的地址列表（JSON）：翻页/加载更多时不重复触发 */
+  let emojiPrefetchKey = '';
+
+  /** 评论树里是否真的出现了 `:name:` 短代码：没有就不为首屏拉第三方 owo.json */
+  function commentsUseShortcode(list: any[]): boolean {
+    for (const item of list || []) {
+      if (
+        containsShortcode(String(item?.contentHtml ?? '')) ||
+        containsShortcode(String(item?.contentText ?? ''))
+      ) {
+        return true;
+      }
+      if (Array.isArray(item?.replies) && item.replies.length > 0 && commentsUseShortcode(item.replies)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  /**
+   * 首屏水合（第二层）：缓存缺失/过期时，在首屏渲染后的空闲时段**预取一次** owo.json，
+   * 到达后自动把正文里的 `:name:` 升级成表情 —— 不必再等用户点开表情面板。
+   *
+   * - 与面板共用 `loadEmojiSet` 的模块级缓存/并发去重，因此不会重复请求；
+   * - 页面里没有短代码时完全不发第三方请求（纯阅读页仍是零第三方请求）；
+   * - 预取失败静默降级为文字，面板打开时仍会重试并给出错误提示。
+   */
+  function scheduleEmojiPrefetch() {
+    if (!emojiUsable(emojiEnabled, emojiCdnUrls)) return;
+    // 本地新鲜缓存已经同步水合过了，不需要再拉
+    if (emojiSet && emojiSet.images.size > 0) return;
+    if (!commentsUseShortcode(comments)) return;
+
+    const key = JSON.stringify(emojiCdnUrls);
+    if (emojiPrefetchKey === key) return;
+    emojiPrefetchKey = key;
+
+    const run = () => {
+      if (!emojiUsable(emojiEnabled, emojiCdnUrls)) return;
+      loadEmojiSet({ cdnUrls: emojiCdnUrls })
+        .then((set) => {
+          // 期间用户可能已打开面板：只接受图片不少于当前的结果，避免覆盖更全的集合
+          if (set.images.size >= (emojiSet?.images.size ?? 0)) emojiSet = set;
+        })
+        .catch(() => {
+          /* 静默失败：面板打开时会重试 */
+        });
+    };
+
+    // 放到首屏渲染后的空闲时段，避免和评论首屏/LCP 抢带宽
+    if (typeof window.requestIdleCallback === 'function') {
+      window.requestIdleCallback(run, { timeout: 1500 });
+    } else {
+      window.setTimeout(run, 200);
+    }
   }
 
   function countComments(comments: any[]): number {
@@ -282,6 +340,7 @@
       error = '';
       page = targetPage;
       refreshEmojiHydration();
+      scheduleEmojiPrefetch();
       return true;
     } catch (err: any) {
       // 静默刷新失败时保留已渲染的列表与原有错误态，不把界面切成错误页
