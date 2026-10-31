@@ -5,13 +5,13 @@
   import type { EmojiSet } from './emoji/owo';
   import { slide } from 'svelte/transition';
   import DOMPurify from 'dompurify';
-  // 👇 自引用，递归必须这样导入
   import CommentItem from './CommentItem.svelte';
   import i18nit from '../../i18n/translation.ts';
   import { parseMarkdown, validateMarkdown } from '@utils/markdown';
   import { siteConfig } from '@/config.ts';
   import { notify } from '@utils/notify';
   import { formatFullDate } from '@/utils/time';
+  import { DEFAULT_AVATAR_URL } from '@/utils/avatar';
 
   export let c: any;
   export let postSlug: string;
@@ -136,6 +136,17 @@
   $: if (replyEmojiSet) dispatch('emojiSetChange', replyEmojiSet);
 
   const avatarUrl = c.avatar;
+
+  /**
+   * 头像加载失败（自定义源不可达 / Gravatar 被墙）时回退到内置默认头像。
+   * 只兜底一次：默认头像是 data URI，本身不会再失败，guard 防止极端情况下死循环。
+   */
+  function handleAvatarError(event: Event) {
+    const img = event.currentTarget as HTMLImageElement | null;
+    if (!img || img.dataset.avatarFallback === '1') return;
+    img.dataset.avatarFallback = '1';
+    img.src = DEFAULT_AVATAR_URL;
+  }
 
   /**
    * 渲染前校验作者链接的协议：仅放行 http/https/mailto（含相对路径）。
@@ -281,14 +292,14 @@
   <button type="button" class="w-10 h-10 shrink-0" data-test="link-dormant-avatar" data-dormant-trigger
     title={t('comments.linkDormantTip')} aria-label={t('comments.linkDormantTip')} aria-expanded={showDormantTip}
     on:click={toggleDormantTip}>
-    <img src={avatarUrl} alt="avatar" class="w-10 h-10 rounded-full object-cover"/>
+    <img src={avatarUrl} alt="avatar" loading="lazy" decoding="async" referrerpolicy="no-referrer" on:error={handleAvatarError} class="w-10 h-10 rounded-full object-cover"/>
   </button>
   {:else if commentUrl}
   <a href={commentUrl} target="_blank" rel="noopener noreferrer" class="w-10 h-10 shrink-0">
-    <img src={avatarUrl} alt="avatar" class="w-10 h-10 rounded-full object-cover"/>
+    <img src={avatarUrl} alt="avatar" loading="lazy" decoding="async" referrerpolicy="no-referrer" on:error={handleAvatarError} class="w-10 h-10 rounded-full object-cover"/>
   </a>
   {:else}
-  <img src={avatarUrl} alt="avatar" class="w-10 h-10 rounded-full object-cover shrink-0"/>
+  <img src={avatarUrl} alt="avatar" loading="lazy" decoding="async" referrerpolicy="no-referrer" on:error={handleAvatarError} class="w-10 h-10 rounded-full object-cover shrink-0"/>
   {/if}
 
   <div class="flex-1 min-w-0">
@@ -672,17 +683,17 @@
     border: 1px solid var(--button-border-color);
   }
   .blogger-badge {
-    background-color: rgba(34, 197, 94, 0.1);
-    color: #16a34a;
+    background-color: rgba(51, 218, 152, 0.1176);
+    color: #047857;
   }
   .blogger-badge-icon {
-    color: #16a34a;
+    color: #047857;
   }
-  :global([data-theme="dark"])  .blogger-badge {
-    background-color: rgba(34, 197, 94, 0.15);
-    color: #05d26b;
-  } 
-  :global([data-theme="dark"])  .blogger-badge-icon {
-    color: #05d26b;
+  :global([data-theme="dark"]) .blogger-badge {
+    background-color: #1b332d;
+    color: #33da98;
+  }
+  :global([data-theme="dark"]) .blogger-badge-icon {
+    color: #33da98;
   }
 </style>
