@@ -29,6 +29,15 @@ Below are general modification suggestions.
 
 > Version numbers follow the `YY.MM.DD` format
 
+### 26.11.19
+
+* **Emoji keep themselves up to date**: emoji packs now use "cache first, revalidate in the background" — the panel is instant from cache and only after 6 hours does it quietly check the source when idle, updating only when the content really changed; a refresh button in the panel header pulls the latest right away
+* **More reliable emoji rendering**: HTML entities such as `&quot;` in text emoticons are decoded instead of shown literally, emoji panel text no longer turns black in dark mode, and a temporarily failing source keeps the emoji you already have instead of turning the whole panel into an error
+* **Fixed human verification failing in some browsers**: browsers without `screen.isExtended` (Firefox, Safari and others) are no longer mistaken for "extended screen / shrunken screen", so verification goes through; the success and failure hints now share one theme-aware color
+* **No more broken avatars**: when a custom avatar source is unreachable or Gravatar is blocked, comments fall back to the built-in default avatar
+* **A smoother CMS editor**: the editor and the live preview no longer fight over scrolling, and the preview keeps its place when it is rebuilt; the toolbar gained "Quote" and "Custom quote", and inserting a link / image / ruby text leaves the cursor exactly where the parameter goes
+* This update modifies the config files `src/i18n/` (new comment translation `comments.emojiRefresh`) — merge them as prompted
+
 ### 26.10.24
 
 * **Comments can pull from several emoji sources**: the backend may list multiple emoji pack URLs, which are fetched in parallel and merged into one panel; a failing source leaves the rest usable with a retry hint, and the panel's misaligned layout is fixed
