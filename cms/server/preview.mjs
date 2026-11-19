@@ -205,26 +205,45 @@ preview.post('/', async (c) => {
 
 // 预览内脚本：与父窗口（编辑器）按滚动比例双向同步
 // （代码块的复制按钮与折叠交互由 Expressive Code 自己的脚本提供）
+// 三个要点：
+// 1. 发送走 rAF 节流，每帧最多一条，避免滚动事件比屏幕刷新更密时预览慢半拍；
+// 2. 父窗口驱动的滚动（cms-scroll-to）不回传，否则两边会互相回写；
+// 3. 文档就绪后先通知父窗口（cms-preview-ready）——实时预览每次输入都会重建本文档，
+//    父窗口收到后按重建前的比例恢复滚动位置，否则每次输入预览都会跳回顶部。
 const PREVIEW_SYNC_SCRIPT = `<script>
 (function () {
   var root = document.documentElement
   var lastRatio = -1
-  function send() {
+  var suppressUntil = 0
+  var rafId = 0
+  function ratioNow() {
     var max = root.scrollHeight - root.clientHeight
-    var ratio = max > 0 ? root.scrollTop / max : 0
+    return max > 0 ? window.scrollY / max : 0
+  }
+  function send() {
+    rafId = 0
+    if (performance.now() < suppressUntil) return
+    var ratio = ratioNow()
     if (Math.abs(ratio - lastRatio) < 0.0001) return
     lastRatio = ratio
     parent.postMessage({ type: 'cms-preview-scroll', ratio: ratio }, '*')
   }
-  window.addEventListener('scroll', send, { passive: true })
-  window.addEventListener('resize', send)
+  function schedule() {
+    if (!rafId) rafId = requestAnimationFrame(send)
+  }
+  window.addEventListener('scroll', schedule, { passive: true })
+  window.addEventListener('resize', schedule)
   window.addEventListener('message', function (e) {
     var d = e.data
-    if (d && d.type === 'cms-scroll-to' && typeof d.ratio === 'number') {
-      var max = root.scrollHeight - root.clientHeight
-      window.scrollTo(0, Math.round(d.ratio * max))
-    }
+    if (!d || d.type !== 'cms-scroll-to' || typeof d.ratio !== 'number') return
+    var max = root.scrollHeight - root.clientHeight
+    var y = Math.round(d.ratio * max)
+    if (Math.abs(window.scrollY - y) <= 1) return
+    // 父窗口驱动的滚动：短时间内不回传，避免和编辑器互相回写
+    suppressUntil = performance.now() + 150
+    window.scrollTo(0, y)
   })
+  parent.postMessage({ type: 'cms-preview-ready' }, '*')
 })()
 </script>`
 

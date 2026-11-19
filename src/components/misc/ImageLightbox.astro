@@ -509,8 +509,8 @@
             { transform: flipTransform(thumbRect, to), opacity: 0.65 },
             { transform: transformOf(), opacity: 1 },
           ],
-          // 与全站一致的「轻微 Q」：飞入末尾轻轻过冲一下再落定
-          { duration, easing: 'cubic-bezier(0.34, 1.56, 0.64, 1)' },
+          // 放大不回弹：只做单纯的减速收尾（过冲会让图片先冲过头再缩回来）
+          { duration, easing: 'cubic-bezier(0.22, 0.61, 0.36, 1)' },
         )
       }
       root.animate([{ opacity: 0 }, { opacity: 1 }], {

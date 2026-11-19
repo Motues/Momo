@@ -83,8 +83,10 @@ interface InsertTool {
   title: string
   // 包裹选中文本：[前缀, 后缀]；无选中时光标落在中间
   wrap?: [string, string]
-  // 插入模板：{sel} 替换为选中文本，{cur} 为无选中时的光标落点
+  // 插入模板：{sel} 替换为选中文本，{cur} 为光标落点，{ph:占位词} 仅在无选中时保留
   template?: string
+  // 行前缀（Markdown 引用 >）：无选中时加在当前行行首，有选中时给每一行都加上
+  linePrefix?: string
 }
 
 function buildToolbar(getMd: () => HTMLTextAreaElement | null): HTMLElement {  const noteSelect = createSelect({
@@ -108,7 +110,8 @@ function buildToolbar(getMd: () => HTMLTextAreaElement | null): HTMLElement {  c
     btn({ label: '代码', title: '行内代码 `code`', wrap: ['`', '`'] }),
     btn({ label: '链接', title: '链接 [文字](https://…)', template: '[{sel}]({cur}https://)' }),
     btn({ label: '图片', title: '图片 ![描述](./图片.png)', template: '![{sel}]({cur}./图片.png)' }),
-    btn({ label: '引用', title: '居中引用 ::quote[内容]', wrap: ['::quote[', ']'] }),
+    btn({ label: '引用', title: '引用 > 文字（多行会逐行加前缀）', linePrefix: '> ' }),
+    btn({ label: '自定义引用', title: '自定义居中引用 :::quote … :::', template: ':::quote\n{sel}{cur}{ph:内容}\n:::' }),
     sep(),
     btn({ label: '代码块', title: '代码块 ```lang', wrap: ['```\n', '\n```'] }),
     btn({ label: 'Typst', title: 'Typst 代码块 ```typst', wrap: ['```typst\n', '\n```'] }),
@@ -122,9 +125,9 @@ function buildToolbar(getMd: () => HTMLTextAreaElement | null): HTMLElement {  c
       title: '提示块 :::note{name="提示"} 内容 :::（上方下拉选择类型）',
       onclick: () => applyTool(getMd(), { template: `:::${noteSelect.value}{name="提示"}\n{sel}{cur}{ph:内容}\n:::` }),
     }, ['提示块']),
-    btn({ label: 'GitHub', title: 'GitHub 仓库卡片 ::github{repo="owner/repo"}', template: '::github{repo="{cur}owner/repo"}' }),
-    btn({ label: '音乐', title: '网易云音乐卡片 ::music{id="歌曲ID"}', template: '::music{id="{cur}歌曲ID"}' }),
-    btn({ label: '注音', title: '注音 {中文}(pinyin)', template: '{{sel}中文}({cur}pinyin)' }),
+    btn({ label: 'GitHub', title: 'GitHub 仓库卡片 ::github{repo="owner/repo"}', template: '::github{repo="{cur}{sel}{ph:owner/repo}"}' }),
+    btn({ label: '音乐', title: '网易云音乐卡片 ::music{id="歌曲ID"}', template: '::music{id="{cur}{sel}{ph:歌曲ID}"}' }),
+    btn({ label: '注音', title: '注音 {中文}(pinyin)', template: '{{sel}{ph:中文}}({cur}pinyin)' }),
     btn({ label: '模糊', title: '模糊内容（hover 显示）!!文字!!', wrap: ['!!', '!!'] }),
     btn({ label: '彩虹', title: '彩虹文字 ==文字==', wrap: ['==', '=='] }),
     btn({ label: '下划线', title: '下划线 ++文字++', wrap: ['++', '++'] }),
@@ -132,12 +135,34 @@ function buildToolbar(getMd: () => HTMLTextAreaElement | null): HTMLElement {  c
 }
 
 // 在光标处插入 / 包裹选中文本，随后触发 input 事件更新状态与预览
-function applyTool(md: HTMLTextAreaElement | null, tool: { wrap?: [string, string]; template?: string }) {
+function applyTool(md: HTMLTextAreaElement | null, tool: Omit<InsertTool, 'label' | 'title'>) {
   if (!md) return
-  if (!tool.wrap && !tool.template) return
+  if (!tool.wrap && !tool.template && !tool.linePrefix) return
   const start = md.selectionStart
   const end = md.selectionEnd
   const sel = md.value.slice(start, end)
+
+  // 行前缀工具（引用 > ）：按行处理，不能把多行选中压成一行
+  if (tool.linePrefix) {
+    const prefix = tool.linePrefix
+    const lineStart = md.value.lastIndexOf('\n', start - 1) + 1
+    if (start === end) {
+      // 无选中：在当前行行首插入前缀，光标相对内容位置不变
+      md.setRangeText(prefix, lineStart, lineStart, 'end')
+      md.setSelectionRange(start + prefix.length, start + prefix.length)
+    } else {
+      const block = md.value.slice(lineStart, end)
+      const prefixed = block
+        .split('\n')
+        .map((line) => prefix + line)
+        .join('\n')
+      md.setRangeText(prefixed, lineStart, end, 'end')
+      md.setSelectionRange(lineStart + prefixed.length, lineStart + prefixed.length)
+    }
+    md.focus()
+    md.dispatchEvent(new Event('input', { bubbles: true }))
+    return
+  }
 
   let text: string
   let caret: number // 插入后光标相对插入文本的偏移
@@ -148,14 +173,14 @@ function applyTool(md: HTMLTextAreaElement | null, tool: { wrap?: [string, strin
   } else {
     const t = tool.template as string
     const hasSel = sel.length > 0
-    const useSel = t.includes('{sel}')
     // {ph:占位词} 仅在无选中时保留，避免与选中内容叠加；{cur} 用哨兵标记后定位光标
     const sentinel = '\u0000'
     const withCur = t.replace('{sel}', hasSel ? sel : '').replace('{cur}', sentinel)
     const resolved = withCur.replace(/\{ph:([^}]*)\}/g, hasSel ? '' : '$1')
     const curIdx = resolved.indexOf(sentinel)
     text = resolved.replace(sentinel, '')
-    caret = hasSel && useSel ? text.length : Math.max(0, curIdx)
+    // 有 {cur} 就落在它标记的位置（链接 / 图片 / 注音等参数处），没有则落在末尾
+    caret = curIdx >= 0 ? curIdx : text.length
   }
 
   md.setRangeText(text, start, end, 'end')
@@ -323,35 +348,65 @@ function setupScrollSync(): () => void {
   if (!textarea || !frame) return () => {}
 
   const textareaMax = () => textarea.scrollHeight - textarea.clientHeight
-  let suppress = false
+  // 两侧各自「最近一次主动滚动」的时间戳：用来识别回声，避免一边滚动时把位置再写回去
+  // （以前用 80ms 抑制回环，但预览每回传一次就重置一次抑制窗口，左侧滚动反而被压成一段一段的，
+  //   表现就是左侧滚动时右侧预览一顿一顿的）
+  let editorScrolledAt = 0
+  let previewScrolledAt = 0
+  // 预览最近一次的滚动比例：实时预览每次输入都会重建 iframe 文档，重建完成后按它恢复位置
+  let previewRatio = 0
+  let rafId = 0
+  let pendingRatio = -1
+
+  const flush = () => {
+    rafId = 0
+    if (pendingRatio < 0) return
+    frame.contentWindow?.postMessage({ type: 'cms-scroll-to', ratio: pendingRatio }, '*')
+    pendingRatio = -1
+  }
+  // 每帧最多发一条：滚动事件比屏幕刷新更密，逐条 postMessage 会让预览慢半拍
+  const sendToPreview = (ratio: number) => {
+    pendingRatio = ratio
+    if (!rafId) rafId = requestAnimationFrame(flush)
+  }
 
   const onTextareaScroll = () => {
-    if (suppress) return
+    const now = performance.now()
+    // 这次滚动是预览回写触发的：不再回传，否则两边互相回写会打架
+    if (now - previewScrolledAt < 150) return
+    editorScrolledAt = now
     const max = textareaMax()
     if (max <= 0) return
-    frame.contentWindow?.postMessage(
-      { type: 'cms-scroll-to', ratio: textarea.scrollTop / max },
-      '*',
-    )
+    previewRatio = textarea.scrollTop / max
+    sendToPreview(previewRatio)
   }
 
   const onMessage = (e: MessageEvent) => {
     const d = e.data
-    if (!d || d.type !== 'cms-preview-scroll' || typeof d.ratio !== 'number') return
+    if (!d) return
+    // 预览文档重建完成（每次输入后的实时预览都会重建）：恢复到重建前的滚动位置
+    if (d.type === 'cms-preview-ready') {
+      if (previewRatio > 0) sendToPreview(previewRatio)
+      return
+    }
+    if (d.type !== 'cms-preview-scroll' || typeof d.ratio !== 'number') return
+    previewRatio = d.ratio
+    const now = performance.now()
+    // 编辑器正在驱动预览：忽略回传，不把位置再写回 textarea
+    if (now - editorScrolledAt < 150) return
     const max = textareaMax()
     if (max <= 0) return
-    suppress = true
-    textarea.scrollTop = Math.round(d.ratio * max)
-    // 短暂抑制回环：比例一致后 scroll 事件自然停止
-    setTimeout(() => {
-      suppress = false
-    }, 80)
+    const top = Math.round(d.ratio * max)
+    if (Math.abs(textarea.scrollTop - top) <= 1) return
+    previewScrolledAt = now
+    textarea.scrollTop = top
   }
 
   textarea.addEventListener('scroll', onTextareaScroll, { passive: true })
   window.addEventListener('message', onMessage)
 
   return () => {
+    if (rafId) cancelAnimationFrame(rafId)
     textarea.removeEventListener('scroll', onTextareaScroll)
     window.removeEventListener('message', onMessage)
   }
