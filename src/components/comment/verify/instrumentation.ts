@@ -104,6 +104,10 @@ export interface EnvVector {
 	oh: number;
 	sw: number;
 	sh: number;
+	/**
+	 * screen.isExtended：1=是，0=否，-1=浏览器不支持该 API（Gecko / WebKit / 老 Chromium）。
+	 * 服务端只在能自证扩展屏的引擎（Blink）上按「窗口超出屏幕」拦截，其余只记风险标记。
+	 */
 	ex: number;
 	mob: number;
 	nt: number;
@@ -477,7 +481,9 @@ export function collectEnv(win: Window, isolatedDoc: Document): EnvVector {
 		oh: Number(win.outerHeight) || 0,
 		sw: Number(scr?.width) || 0,
 		sh: Number(scr?.height) || 0,
-		ex: (scr as any)?.isExtended ? 1 : 0,
+		// 三态：undefined = 浏览器没有实现 screen.isExtended（Firefox / Safari 等）。
+		// 这时服务端无法区分「扩展屏」与「真的被 CDP 缩了 screen」，只能记为风险，不能拦截。
+		ex: (scr as any)?.isExtended === undefined ? -1 : (scr as any)?.isExtended ? 1 : 0,
 		mob: /Mobi|Android|iPhone|iPad|iPod/i.test(String(nav.userAgent ?? '')) ? 1 : 0,
 		nt: detectNativeTamper(),
 	};

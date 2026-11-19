@@ -82,8 +82,10 @@
     --selection-bg-color: #0063ba;
     --selection-text-color: #ffffff;
 
-    --verify-success-color: #15803d;
-    --verify-success-border-color: rgba(22, 163, 74, 0.5);
+    --verify-success-color: #047857;
+    --verify-success-border-color: rgba(4, 120, 87, 0.45);
+    --verify-error-color:  #a85757;
+    --verify-error-border-color: rgba(168, 87, 87, 0.55);
   }
 
   [data-theme="dark"] {
@@ -117,6 +119,8 @@
     --selection-bg-color: #2f5f80;
     --selection-text-color: #ffffff;
 
-    --verify-success-color: #4ade80;
-    --verify-success-border-color: rgba(74, 222, 128, 0.45);
+    --verify-success-color: #33da98;
+    --verify-success-border-color: rgba(51, 218, 152, 0.45);
+    --verify-error-color:  #e09a9a;
+    --verify-error-border-color: rgba(224, 154, 154, 0.45);
   }

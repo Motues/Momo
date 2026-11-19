@@ -120,6 +120,41 @@ export function normalizeShortcode(label: unknown): string {
 }
 
 /**
+ * 把文本表情里的 HTML 实体还原成字符。
+ *
+ * 官方表情源（`open.motues.top/emoji/owo.json`）的「颜文字」标签里有 `&quot;`，
+ * 例如 `ヾ(´･ ･｀｡)ノ&quot;` —— 来源本身是从网页里抄出来的文本。原样插入评论后，
+ * 服务端 Markdown 会把 `&` 再转义一次，正文里就会显示成字面量 `&quot;`；
+ * 所以在构建面板数据时先解一层实体。
+ *
+ * 只处理最小的具名实体集 + 数字实体，且只解一层；不用 DOMParser / textarea，
+ * 因为水合路径与单元测试环境里不保证有 DOM。无法识别的实体原样保留。
+ * 解码后仍会经过上面的长度与尖括号过滤（`&lt;` 还原出的 `<` 不会被放行）。
+ */
+const NAMED_ENTITIES: Record<string, string> = {
+	amp: '&',
+	lt: '<',
+	gt: '>',
+	quot: '"',
+	apos: "'",
+	nbsp: '\u00a0',
+};
+
+export function decodeHtmlEntities(text: string): string {
+	return String(text ?? '').replace(/&(#x?[0-9a-fA-F]+|[a-zA-Z][a-zA-Z0-9]*);/g, (match, body: string) => {
+		if (body[0] === '#') {
+			const isHex = body[1] === 'x' || body[1] === 'X';
+			const code = Number.parseInt(body.slice(isHex ? 2 : 1), isHex ? 16 : 10);
+			// 拒绝 0 / 代理项 / 超出 Unicode 上限的码点，避免还原出非法字符
+			if (!Number.isFinite(code) || code <= 0 || code > 0x10ffff) return match;
+			if (code >= 0xd800 && code <= 0xdfff) return match;
+			return String.fromCodePoint(code);
+		}
+		return NAMED_ENTITIES[body.toLowerCase()] ?? match;
+	});
+}
+
+/**
  * 从 `image` 项的 icon 里取出安全的图片地址。
  *
  * 这是渲染侧的安全边界：只有 `data:image/{png,jpeg,gif,webp};base64,…`
@@ -486,11 +521,14 @@ export function buildEmojiSet(packs: OwoShape, options: { stale?: boolean; parti
 				continue;
 			}
 
-			const text = String(raw.icon ?? '');
+			const text = decodeHtmlEntities(String(raw.icon ?? ''));
 			if (!text) continue;
 			if (codePointLength(text) > EMOJI_MAX_TEXT_LENGTH) continue;
+			// 解码后再过滤尖括号：`&lt;` 会还原成 `<`，不能让它以文本表情的身份绕过这条限制
 			if (/[<>]/.test(text)) continue;
-			items.push({ insert: text, preview: text, title: raw.text || text });
+			// 悬停提示同样解实体（老源里 title 也可能带 `&quot;` 之类）
+			const title = decodeHtmlEntities(String(raw.text ?? '')) || text;
+			items.push({ insert: text, preview: text, title });
 		}
 
 		if (items.length === 0) continue;

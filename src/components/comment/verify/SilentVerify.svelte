@@ -266,9 +266,9 @@
 {#if status === 'error'}
   <button
     type="button"
-    class="verify-box relative flex items-center gap-1.5 rounded px-2.5 h-[38px] border text-sm select-none
-      border-red-400 text-red-500
-      {failureKind === 'failed' ? 'cursor-pointer hover:bg-red-500/5' : 'cursor-default'}"
+    class="verify-box relative flex items-center gap-1.5 rounded px-2.5 h-[38px] border text-sm select-none verify-error
+      {failureKind === 'failed' ? 'cursor-pointer' : 'cursor-default'}"
+    class:verify-retryable={failureKind === 'failed'}
     title={errorText}
     disabled={failureKind !== 'failed'}
     on:click={handleClick}
@@ -341,8 +341,25 @@
     z-index: -1;
   }
 
+  /*
+   * 「验证成功」的绿色：取值来自 `--verify-success-*`（定义在 style/main.css 的
+   * `.comment-container` 上，浅色 / 深色 / 系统深色各一套），与博主徽章同一个颜色口径；
+   * 这里只做兜底 —— 组件被挂在 `.comment-container` 之外时也不会退回写死的单一颜色。
+   */
   .verify-success {
-    color: var(--verify-success-color, #15803d);
-    border-color: var(--verify-success-border-color, rgba(22, 163, 74, 0.5));
+    color: var(--verify-success-color, #047857);
+    border-color: var(--verify-success-border-color, rgba(4, 120, 87, 0.45));
+  }
+
+  /*
+   * 「验证失败」的红色：同样走 `--verify-error-*` 主题变量，刻意压低饱和度以匹配上面的绿。
+   * 只有可重试的「验证失败」才有 hover 底色；其余失败态是 disabled，不该显示成可点击。
+   */
+  .verify-error {
+    color: var(--verify-error-color, #a85757);
+    border-color: var(--verify-error-border-color, rgba(168, 87, 87, 0.55));
+  }
+  .verify-error.verify-retryable:hover {
+    background-color: color-mix(in srgb, var(--verify-error-color, #a85757) 6%, transparent);
   }
 </style>

@@ -5,6 +5,8 @@
   --button-hover-bg-color: var(--button-hover-color);
   --verify-success-color: var(--verify-success-color);
   --verify-success-border-color: var(--verify-success-border-color);
+  --verify-error-color: var(--verify-error-color);
+  --verify-error-border-color: var(--verify-error-border-color);
 }
 
 .comment-container [data-aos][data-aos].aos-animate {
