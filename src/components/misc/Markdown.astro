@@ -8,11 +8,14 @@ import '@fontsource-variable/jetbrains-mono/wght-italic.css'
 import '@styles/markdown.css'
 
 interface Props {
-  class?: string
+  class?: string;
+  /** 显式关闭正文子元素的入场动画（规范页的静态示例用） */
+  noReveal?: boolean;
 }
-const className = Astro.props.class
+const className = Astro.props.class ?? ''
+const noReveal = Astro.props.noReveal ?? false
 ---
-<div data-pagefind-body class=`markdown-content ${className}`>
+<div data-pagefind-body data-no-reveal={noReveal ? '' : undefined} class:list={['markdown-content', className]}>
     <slot/>
 </div>
 
@@ -173,7 +176,7 @@ const className = Astro.props.class
     color: var(--link-color) !important;
     text-decoration: none !important;
     margin-left: 0;
-    transition: transform 0.2s ease;
+    transition: transform var(--momo-t-base) var(--momo-ease-out);
   }
 
   .markdown-content section[data-footnotes] a[data-footnote-backref]:hover {
@@ -196,7 +199,7 @@ const className = Astro.props.class
 
   .markdown-content section[data-footnotes] li:target {
     animation: highlight-fade 2s ease-out;
-    border-radius: 4px;
+    border-radius: var(--momo-radius-xs);
   }
   .markdown-content sup a[data-footnote-ref]::before,
   .markdown-content sup a[data-footnote-ref]::after {
@@ -215,7 +218,7 @@ const className = Astro.props.class
     font-weight: 600; 
     padding: 0 1px; 
     text-decoration: none !important;
-    transition: color 0.2s ease;
+    transition: color var(--momo-t-fast) var(--momo-ease-out);
   }
 
   .markdown-content sup a[data-footnote-ref]::before {
@@ -239,7 +242,7 @@ const className = Astro.props.class
   .markdown-content p:has(sup a[data-footnote-ref]:target), 
   .markdown-content sup a[data-footnote-ref]:target {
     animation: highlight-fade 2s ease-out;
-    border-radius: 4px;
+    border-radius: var(--momo-radius-xs);
   }
 </style>
 

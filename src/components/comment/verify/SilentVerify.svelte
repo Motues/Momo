@@ -22,7 +22,7 @@
   let status: Status = 'loading';
   let failureKind: FailureKind = 'failed';
 
-  // 是否处于移动端（与 CommentItem.svelte 保持同一个断点 767px）
+  // 是否处于移动端（与 CommentItem.svelte 保持同一个断点 776px）
   let isMobile = false;
 
   // 提交给后端的蜜罐值：真人始终为空，自动填表脚本往往会填入内容
@@ -241,7 +241,7 @@
           : `${t('comments.verifyFailed') || '验证失败'} · ${t('comments.verifyRetry') || '点击重试'}`;
 
   onMount(() => {
-    const mql = window.matchMedia('(max-width: 767px)');
+    const mql = window.matchMedia('(max-width: 776px)');
     isMobile = mql.matches;
     const listener = (e: MediaQueryListEvent) => { isMobile = e.matches; };
     mql.addEventListener('change', listener);

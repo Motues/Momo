@@ -522,7 +522,7 @@
 <div class="comment-container mt-4 max-w-3xl mx-auto border-t border-[var(--button-border-color)]" id="comments">
   <!-- <div class="my-6 border border-[var(--text-color)]/70"></div> -->
   <!-- 评论输入 -->
-  <div data-aos="fade-up" class="mt-4">
+  <div data-reveal="rise" class="mt-4">
     <form on:submit|preventDefault={() => submitComment()} class="space-y-4">
       <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
         <div class="">
@@ -620,7 +620,7 @@
   <!-- 评论区 -->
   <div class="" id="comments-content">
     {#if !loadingMore && loading}
-      <div data-aos="fade-up" data-test="comments-loading"
+      <div data-reveal="rise" data-test="comments-loading"
         class="flex flex-col items-center justify-center gap-3 py-10 text-center">
         <svg class="animate-spin h-6 w-6 text-[var(--text-color)]/70" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" aria-hidden="true">
           <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
@@ -629,12 +629,12 @@
         <p class="text-sm text-[var(--text-color)]/80">{t('comments.loading') || '正在加载评论...'}</p>
       </div>
     {:else if error}
-      <div data-aos="fade-up" data-test="comments-error"
+      <div data-reveal="rise" data-test="comments-error"
         class="flex flex-col items-center justify-center gap-3 py-10 text-center">
         <p class="text-sm text-red-500" data-test="comments-error-text">{error}</p>
       </div>
     {:else}
-      <h4 data-aos="fade-up" class="text-[var(--text-color)] text-base font-semibold mt-6 mb-4">{countComments(comments)} {t('comments.comments')}</h4>
+      <h4 data-reveal="rise" class="text-[var(--text-color)] text-base font-semibold mt-6 mb-4">{countComments(comments)} {t('comments.comments')}</h4>
 
       <div class="space-y-6">
         {#each comments as c}

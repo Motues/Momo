@@ -22,7 +22,6 @@ interface Props {
     url: string;
     fallback: boolean;
     priority?: boolean;
-    /** AOS 入场延迟（毫秒，必须是 50 的整数倍——aos.css 只给这些档位写了 transition-delay） */
     delay?: number;
 }
 
@@ -38,15 +37,15 @@ const { remarkPluginFrontmatter } = await render(entry);
 // 首页文章卡片封面图模式："background" 将图片作为卡片背景，从右向左渐隐
 const isBgMode = siteConfig.theme.postCard.imageMode === "background";
 
-// ⚠️ 只有开启 AOS 时才输出 data-aos：global.css 里 [data-aos='pop-in'] 的初始态是
-// opacity: 0，而给元素加 .aos-animate 的是 AOS 脚本 —— 关掉开关时不输出这两个属性，
-// 否则卡片会永远停在不可见的状态。
-const aosAttrs = siteConfig.theme.AOS
-    ? { 'data-aos': 'pop-in', 'data-aos-delay': String(delay) }
+// ⚠️ 只有开启动画时才输出 data-reveal：global.css 里 [data-reveal='pop'] 的初始态是
+// opacity: 0，而给它加 .is-revealed 的是 @utils/reveal —— 关掉开关时这些属性本身
+// 也不会被样式命中，但少输出一份更干净。
+const revealAttrs = siteConfig.theme.AOS
+    ? { 'data-reveal': 'pop', 'data-reveal-delay': String(delay) }
     : {};
 ---
 
-<div {...aosAttrs} class:list={["block min-w-0 w-full max-w-[var(--page-width)] mx-auto my-6  rounded-xl shadow border border-[var(--button-border-color)] overflow-hidden", isBgMode && "postcard-bg-mode", isBgMode && image && "has-image"]}>
+<div {...revealAttrs} class:list={["momo-card momo-card--plain block min-w-0 w-full max-w-[var(--page-width)] mx-auto my-6", isBgMode && "postcard-bg-mode", isBgMode && image && "has-image"]}>
     {image && (
         <>
         {isBgMode ? (
@@ -121,8 +120,8 @@ const aosAttrs = siteConfig.theme.AOS
               text-shadow var(--momo-t-fast) var(--momo-ease-out);
   background-color: transparent;
   display: inline-block;
-  border-radius: 0.25rem;
-  padding: 0.25rem 0.25rem; 
+  border-radius: var(--momo-radius-xs);
+  padding: 0.25rem 0.25rem;
 }
 
 .category-tag:hover {
@@ -149,7 +148,7 @@ const aosAttrs = siteConfig.theme.AOS
   width: 100%;
   height: 100%;
   opacity: 0.7; /* 图片整体保持一定透明度，避免与文字抢视觉 */
-  transition: transform 0.4s ease;
+  transition: transform var(--momo-t-slow) var(--momo-ease-out);
   /* 桌面端：从右向左渐隐，约一半位置图片完全消失，多段渐变近似平滑（非线性）曲线 */
   -webkit-mask-image: linear-gradient(to left, #000 0%, #000 35%, rgba(0,0,0,0.85) 44%, rgba(0,0,0,0.5) 50%, rgba(0,0,0,0.15) 55%, transparent 60%, transparent 100%);
           mask-image: linear-gradient(to left, #000 0%, #000 35%, rgba(0,0,0,0.85) 44%, rgba(0,0,0,0.5) 50%, rgba(0,0,0,0.15) 55%, transparent 60%, transparent 100%);

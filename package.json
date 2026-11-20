@@ -25,7 +25,6 @@
     "@myriaddreamin/typst.ts": "0.7.0-rc2",
     "@swup/astro": "^1.8.0",
     "@tailwindcss/vite": "^4.1.13",
-    "aos": "^2.3.4",
     "astro": "^7.2.1",
     "astro-expressive-code": "^0.44.2",
     "astro-icon": "^1.1.5",

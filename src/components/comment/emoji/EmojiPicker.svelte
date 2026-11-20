@@ -273,7 +273,7 @@
   /** 窄屏（与 CommentItem 的移动端断点一致）：选完表情立刻收起，把屏幕还给输入区 */
   function isNarrowViewport() {
     try {
-      return window.matchMedia('(max-width: 767px)').matches;
+      return window.matchMedia('(max-width: 776px)').matches;
     } catch {
       return false;
     }

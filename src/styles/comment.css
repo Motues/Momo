@@ -9,10 +9,6 @@
   --verify-error-border-color: var(--verify-error-border-color);
 }
 
-.comment-container [data-aos][data-aos].aos-animate {
-  transform: none;
-}
-
 .comment-container .comment-content img.momo-emoji,
 .comment-container .comment-preview img.momo-emoji,
 .comment-container img.momo-emoji {

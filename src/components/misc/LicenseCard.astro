@@ -18,7 +18,7 @@ interface Props {
 
 
 const { title, pubDate, author, url, license } = Astro.props;
-const className = Astro.props.class;
+const className = Astro.props.class ?? '';
 
 const currentLang = Astro.currentLocale || i18n!.defaultLocale;
 const t = i18nit(currentLang);
@@ -28,7 +28,7 @@ const postLicense = license ?? licenseConfig;
 const postAuthor = author ?? profileConfig.name;
 ---
 
-<div data-aos="fade-up" class={`relative transition rounded overflow-hidden text-[var(--text-color)] bg-[var(--button-hover-color)] py-5 px-6 ${className}`}>
+<div data-reveal="rise" class={`momo-card relative py-5 px-6 ${className}`}>
     <div class="transition font-bold">
         {title}
     </div>

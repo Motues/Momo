@@ -39,7 +39,7 @@
   let isMobile = false;
  
   onMount(() => {
-    const mql = window.matchMedia('(max-width: 767px)');
+    const mql = window.matchMedia('(max-width: 776px)');
     
     // 初始化
     isMobile = mql.matches;
@@ -287,7 +287,7 @@
   $: hasHiddenMobileReplies = hiddenMobileCount > 0;
 </script>
 
-<div id="comment-{c.id}" data-aos="fade-up" class="flex gap-2 md:gap-3 w-full max-w-full">
+<div id="comment-{c.id}" data-reveal="rise" class="flex gap-2 md:gap-3 w-full max-w-full">
   {#if isDormantUrl}
   <button type="button" class="w-10 h-10 shrink-0" data-test="link-dormant-avatar" data-dormant-trigger
     title={t('comments.linkDormantTip')} aria-label={t('comments.linkDormantTip')} aria-expanded={showDormantTip}
