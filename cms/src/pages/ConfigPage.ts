@@ -94,7 +94,7 @@ function buildSections(values: ConfigValues): SectionDef[] {
       // group：同名连续字段算一组，组与组之间画一条浅色横线
       // （动效基础 / 图片拼图 / 卡片封面 / 首页照片封面 / 悬浮滚动条）
       fields: [
-        { path: ['siteConfig', 'theme', 'AOS'], label: '滚动动画 AOS', type: 'bool', group: '动效基础' },
+        { path: ['siteConfig', 'theme', 'AOS'], label: '入场动画（滚动显现）', type: 'bool', group: '动效基础' },
         { path: ['siteConfig', 'theme', 'LQIP'], label: '图片占位 LQIP', type: 'bool', group: '动效基础' },
         { path: ['siteConfig', 'theme', 'PhotoSwipe'], label: '图片查看器 PhotoSwipe', type: 'bool', group: '动效基础' },
         {

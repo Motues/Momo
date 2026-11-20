@@ -28,7 +28,7 @@
     * `platform`: 评论平台，`default` 使用 Momo-backend，也支持 `twikoo`
     * `backendUrl`: 后端的地址
 * `theme`
-    * `AOS`: 是否启用 AOS 动画
+    * `AOS`: 是否启用入场动画（滚动显现，自研实现）
     * `LQIP`: 是否启用 LQIP 低质量图片占位
     * `PhotoSwipe`: 是否启用图片灯箱模式
     * `imageCollage.enable`: 是否启用连续图片自动拼图（正文里连续放置的多张图片自动排成网格）

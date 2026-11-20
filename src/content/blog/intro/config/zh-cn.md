@@ -35,7 +35,7 @@ slugId: momo/intro/config
     * `platform`: 评论平台，`default` 使用 Momo-backend，也支持 `twikoo`
     * `backendUrl`： 后端的地址
 * `theme`
-    * `AOS`: 是否启用AOS动画
+    * `AOS`: 是否启用入场动画（滚动显现，自研实现）
     * `LQIP`: 是否启用LQIP
     * `PhotoSwipe`: 是否启用图片灯箱模式
     * `postCard`

@@ -35,7 +35,7 @@ slugId: momo/intro/config
     * `platform`: Comment platform, `default` uses Momo-backend, `twikoo` is also supported
     * `backendUrl`: Url of the backend
 * `theme`
-    * `AOS`: Enable AOS animations
+    * `AOS`: Enable entrance animations (scroll reveal, built in)
     * `LQIP`: Enable LQIP
     * `PhotoSwipe`: Enable PhotoSwipe
     * `postCard`

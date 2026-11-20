@@ -28,7 +28,7 @@
     * `platform`: Comment platform, `default` uses Momo-backend, `twikoo` is also supported
     * `backendUrl`: Url of the backend
 * `theme`
-    * `AOS`: Enable AOS animations
+    * `AOS`: Enable entrance animations (scroll reveal, built in)
     * `LQIP`: Enable LQIP (low-quality image placeholder)
     * `PhotoSwipe`: Enable PhotoSwipe
     * `imageCollage.enable`: Enable automatic image collage (consecutive images in the content are arranged into a grid)
