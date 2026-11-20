@@ -1,30 +1,177 @@
+/* ============================================================================
+ * Momo Design Tokens（设计令牌）
+ * ----------------------------------------------------------------------------
+ * 全站唯一的视觉参数来源：颜色、字体、间距、圆角、阴影、动效、布局与层级。
+ * 组件只引用这里的变量，不要再写死色值 / 圆角 / 时长。
+ * 规范说明见 doc/design_zh-cn.md 与站内 /design 页面。
+ *
+ * 命名约定：
+ *   --momo-*        设计系统新增的标尺类 token（字号、间距、圆角、阴影、层级）
+ *   --bg-color 等   历史语义 token，仍在使用，含义不变
+ *   两组 token 都可以直接用；新增样式优先使用标尺 token。
+ *
+ * ⚠️ 颜色分两个角色：
+ *   --link-color   只管「文字 / 描边」；
+ *   --accent-bg + --accent-fg 才是「拿蓝色当底色」的组合。
+ *   深色模式下两者必须分开：链接文字要够亮，同一个亮蓝当底色压白字对比度不够。
+ * ========================================================================== */
+
 :root {
   color-scheme: light;
 
-  /* 布局变量 */
-  --header-width: min(1024px,90vw);
+  /* ---------- 布局 ---------- */
+  --header-width: min(1024px, 90vw);
   --page-width: min(776px, 90vw);
   --toc-offset-left: calc(50vw + var(--page-width) / 2 + 3rem);
   --toc-width: calc((100vw - var(--page-width)) / 2 - 3rem);
   --category-width: min(calc((100vw - var(--page-width)) / 3), 200px);
-}
 
-/* ---------------- 动效 tokens ----------------
- * 全站只从这里取时长与曲线，避免每个组件各写一套（以前同一屏里混着
- * 150 / 200 / 300 / 340 / 500ms 和 5 条不同的缓动，看起来「各动各的」）。
- *
- * 用 momo- 前缀是因为 Tailwind v4 的 @theme 已经占用了 --ease-out / --ease-in-out
- * 这些名字，重名会互相覆盖。
- *
- * 规矩：
- *   --momo-ease-pop 只给「有物理体积」的东西（胶囊、卡片、按钮、弹窗、菜单项）；
- *   文字颜色一律 --momo-t-fast + --momo-ease-out，不加回弹（文字回弹显廉价）。
- */
-:root {
-  /* 时长：颜色快、位移中、入场慢 */
-  --momo-t-fast: 140ms;
-  --momo-t-base: 220ms;
-  --momo-t-slow: 360ms;
+  /* ---------- 颜色：基础 ---------- */
+  /* 页面底色 → 卡片表面 → 悬浮态，三层递进 */
+  --bg-color: #fbfbfb;
+  --surface-color: #ffffff;
+  --surface-color-hover: #eeeeee;
+  /* 行内代码底色：比 --surface-color-hover 深一档。表格行 hover 也用悬停色，
+     两者同值的话代码块会整块融进被悬停的那一行。 */
+  --code-bg-color: rgba(0, 0, 0, 0.08);
+  /* 旧名字保留兼容：--button-* 是历史命名，语义就是「描边」与「浅色底」 */
+  --button-hover-color: var(--surface-color-hover);
+  --button-border-color: var(--border-color);
+
+  /* 文字：正文 / 次要 / 弱化（禁用、占位） */
+  --text-color: #000000;
+  --text-color-70: #4c4c4c;
+  --text-color-30: #7a7a7a;
+
+  /* 边框：默认分隔 → 强调描边 */
+  --border-color: #d6d6d6;
+  --border-color-strong: #b5b5b5;
+
+  /* 引用块左侧描边：比 --border-color 略浅，压在浅灰底上不抢字 */
+  --quote-left-color: #dadde1;
+
+  --shadow-color: rgba(0, 0, 0, 0.15);
+
+  /* 品牌色（蓝）：文字 / 描边 */
+  /* hsl(207 79% 31%)：在页面底色上 7.52:1（AAA）。早先是 #003b6e，明度只有 22%，
+     对比度远超需要，代价是「蓝」几乎看不出来。 */
+  --link-color: #10558c;
+  /* 拿蓝色当底色时用这一组：白字压 #10558c = 7.78:1 */
+  --accent-bg: #10558c;
+  --accent-fg: #ffffff;
+  --accent-soft: rgba(16, 85, 140, 0.08);
+  --accent-ring: rgba(16, 85, 140, 0.3);
+
+  /* ---------- 颜色：语义 ---------- */
+  /* 四组语义色，每组 = 主色 + 底色 + 标题文字色。
+     正文提示块（markdown.css 的 tip / important / warning / caution）直接取用，
+     规范页色板也读同一批 token——改色只改这里，两边不会跑偏。
+     note 提示块是中性灰，不占用语义色，值写在 markdown.css 里。 */
+  --success-color: #009400;
+  --success-bg-color: #e6f6e6;
+  --success-text-color: #003100;
+
+  --error-color: #e13238;
+  --error-bg-color: #ffebec;
+  --error-text-color: #4b1113;
+
+  --warning-color: #e6a700;
+  --warning-bg-color: #fff7ed;
+  --warning-text-color: #4d3800;
+
+  --info-color: #4cb3d4;
+  --info-bg-color: #eef9fd;
+  --info-text-color: #193c47;
+
+  --verify-success-color: #047857;
+  --verify-success-border-color: rgba(4, 120, 87, 0.45);
+  --verify-error-color: #a85757;
+  --verify-error-border-color: rgba(168, 87, 87, 0.55);
+
+  /* 选中文字与滚动条 */
+  --selection-bg-color: #0063ba;
+  --selection-text-color: #ffffff;
+  --scrollbar-thumb: #c1c1c1;
+  --scrollbar-thumb-hover: #a8a8a8;
+  --scrollbar-track: #e1e1e1;
+
+  /* ---------- 字体 ---------- */
+  /* 正文：思源宋体（Noto Serif SC 自托管；Source Han Serif 是 Adobe 家的同名字体） */
+  --momo-font-serif: "Noto Serif SC", "Source Han Serif SC", "Source Han Serif CN",
+    "Times New Roman", serif;
+  /* 展示字：站名、页脚等拉丁文场景 */
+  --momo-font-display: "EB Garamond", "Noto Serif SC", serif;
+  /* 界面：霞鹜文楷（站内已自托管引用块同款的 LXGW Bright Medium） */
+  --momo-font-sans: "LXGW Bright Medium", ui-sans-serif, system-ui, -apple-system,
+    "Segoe UI", "PingFang SC", "Noto Sans SC", sans-serif;
+  --momo-font-mono: "JetBrains Mono Variable", "Fira Code", "Cascadia Code",
+    Consolas, monospace;
+
+  /* 字号标尺（正文默认 16px） */
+  --momo-font-size-2xs: 11px;
+  --momo-font-size-xs: 12px;
+  --momo-font-size-sm: 13px;
+  --momo-font-size-md: 14px;
+  --momo-font-size-base: 16px;
+  --momo-font-size-lg: 18px;
+  --momo-font-size-xl: 20px;
+  --momo-font-size-2xl: 24px;
+  /* 3xl 定为 28px：正文 h2 直接取这一档（正文 h5 取 lg = 18px） */
+  --momo-font-size-3xl: 28px;
+  --momo-font-size-4xl: 32px;
+  /* 展示级：只给规范页 hero 这类整页大标题。值是 clamp，不是单一字号 */
+  --momo-font-size-display: clamp(2.25rem, 5vw, 3.5rem);
+
+  /* 字重 */
+  --momo-font-weight-regular: 400;
+  --momo-font-weight-medium: 500;
+  --momo-font-weight-semibold: 600;
+  --momo-font-weight-bold: 700;
+
+  /* 行高：标题 / 正文 / 长文 */
+  --momo-leading-tight: 1.25;
+  --momo-leading-normal: 1.5;
+  --momo-leading-relaxed: 1.75;
+
+  /* ---------- 间距（4px 基数） ---------- */
+  --momo-space-1: 4px;
+  --momo-space-2: 8px;
+  --momo-space-3: 12px;
+  --momo-space-4: 16px;
+  --momo-space-5: 20px;
+  --momo-space-6: 24px;
+  --momo-space-7: 32px;
+  --momo-space-8: 40px;
+  --momo-space-9: 52px;
+  --momo-space-10: 64px;
+
+  /* ---------- 圆角 ---------- */
+  --momo-radius-xs: 4px; /* 行内代码、角标 */
+  --momo-radius-sm: 6px; /* 小标签、提示气泡 */
+  --momo-radius-md: 8px; /* 按钮、输入框、页码 */
+  --momo-radius-lg: 12px; /* 卡片、代码块、目录面板 */
+  --momo-radius-xl: 16px; /* 弹窗、抽屉、大容器 */
+  --momo-radius-pill: 999px;
+
+  /* ---------- 阴影 ---------- */
+  --momo-shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.05);
+  --momo-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.04),
+    0 2px 8px rgba(0, 0, 0, 0.06);
+  --momo-shadow-md: 0 4px 12px var(--shadow-color);
+  --momo-shadow-lg: 0 12px 32px var(--shadow-color);
+  --momo-shadow-xl: 0 24px 60px var(--shadow-color);
+
+  /* ---------- 动效 ----------
+   * 全站只从这里取时长与曲线，避免每个组件各写一套。
+   * 规矩：
+   *   --momo-ease-pop 只给「有物理体积」的东西（胶囊、卡片、按钮、弹窗、菜单项）；
+   *   文字颜色一律 --momo-t-fast + --momo-ease-out，不加回弹（文字回弹显廉价）。
+   */
+  --momo-t-fast: 140ms; /* 颜色、hover、focus */
+  --momo-t-base: 220ms; /* 位移、卡片、下拉、入场 */
+  --momo-t-slow: 360ms; /* 较长过渡、列表错走 */
+  --momo-t-press: 90ms; /* 按下反馈，只在 :active 里用 */
+  --momo-t-reveal: 800ms; /* 入场（卡片 pop / 正文 rise，见 global.css 与 @utils/reveal） */
 
   /* 丝滑收尾：位移 / 缩放，不过冲 */
   --momo-ease-out: cubic-bezier(0.22, 1, 0.36, 1);
@@ -32,95 +179,90 @@
   --momo-ease-pop: cubic-bezier(0.34, 1.56, 0.64, 1);
   /* 抽屉 / 面板：快起慢收，不冲（整屏高度过冲会露馅） */
   --momo-ease-sheet: cubic-bezier(0.32, 0.72, 0, 1);
+
+  /* 抬升行程：通用 / 卡片 / 表情 */
+  --momo-lift: -1px;
+  --momo-lift-card: -2px;
+  --momo-lift-emoji: -4px;
+
+  /* 入场行程：首次出现时上移的距离（卡片轻、正文块明显，太浅会看不出「浮上来」） */
+  --momo-rise-card: 32px;
+  --momo-rise-prose: 120px;
+
+  /* 键盘焦点环：暖色模式只有主题蓝，保持一致 */
+  --momo-focus-ring: 0 0 0 3px var(--accent-ring);
+
+  /* ---------- 层级 ---------- */
+  --momo-z-base: 0;
+  --momo-z-raised: 10;
+  --momo-z-header: 50;
+  --momo-z-sticky: 100;
+  --momo-z-fab: 1000;
+  --momo-z-drawer: 1100;
+  --momo-z-modal: 1200;
+  --momo-z-lightbox: 2000;
+  --momo-z-toast: 9000;
+  --momo-z-loading: 9999;
 }
 
+/* ============================================================================
+ * 深色模式
+ * ----------------------------------------------------------------------------
+ * 只覆盖「颜色」与「阴影浓度」，标尺类 token 保持不变。
+ * ========================================================================== */
+[data-theme="dark"] {
+  color-scheme: dark;
 
-/* 颜色变量 */
-/* --bg-color               页面背景色
- * --text-color             文字基本色，通过透明度来控制颜色深浅，分为两类
- *     --text-color:        适用于标题、正文等需要突出显示的内容
- *     --text-color-70      适用于次要信息、辅助文本等不需要过于突出显示的内容
- * --link-color             彩色基本色，适用于链接、按钮等颜色突出的地方（**文字 / 描边**）
- * --accent-bg              强调色**当底色**用时的背景：蓝底按钮、选中的分类胶囊
- * --accent-fg              压在 --accent-bg 上的文字色
- * --button-hover-color     按钮鼠标悬停背景色
- * --button-border-color    按钮边框色
- *
- * ⚠️ --link-color 只管「文字 / 描边」；要拿蓝色当底色（上面还要压字）必须用
- * --accent-bg + --accent-fg。两者在深色模式下必须分开：链接文字要够亮
- * （#57ace7 在 #0a0a0a 上是 7.98:1），同一个亮蓝当底色压白字却只有 2.48:1
- * （AA 要求 4.5:1）——曾经就是把 --link-color 直接当 bg 用，深色下按钮字几乎看不清。
-*/
-:root {
-    --bg-color: #fbfbfb;
-    --text-color: #000000;
-    --text-color-70: #4c4c4c;
-    --shadow-color: rgba(0, 0, 0, 0.15);
-    /* hsl(207 79% 31%)：在页面底色上 7.52:1（AAA）。早先是 #003b6e（明度只有 22%，
-       11:1）——对比度远超需要，代价是「蓝」几乎看不出来：标题 hover 由黑变成它时，
-       肉眼几乎没有变化。 */
-    --link-color: #10558c;
-    /* 白字压 #10558c = 7.78:1 */
-    --accent-bg: #10558c;
-    --accent-fg: #ffffff;
-    --button-hover-color: #eeeeee;
-    --button-border-color: #d6d6d6;
+  --bg-color: #0a0a0a;
+  --surface-color: #141414;
+  --surface-color-hover: #262626;
+  /* 行内代码底：深色下用白色叠加，同样比悬停色亮一档 */
+  --code-bg-color: rgba(255, 255, 255, 0.14);
 
-    --warning-text-color: #4d3800;
-    --warning-bg-color: #fff7ed;
-    --warning-border-color: #e6a700;
+  --text-color: #ffffff;
+  --text-color-70: #b5b5b5;
+  --text-color-30: #8a8a8a;
 
-    --danger-text-color: #4b1113;
-    --danger-bg-color: #ffebec;
-    --danger-border-color: #e13238;
-    
-    /* 滚动条颜色 */
-    --scrollbar-thumb: #c1c1c1;
-    --scrollbar-thumb-hover: #a8a8a8;
-    --scrollbar-track: #e1e1e1;
+  --border-color: #3d3d3d;
+  --border-color-strong: #5a5a5a;
 
-    --selection-bg-color: #0063ba;
-    --selection-text-color: #ffffff;
+  --quote-left-color: #606770;
 
-    --verify-success-color: #047857;
-    --verify-success-border-color: rgba(4, 120, 87, 0.45);
-    --verify-error-color:  #a85757;
-    --verify-error-border-color: rgba(168, 87, 87, 0.55);
-  }
+  /* 深色下阴影靠黑色叠加，不能用白色（会变成发光） */
+  --shadow-color: rgba(0, 0, 0, 0.55);
 
-  [data-theme="dark"] {
-    color-scheme: dark;
+  --link-color: #57ace7;
+  /* 深色下链接文字用亮蓝（#0a0a0a 上 7.98:1），底色则必须压暗：
+     #0d5a94 上压白字是 7.22:1（AAA）。 */
+  --accent-bg: #0d5a94;
+  --accent-fg: #ffffff;
+  --accent-soft: rgba(87, 172, 231, 0.12);
+  --accent-ring: rgba(87, 172, 231, 0.35);
 
-    --bg-color: #0a0a0a;
-    --text-color: #ffffff;
-    --text-color-70: #b5b5b5;
-    --shadow-color: rgba(255, 255, 255, 0.15);
-    --link-color: #57ace7;
-    /* 深色下链接文字用亮蓝（#0a0a0a 上 7.98:1），底色则必须压暗：
-       #0d5a94 上压白字是 7.22:1（AAA）；若图省事直接拿 #57ace7 当底色，白字只有 2.48:1。 */
-    --accent-bg: #0d5a94;
-    --accent-fg: #ffffff;
-    --button-hover-color: #262626;
-    --button-border-color: #3d3d3d;
+  --success-color: #009400;
+  --success-bg-color: #1a2e1a;
+  --success-text-color: #a8e6a8;
 
-    --warning-text-color: #f2d680;
-    --warning-bg-color: #332a00;
-    --warning-border-color: #ad8002;
+  --error-color: #e13238;
+  --error-bg-color: #3b1d1e;
+  --error-text-color: #f2a0a3;
 
-    --danger-text-color: #f2a0a3;
-    --danger-bg-color: #3b1d1e;
-    --danger-border-color: #e13238;
-    
-    /* 滚动条颜色 */
-    --scrollbar-thumb: #4b4c4e;
-    --scrollbar-thumb-hover: #37383a;
-    --scrollbar-track: #1a202c;
+  --warning-color: #ad8002;
+  --warning-bg-color: #332a00;
+  --warning-text-color: #f2d680;
 
-    --selection-bg-color: #2f5f80;
-    --selection-text-color: #ffffff;
+  --info-color: #4cb3d4;
+  --info-bg-color: #1a2d33;
+  --info-text-color: #a3d9e9;
 
-    --verify-success-color: #33da98;
-    --verify-success-border-color: rgba(51, 218, 152, 0.45);
-    --verify-error-color:  #e09a9a;
-    --verify-error-border-color: rgba(224, 154, 154, 0.45);
-  }
+  --verify-success-color: #33da98;
+  --verify-success-border-color: rgba(51, 218, 152, 0.45);
+  --verify-error-color: #e09a9a;
+  --verify-error-border-color: rgba(224, 154, 154, 0.45);
+
+  --selection-bg-color: #2f5f80;
+  --selection-text-color: #ffffff;
+  --scrollbar-thumb: #4b4c4e;
+  --scrollbar-thumb-hover: #37383a;
+  --scrollbar-track: #1a202c;
+}

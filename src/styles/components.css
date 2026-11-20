@@ -1,0 +1,312 @@
+/* ============================================================================
+ * Momo 组件基类
+ * ----------------------------------------------------------------------------
+ * 从现有界面里抽出的可复用写法：卡片、按钮、标签、表单、面板、提示。
+ * 组件模板只负责「用哪个类」，颜色 / 圆角 / 阴影 / 动效全部走 variables.css。
+ *
+ * 放在 @layer components 里：Tailwind 的 utilities 仍然可以按需覆盖单点样式
+ * （例如 mt-6、w-full），不会被这里的默认值压住。
+ * ========================================================================== */
+
+@layer components {
+  /* ---------------- 卡片 ---------------- */
+  .momo-card {
+    position: relative;
+    background-color: var(--surface-color);
+    border: 1px solid var(--border-color);
+    border-radius: var(--momo-radius-lg);
+    box-shadow: var(--momo-shadow-sm);
+    overflow: hidden;
+  }
+
+  /* 不上底色的卡片：文章卡片这类「直接排在页面上」的条目，只留描边与阴影，
+     底色由页面自己透出来（深色模式也不会多出一块灰面）。 */
+  .momo-card--plain {
+    background-color: transparent;
+  }
+
+  .momo-card--interactive {
+    transition:
+      transform var(--momo-t-base) var(--momo-ease-out),
+      box-shadow var(--momo-t-base) var(--momo-ease-out),
+      border-color var(--momo-t-fast) var(--momo-ease-out);
+  }
+
+  @media (hover: hover) {
+    .momo-card--interactive:hover {
+      transform: translateY(var(--momo-lift-card));
+      box-shadow: var(--momo-shadow-md);
+      border-color: var(--border-color-strong);
+    }
+  }
+
+  /* ---------------- 按钮 ---------------- */
+  .momo-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--momo-space-2);
+    min-height: 36px;
+    padding: 0 var(--momo-space-4);
+    border: 1px solid var(--border-color);
+    border-radius: var(--momo-radius-md);
+    background-color: var(--surface-color);
+    color: var(--text-color);
+    font-family: inherit;
+    font-size: var(--momo-font-size-md);
+    font-weight: var(--momo-font-weight-medium);
+    line-height: 1;
+    white-space: nowrap;
+    cursor: pointer;
+    transition:
+      background-color var(--momo-t-fast) var(--momo-ease-out),
+      color var(--momo-t-fast) var(--momo-ease-out),
+      border-color var(--momo-t-fast) var(--momo-ease-out),
+      box-shadow var(--momo-t-fast) var(--momo-ease-out),
+      transform var(--momo-t-base) var(--momo-ease-pop);
+  }
+
+  .momo-btn:hover {
+    background-color: var(--surface-color-hover);
+    border-color: var(--border-color-strong);
+  }
+
+  .momo-btn:active {
+    transform: scale(0.97);
+    transition-duration: var(--momo-t-press);
+  }
+
+  .momo-btn:focus-visible {
+    outline: none;
+    box-shadow: var(--momo-focus-ring);
+  }
+
+  .momo-btn--primary {
+    background-color: var(--accent-bg);
+    border-color: var(--accent-bg);
+    color: var(--accent-fg);
+  }
+
+  .momo-btn--primary:hover {
+    /* 压深用 --text-color 而不是 #000：浅色模式下它是黑（变暗），
+       深色模式下它是白（变亮）——同一行代码在两种主题里都朝「更醒目」的方向走。 */
+    background-color: color-mix(in srgb, var(--accent-bg) 88%, var(--text-color));
+    border-color: color-mix(in srgb, var(--accent-bg) 88%, var(--text-color));
+  }
+
+  .momo-btn--ghost {
+    background-color: transparent;
+    border-color: transparent;
+  }
+
+  .momo-btn--ghost:hover {
+    background-color: var(--surface-color-hover);
+    border-color: transparent;
+  }
+
+  .momo-btn--sm {
+    min-height: 28px;
+    padding: 0 var(--momo-space-2);
+    gap: var(--momo-space-1);
+    font-size: var(--momo-font-size-xs);
+    border-radius: var(--momo-radius-md);
+  }
+
+  .momo-btn--lg {
+    min-height: 44px;
+    padding: 0 var(--momo-space-6);
+    font-size: var(--momo-font-size-base);
+  }
+
+  .momo-btn[disabled],
+  .momo-btn[aria-disabled="true"] {
+    opacity: 0.45;
+    pointer-events: none;
+  }
+
+  /* 纯图标按钮：顶栏搜索 / 主题 / 语言、弹窗关闭等 */
+  .momo-icon-btn {
+    width: 40px;
+    height: 40px;
+    padding: 0;
+    border-radius: var(--momo-radius-md);
+  }
+
+  /* 列表行：归档条目、搜索结果等「不是卡片」的可点行 */
+  .momo-row {
+    display: flex;
+    align-items: center;
+    gap: var(--momo-space-4);
+    padding: var(--momo-space-2);
+    border-radius: var(--momo-radius-md);
+    transition: background-color var(--momo-t-fast) var(--momo-ease-out);
+  }
+
+  .momo-row:hover {
+    background-color: var(--surface-color-hover);
+  }
+
+  /* ---------------- 标签 / 分类胶囊 ---------------- */
+  .momo-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--momo-space-1);
+    padding: 4px 12px;
+    border: 1px solid var(--border-color);
+    border-radius: var(--momo-radius-sm);
+    background-color: transparent;
+    color: var(--text-color);
+    font-family: inherit;
+    font-size: var(--momo-font-size-xs);
+    line-height: 1.5;
+    cursor: pointer;
+    transition:
+      color var(--momo-t-fast) var(--momo-ease-out),
+      background-color var(--momo-t-fast) var(--momo-ease-out),
+      border-color var(--momo-t-fast) var(--momo-ease-out);
+  }
+
+  .momo-chip:hover {
+    border-color: var(--link-color);
+    background-color: var(--surface-color-hover);
+  }
+
+  .momo-chip[aria-current="true"],
+  .momo-chip.is-active {
+    background-color: var(--accent-bg);
+    border-color: var(--accent-bg);
+    color: var(--accent-fg);
+  }
+
+  .momo-chip[aria-current="true"]:hover,
+  .momo-chip.is-active:hover {
+    background-color: color-mix(in srgb, var(--accent-bg) 88%, var(--text-color));
+    border-color: color-mix(in srgb, var(--accent-bg) 88%, var(--text-color));
+  }
+
+  /* 小号角标：语言标记、分类名等 */
+  .momo-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--momo-space-1);
+    padding: 2px var(--momo-space-2);
+    border-radius: var(--momo-radius-xs);
+    background-color: var(--surface-color-hover);
+    border: 1px solid var(--border-color);
+    color: var(--text-color-70);
+    font-family: inherit;
+    font-size: var(--momo-font-size-xs);
+    line-height: 1.5;
+  }
+
+  /* ---------------- 表单 ---------------- */
+  .momo-field {
+    width: 100%;
+    padding: var(--momo-space-2) var(--momo-space-3);
+    border: 1px solid var(--border-color);
+    border-radius: var(--momo-radius-md);
+    background-color: var(--surface-color);
+    color: var(--text-color);
+    font-family: inherit;
+    font-size: var(--momo-font-size-md);
+    line-height: var(--momo-leading-normal);
+    transition:
+      border-color var(--momo-t-fast) var(--momo-ease-out),
+      background-color var(--momo-t-fast) var(--momo-ease-out);
+  }
+
+  .momo-field::placeholder {
+    color: var(--text-color-30);
+  }
+
+  .momo-field:hover {
+    border-color: var(--border-color-strong);
+  }
+
+  /* 聚焦只换描边颜色：不加光晕，避免和提示块、按钮焦点环抢注意力 */
+  .momo-field:focus {
+    outline: none;
+    border-color: var(--link-color);
+  }
+
+  .momo-field[disabled] {
+    background-color: var(--surface-color-hover);
+    color: var(--text-color-30);
+    cursor: not-allowed;
+  }
+
+  /* ---------------- 面板 / 弹层 ---------------- */
+  .momo-panel {
+    background-color: var(--surface-color);
+    border: 1px solid var(--border-color);
+    border-radius: var(--momo-radius-xl);
+    box-shadow: var(--momo-shadow-lg);
+  }
+
+  /* 下拉菜单：比弹窗小一档 */
+  .momo-menu {
+    background-color: var(--surface-color);
+    border: 1px solid var(--border-color);
+    border-radius: var(--momo-radius-lg);
+    box-shadow: var(--momo-shadow-md);
+  }
+
+  .momo-divider {
+    border: 0;
+    border-top: 1px solid var(--border-color);
+  }
+
+  /* ---------------- 工具提示 ----------------
+   * 用 data-tooltip 承载文案；图标按钮 / 页脚链接共用。
+   * pointer-events: none 保证不遮挡鼠标，和站内 tooltip 的行为一致。 */
+  .momo-tooltip {
+    position: relative;
+  }
+
+  .momo-tooltip::after {
+    content: attr(data-tooltip);
+    position: absolute;
+    left: 50%;
+    bottom: calc(100% + var(--momo-space-2));
+    transform: translateX(-50%);
+    padding: 4px var(--momo-space-2);
+    border-radius: var(--momo-radius-sm);
+    background-color: var(--text-color);
+    color: var(--bg-color);
+    font-size: var(--momo-font-size-xs);
+    font-weight: var(--momo-font-weight-semibold);
+    line-height: 1.5;
+    white-space: nowrap;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity var(--momo-t-fast) var(--momo-ease-out);
+    z-index: var(--momo-z-fab);
+  }
+
+  .momo-tooltip:hover::after,
+  .momo-tooltip:focus-visible::after {
+    opacity: 1;
+  }
+
+  /* ---------------- 键盘焦点 ---------------- */
+  :where(a, button, input, textarea, select, summary):focus-visible {
+    outline: 2px solid var(--link-color);
+    outline-offset: 2px;
+  }
+
+  /* ---------------- 减弱动效 ---------------- */
+  @media (prefers-reduced-motion: reduce) {
+    .momo-card--interactive,
+    .momo-btn,
+    .momo-btn:active,
+    .momo-chip,
+    .momo-field,
+    .momo-tooltip::after {
+      transition-duration: 1ms;
+    }
+
+    .momo-card--interactive:hover {
+      transform: none;
+    }
+  }
+}
