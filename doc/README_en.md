@@ -13,6 +13,7 @@ Momo originates from Xiaohongshu📕, serving as the default nickname for every 
 
 * **Minimalist Design**: Clean page layout with black and white as primary colors, accented by blue
 * **Dark Mode**: Supports manual switching or automatic system adaptation
+* **Design reference page**: a built-in [design system page](https://momo.motues.top/design) documents the colors, type scale, spacing, radii, motion and components of the whole site in one place, with values read straight from the stylesheets so the docs cannot drift from the UI
 * **Photo cover**: the first page of the home page can use a full-screen photo as its cover, with the title and subtitle centered and enlarged on top of an adjustable black mask; scrolling down moves the title smoothly back to its place while the photo fades into a faint backdrop, and every other page keeps a very faint copy of it
 * **Client-side navigation**: in-site links are handled by [swup](https://swup.js.org/) instead of full page reloads, with hover preloading, fade transitions and "back / forward returns to the same spot"
 * **Mobile Adaptation**: Components optimized for mobile devices, delivering the same experience as desktop browsers
@@ -83,4 +84,4 @@ All commands below can be executed in the root directory
 * [Astro](https://astro.build/)
 * [Fuwari](https://github.com/saicaca/fuwari)
 * [Tyndall](https://github.com/moyuin-aka/tyndall-public)
-* [Desigen Rules](https://momo.motues.top/design)
+* [Design Rules](https://momo.motues.top/design)

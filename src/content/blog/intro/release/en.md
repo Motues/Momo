@@ -38,6 +38,14 @@ Below are general modification suggestions.
 
 > Version numbers follow the `YY.MM.DD` format
 
+### 26.11.21
+
+* **New design reference page**: the site now has a design system page (`/design`, English `/en/design`) that gathers the colors, type sizes, spacing, radii, motion and components of the whole site in one place, reachable from the footer icon; the values are read straight from the stylesheets, so the docs cannot drift from the UI
+* **One visual language across the site**: colors, type, spacing, radii, shadows and motion timings now come from a single set of design tokens shared by cards, buttons, category chips, callouts and the search dialog, with contrast recalibrated in both light and dark mode
+* **More reliable entrance animations**: cards and prose now rise with a built-in animation instead of AOS; it keeps working after in-site navigation (no more "only after a refresh"), and content is visible immediately when the animation switch is off or JavaScript is disabled
+* **Color and breakpoint tune-up**: the link blue and its dark-mode counterpart were re-picked, the four callout colors are unified, the mobile breakpoint is consistently 776px, and the CMS live preview now follows the site palette
+* No config file needs manual merging this time (`src/config.ts` can stay as yours); just run `pnpm install` after overwriting — AOS has been removed from the dependencies
+
 ### 26.11.19
 
 * **Emoji keep themselves up to date**: emoji packs now use "cache first, revalidate in the background" — the panel is instant from cache and only after 6 hours does it quietly check the source when idle, updating only when the content really changed; a refresh button in the panel header pulls the latest right away
