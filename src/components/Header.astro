@@ -99,22 +99,22 @@ if (profileConfig.indexPage) {
     <!-- tools -->
     <div class="ml-auto flex gap-2 pl-4 py-2 justify-end z-30">
         <!-- Search -->
-        <button id="search-button" class="press flex items-center justify-center w-10 h-10 hover:bg-[var(--button-hover-color)] rounded-lg hover:text-current border border-[var(--button-border-color)]" aria-label="Search">
+        <button id="search-button" class="press momo-btn momo-icon-btn" aria-label="Search">
             <Icon name="fa6-solid:magnifying-glass" class="w-4 h-4" />
         </button>
         <!-- Dark Mode -->
-        <ThemeIcon class="press flex items-center justify-center w-10 h-10 hover:bg-[var(--button-hover-color)] rounded-lg hover:text-current border border-[var(--button-border-color)]"/>
+        <ThemeIcon class="press momo-btn momo-icon-btn"/>
         <!-- RSS -->
         <!-- <a href="/rss.xml" target="_blank" class="flex items-center justify-center w-10 h-10 hover:bg-[var(--button-hover-color)] active:scale-90 rounded-lg hover:text-current border border-[var(--button-border-color)] transition duration-300">
             <Icon name="simple-icons:rss" class="w-4 h-4" />
         </a> -->
         <!-- Language Switcher -->
         {showLanguageSwitcher && <div class="relative">
-            <button id="language-button" class="press flex items-center justify-center w-10 h-10 hover:bg-[var(--button-hover-color)] rounded-lg hover:text-current border border-[var(--button-border-color)]" aria-label="Language Switcher">
+            <button id="language-button" class="press momo-btn momo-icon-btn" aria-label="Language Switcher">
                 <Icon name="fa6-solid:globe" class="w-4 h-4" />
             </button>
             
-          <div id="language-menu" data-default-locale={i18n?.defaultLocale || 'zh-cn'} class="hidden absolute right-0 mt-2 w-30 bg-[var(--bg-color)] border border-[var(--button-border-color)] rounded-lg shadow-lg z-50">
+          <div id="language-menu" data-default-locale={i18n?.defaultLocale || 'zh-cn'} class="momo-menu hidden absolute right-0 mt-2 w-30 z-50">
               <div class="py-1 text-right">
                   <a data-lang="zh-cn" href={getLocalePath("/", "zh-cn")} class={`lang-option block mx-2 my-1 p-2 text-sm rounded ${
                     currentLang === "zh-cn" ? "bg-[var(--button-hover-color)]" : "hover:bg-[var(--button-hover-color)]"}`}>
@@ -131,7 +131,7 @@ if (profileConfig.indexPage) {
         </div>}
         <div class="relative md:hidden">
           <!-- Mobile Menu -->
-          <button id="mobile-menu-button" class="press flex items-center justify-center w-10 h-10 hover:bg-[var(--button-hover-color)] rounded-lg hover:text-current border border-[var(--button-border-color)]" aria-label="Mobile Menu">
+          <button id="mobile-menu-button" class="press momo-btn momo-icon-btn" aria-label="Mobile Menu">
               <Icon name="fa6-solid:align-justify" class="w-5 h-5" />
           </button>
               
@@ -168,14 +168,14 @@ if (profileConfig.indexPage) {
 <!-- Mobile Menu -->
 <!-- 层级：与搜索弹层同层（z-[1100]），必须高于右下角 FabMenu（z-[1000]），
      否则抽屉的遮罩盖不住浮动按钮，FAB 会浮在遮罩之上 -->
-<div id="mobile-menu-container" class="fixed inset-0 z-[1100] hidden">
+<div id="mobile-menu-container" class="fixed inset-0 z-[var(--momo-z-drawer)] hidden">
     <div id="mobile-menu-overlay" class="absolute inset-0 bg-black/60 backdrop-blur-sm opacity-0"></div>
     
     <div id="mobile-menu-drawer" class="absolute top-0 left-0 bottom-0 w-[70%] max-w-[300px] bg-[var(--bg-color)] shadow-2xl transform -translate-x-full flex flex-col">
         
         <div class="flex items-center justify-between p-5 border-b border-[var(--button-border-color)]">
             <span class="text-xl font-bold header-logo">{ siteConfig.title }</span>
-            <button id="mobile-menu-close" class="w-10 h-10 flex items-center justify-center rounded-lg hover:bg-[var(--button-hover-color)] transition-colors">
+            <button id="mobile-menu-close" class="momo-btn momo-btn--ghost momo-icon-btn">
                 <Icon name="fa6-solid:xmark" class="w-5 h-5" />
             </button>
         </div>
@@ -224,7 +224,7 @@ if (profileConfig.indexPage) {
                                 aria-current="false"
                                 href={getRelativeLocaleUrl(currentLang, `/archives/?category=${encodeURIComponent(value)}`)}
                                 data-i18n-labels={value === 'undefined' ? JSON.stringify(i18nLabels("pagecard.uncategorized")) : undefined}
-                                class="inline-flex items-center px-3 py-1.5 text-sm rounded-md border border-[var(--button-border-color)] text-[var(--text-color)] transition duration-200 hover:border-[var(--link-color)] hover:bg-[var(--button-hover-color)] active:bg-[var(--button-hover-color)] active:text-[var(--link-color)] active:scale-95"
+                                class="momo-chip"
                             >
                                 <span data-i18n-text>{cat === 'undefined' ? t("pagecard.uncategorized") : cat}</span>
                             </a>
@@ -269,7 +269,7 @@ if (profileConfig.indexPage) {
               transform 380ms var(--momo-ease-sheet);
 }
   /* 移动端 (小于 776px) 的毛玻璃和阴影 */
-  @media (max-width: 775px) {
+  @media (max-width: 776px) {
     #main-header {
       /* 半透明主题背景 + blur 实现毛玻璃。*/
       background-color: color-mix(in srgb, var(--bg-color) 40%, transparent);

@@ -134,7 +134,8 @@ const safeWidths = filteredWidths && filteredWidths.length > 0 ? filteredWidths 
     bottom: 0;
     background: var(--lqip);
     z-index: 0;
-    transition: opacity 0.8s ease;
+    /* LQIP 淡出：t-slow 是标尺里最长的一档，再长就盖不住图片本身的解码抖动 */
+    transition: opacity var(--momo-t-slow) var(--momo-ease-out);
     /* 这里原本还有 filter: blur(40px) 与 transform: scale(1.2)：
        --lqip 本身就是多条 radial-gradient（过渡是平滑的），再叠 40px 模糊观感几乎无差别，
        代价却是每张卡片常驻一个全尺寸模糊合成层（首页 6 张 = 6 个），滚动时纯属白烧填充率。
@@ -150,7 +151,7 @@ const safeWidths = filteredWidths && filteredWidths.length > 0 ? filteredWidths 
     object-fit: cover;
     object-position: center;
     opacity: 0;
-    transition: opacity 0.6s ease-in-out;
+    transition: opacity var(--momo-t-slow) var(--momo-ease-out);
 }
 
 /* 图片加载完成后 */
@@ -160,9 +161,11 @@ const safeWidths = filteredWidths && filteredWidths.length > 0 ? filteredWidths 
 
 .image-wrapper[data-loaded="true"][data-lqip-enabled="true"] .lqip-bg {
     opacity: 0; /* 加载完后隐藏背景层 */
-    /* 淡出结束后真正移出合成树：visibility 延迟 0.8s 再翻，不打断上面的淡出 */
+    /* 淡出结束后真正移出合成树：visibility 延迟一个 t-slow 再翻，不打断上面的淡出 */
     visibility: hidden;
-    transition: opacity 0.8s ease, visibility 0s 0.8s;
+    transition:
+        opacity var(--momo-t-slow) var(--momo-ease-out),
+        visibility 0s var(--momo-t-slow);
 }
 
 .image-wrapper[data-lqip-enabled="false"] .lqip-bg {

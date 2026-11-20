@@ -51,7 +51,7 @@
     inset: 0;
     /* 必须高于 FabMenu 容器（z-1000）与目录面板（z-1001），
        否则灯箱打开时右下角悬浮按钮会浮在遮罩之上 */
-    z-index: 2000;
+    z-index: var(--momo-z-lightbox);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -94,7 +94,7 @@
   }
 
   .lightbox-stage.is-animating .lightbox-img {
-    transition: transform 0.16s cubic-bezier(0.22, 1, 0.36, 1);
+    transition: transform var(--momo-t-fast) var(--momo-ease-out);
   }
 
   .lightbox-bar {
@@ -130,7 +130,7 @@
     color: #fff;
     border-radius: 8px;
     cursor: pointer;
-    transition: background 0.15s ease, transform 0.15s ease;
+    transition: background var(--momo-t-fast) var(--momo-ease-out), transform var(--momo-t-fast) var(--momo-ease-out);
   }
 
   .lightbox-btn { width: 34px; height: 34px; }

@@ -124,8 +124,9 @@ const postJsonLd = articleJsonLd({
                 <ImageModule src={image} alt={entry.data.title} class="w-full h-full object-cover" priority widths={[480, 776, 1080]} sizes="(max-width: 862px) 90vw, 776px" quality={65} />
             </div>
         )}
+        {/* 页面级状态条（不是正文提示块）：圆角 8px 比提示块的 6px 大一档，属规范里的有意例外 */}
         {entry.data.draft && (
-        <div class="my-8 flex items-start gap-3 rounded-lg border border-[var(--danger-border-color)] bg-[var(--danger-bg-color)] p-4 text-sm text-[var(--danger-text-color)] transition-colors">
+        <div class="my-8 flex items-start gap-3 rounded-[var(--momo-radius-md)] border border-[var(--error-color)] bg-[var(--error-bg-color)] p-4 text-sm text-[var(--error-text-color)] transition-colors">
             <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="mt-0.5 shrink-0 opacity-80">
                 <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
                 <line x1="12" y1="9" x2="12" y2="13"/>
@@ -141,7 +142,7 @@ const postJsonLd = articleJsonLd({
         </div>
         )}
         {entry.isFallback && (
-        <div class="my-8 flex items-start gap-3 rounded-lg border border-[var(--warning-border-color)] bg-[var(--warning-bg-color)] p-4 text-sm text-[var(--warning-text-color)] transition-colors">
+        <div class="my-8 flex items-start gap-3 rounded-[var(--momo-radius-md)] border border-[var(--warning-color)] bg-[var(--warning-bg-color)] p-4 text-sm text-[var(--warning-text-color)] transition-colors">
             <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="mt-0.5 shrink-0 opacity-80">
             <circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/>
             </svg>

@@ -29,7 +29,7 @@ const tocHeadings = headings.filter(h => h.depth > 1 && h.depth < 5);
 
 <div 
   id="fabMenu" 
-  class="fixed bottom-[5vh] lg:bottom-[13.5vh] right-[7vw] lg:left-[var(--toc-offset-left)] w-10 h-10 z-[1000] pointer-events-none"
+  class="fixed bottom-[5vh] lg:bottom-[13.5vh] right-[7vw] lg:left-[var(--toc-offset-left)] w-10 h-10 z-[var(--momo-z-fab)] pointer-events-none"
   data-scroll-distance={scrollToTopDistance}
 >
   <div id="menuItems" class="absolute bottom-full left-0 mb-3 flex flex-col items-center gap-3 transition duration-300 ease-out translate-y-10 pointer-events-none [.is-active_&]:translate-y-0 [.is-active_&]:pointer-events-auto">
@@ -78,7 +78,7 @@ const tocHeadings = headings.filter(h => h.depth > 1 && h.depth < 5);
   {tocHeadings.length > 0 && (
     <div 
       id="tocPanel" 
-      class="lg:hidden absolute bottom-25 right-0 lg:bottom-0 lg:left-14 w-60 lg:w-72 max-h-[60vh] flex flex-col bg-[var(--bg-color)]/95 backdrop-blur-lg border border-[var(--text-color)]/20 rounded-2xl shadow-2xl transition duration-300 ease-[cubic-bezier(0.34,1.56,0.64,1)] origin-bottom-right lg:origin-bottom-left scale-50 opacity-0 pointer-events-none translate-y-4 lg:translate-y-0 lg:-translate-x-4 [.is-visible.toc-active_&]:scale-100 [.is-visible.toc-active_&]:opacity-100 [.is-visible.toc-active_&]:pointer-events-auto [.is-visible.toc-active_&]:translate-y-0 [.is-visible.toc-active_&]:translate-x-0 z-[1001]"
+      class="lg:hidden absolute bottom-25 right-0 lg:bottom-0 lg:left-14 w-60 lg:w-72 max-h-[60vh] flex flex-col bg-[var(--bg-color)]/95 backdrop-blur-lg border border-[var(--border-color)] rounded-[var(--momo-radius-xl)] shadow-[var(--momo-shadow-xl)] transition duration-300 ease-[cubic-bezier(0.34,1.56,0.64,1)] origin-bottom-right lg:origin-bottom-left scale-50 opacity-0 pointer-events-none translate-y-4 lg:translate-y-0 lg:-translate-x-4 [.is-visible.toc-active_&]:scale-100 [.is-visible.toc-active_&]:opacity-100 [.is-visible.toc-active_&]:pointer-events-auto [.is-visible.toc-active_&]:translate-y-0 [.is-visible.toc-active_&]:translate-x-0 z-[var(--momo-z-fab)]"
     >
       <div class="px-4 py-3 border-b border-[var(--text-color)]/10 font-bold text-sm text-[var(--text-color)] flex justify-between items-center bg-[var(--button-hover-color)] rounded-t-2xl">
         <span>{t("button.toc")}</span>
@@ -369,7 +369,8 @@ registerPageInit(initFabMenu);
 
   #progress-circle {
     stroke: var(--text-color);
-    transition: stroke-dasharray 0.1s linear;
+    /* 阅读进度环：跟着滚动逐帧更新，只需一点点补间，走最短的 t-fast */
+    transition: stroke-dasharray var(--momo-t-fast) linear;
   }
   
   .scrollbar-thin::-webkit-scrollbar {

@@ -195,9 +195,9 @@ if (typeof window !== 'undefined') {
     /* 动画：只过渡真正会变化的属性，避免 transition: all 命中布局属性 */
     opacity: 0;
     visibility: hidden;
-    transition: opacity 0.4s cubic-bezier(0.16, 1, 0.3, 1),
-                transform 0.4s cubic-bezier(0.16, 1, 0.3, 1),
-                visibility 0.4s;
+    transition: opacity var(--momo-t-slow) var(--momo-ease-out),
+                transform var(--momo-t-slow) var(--momo-ease-out),
+                visibility var(--momo-t-slow);
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
     white-space: nowrap;
     pointer-events: none;

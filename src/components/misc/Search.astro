@@ -52,11 +52,11 @@ const fakeResult: SearchResult[] = [
   是在 FAB 自己的层叠上下文里，所以盖过 1000 即可），否则遮罩与弹窗会压在 FAB 下面，
   浮动按钮会浮在遮罩之上；同时保持在图片灯箱（z-2000）之下。
 -->
-<div id="search-modal" data-i18n-search={JSON.stringify(translationsByLocale)} data-fake-results={JSON.stringify(fakeResult)} class="fixed inset-0 z-[1100] opacity-0 pointer-events-none">
+<div id="search-modal" data-i18n-search={JSON.stringify(translationsByLocale)} data-fake-results={JSON.stringify(fakeResult)} class="fixed inset-0 z-[var(--momo-z-modal)] opacity-0 pointer-events-none">
   <div class="absolute inset-0 modal-backdrop opacity-0" aria-hidden="true"></div>
 
   <div class="fixed inset-0 flex items-start justify-center p-4 pt-[25vh]">
-    <div class="search-modal-content bg-[var(--bg-color)] rounded-xl shadow-xl w-full max-w-2xl border border-[var(--button-border-color)] overflow-hidden scale-90 opacity-0 flex flex-col max-h-[40vh]">
+    <div class="search-modal-content momo-panel w-full max-w-2xl overflow-hidden scale-90 opacity-0 flex flex-col max-h-[40vh]">
       <div class="flex items-center p-4 border-b border-[var(--button-border-color)]">
         <svg class="w-5 h-5 text-[var(--text-color-70)] mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
@@ -67,7 +67,7 @@ const fakeResult: SearchResult[] = [
           placeholder={t("search.placeholder")+"..."}
           class="w-full bg-transparent border-0 focus:ring-0 focus:outline-none  text-[var(--text-color)]"
         />
-        <button id="close-search" class="ml-2 p-2 text-[var(--text-color-70)] rounded-lg hover:bg-[var(--button-hover-color)] active:bg-[var(--button-hover-color)]" aria-label="Close Search">
+        <button id="close-search" class="ml-2 momo-btn momo-btn--ghost momo-icon-btn" aria-label="Close Search">
           <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
           </svg>
@@ -235,7 +235,7 @@ registerPageInit(initSearchModal);
     /* 注意：构建时的 CSS 压缩器会把 backdrop-filter 与 -webkit-backdrop-filter
        当作同一属性合并、只保留后写的那条，所以标准属性必须单独放进 @supports。 */
     -webkit-backdrop-filter: blur(2px);
-    transition: opacity 0.3s ease-out;
+    transition: opacity var(--momo-t-base) var(--momo-ease-out);
   }
 
   /* 弹窗本体：从 90% 弹出到 100%，带轻微过冲（--momo-ease-pop）。
@@ -245,9 +245,9 @@ registerPageInit(initSearchModal);
      所以这里必须单独列 scale，否则只有透明度在动、缩放是硬跳。 */
   .search-modal-content {
     transition:
-      transform 240ms var(--momo-ease-pop),
-      scale 240ms var(--momo-ease-pop),
-      opacity 200ms var(--momo-ease-out);
+      transform var(--momo-t-base) var(--momo-ease-pop),
+      scale var(--momo-t-base) var(--momo-ease-pop),
+      opacity var(--momo-t-base) var(--momo-ease-out);
   }
 
   @supports (backdrop-filter: blur(1px)) {
@@ -257,11 +257,11 @@ registerPageInit(initSearchModal);
   }
   
   .modal-backdrop.show {
-    animation: backdropFadeIn 0.3s ease-out forwards;
+    animation: backdropFadeIn var(--momo-t-base) var(--momo-ease-out) forwards;
   }
   
   .modal-backdrop:not(.show) {
-    animation: backdropFadeOut 0.3s ease-out forwards;
+    animation: backdropFadeOut var(--momo-t-base) var(--momo-ease-out) forwards;
   }
   
   #search-input::-webkit-input-placeholder {

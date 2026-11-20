@@ -1,5 +1,6 @@
 @import "tailwindcss";
 @import "./variables.css";
+@import "./components.css";
 @import "./special.css";
 @import "./scrollbar.css";
 @import "./comment.css";
@@ -13,7 +14,7 @@
 
   body {
     @apply bg-[--bg-color] text-[--text-color];
-    font-family: "Noto Serif SC", "Times New Roman", "STZhongsong", serif;
+    font-family: var(--momo-font-serif);
     overflow-y: scroll;
   }
 

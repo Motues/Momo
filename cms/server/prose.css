@@ -1,25 +1,58 @@
-/* 预览正文样式 —— 与博客 markdown.css 保持一致的简约风格（内联进预览文档） */
+/* 预览正文样式 —— 与博客 src/styles/markdown.css 保持一致（内联进预览文档）。
+   调色板直接取站点 token 的值（src/styles/variables.css）：预览不是另一套设计，
+   观感、对比度都该和文章页一致。 */
 :root {
-  --text: #1f2328;
-  --text-sub: #5c6470;
-  --border: #e3e6ea;
-  --link: #2563eb;
-  --code-bg: #f3f4f6;
+  --text: #000000;
+  --text-sub: #4c4c4c;
+  --border: #d6d6d6;
+  --link: #10558c;
+  --code-bg: rgba(0, 0, 0, 0.08);
   --pre-bg: #282c34;
   --pre-text: #abb2bf;
-  --bg: #ffffff;
+  --bg: #fbfbfb;
+  /* 与 src/styles/variables.css 的圆角标尺对齐 */
+  --r-xs: 4px;
+  --r-sm: 6px;
+  --r-md: 8px;
+  --r-lg: 12px;
+  --r-pill: 999px;
+  /* 语义色：与 src/styles/variables.css 同值，预览与博客提示块保持一致 */
+  --success-color: #009400;
+  --success-bg-color: #e6f6e6;
+  --success-text-color: #003100;
+  --error-color: #e13238;
+  --error-bg-color: #ffebec;
+  --error-text-color: #4b1113;
+  --warning-color: #e6a700;
+  --warning-bg-color: #fff7ed;
+  --warning-text-color: #4d3800;
+  --info-color: #4cb3d4;
+  --info-bg-color: #eef9fd;
+  --info-text-color: #193c47;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --text: #e6e8eb;
-    --text-sub: #9aa1a9;
-    --border: #2a2e34;
-    --link: #7aa5f5;
-    --code-bg: #1c1f26;
+    --text: #ffffff;
+    --text-sub: #b5b5b5;
+    --border: #3d3d3d;
+    --link: #57ace7;
+    --code-bg: rgba(255, 255, 255, 0.14);
     --pre-bg: #1e222a;
     --pre-text: #abb2bf;
-    --bg: #121417;
+    --bg: #0a0a0a;
+    --success-color: #009400;
+    --success-bg-color: #1a2e1a;
+    --success-text-color: #a8e6a8;
+    --error-color: #e13238;
+    --error-bg-color: #3b1d1e;
+    --error-text-color: #f2a0a3;
+    --warning-color: #ad8002;
+    --warning-bg-color: #332a00;
+    --warning-text-color: #f2d680;
+    --info-color: #4cb3d4;
+    --info-bg-color: #1a2d33;
+    --info-text-color: #a3d9e9;
   }
 }
 
@@ -123,17 +156,17 @@ body {
 
 /* 行内代码 / 代码块 */
 .markdown-content code {
-  font-family: ui-monospace, "JetBrains Mono", "Cascadia Code", Consolas, monospace;
+  font-family: ui-monospace, "JetBrains Mono Variable", "Cascadia Code", Consolas, monospace;
   font-size: 0.9em;
   background: var(--code-bg);
   padding: 0.15em 0.4em;
-  border-radius: 4px;
+  border-radius: var(--r-xs);
 }
 /* 代码块由 Expressive Code 渲染（样式随代码块内联注入），这里只兜底非 EC 的 <pre> */
 .markdown-content pre:not(.expressive-code pre) {
   background: var(--pre-bg);
   color: var(--pre-text);
-  border-radius: 8px;
+  border-radius: var(--r-md);
   padding: 16px;
   overflow-x: auto;
   line-height: 1.6;
@@ -152,20 +185,16 @@ body {
 .markdown-content .note, .markdown-content .tip, .markdown-content .warning,
 .markdown-content .important, .markdown-content .caution {
   padding: 0.5rem 1rem;
-  border-radius: 0.25rem;
+  border-radius: var(--r-sm);
   margin: 1rem 0;
 }
 .markdown-content .note      { background: #eeeeee; }
-.markdown-content .tip       { background: #e6f6e6; }
-.markdown-content .important { background: #eef9fd; }
-.markdown-content .warning   { background: #fff7ed; }
-.markdown-content .caution   { background: #ffebec; }
+.markdown-content .tip       { background: var(--success-bg-color); }
+.markdown-content .important { background: var(--info-bg-color); }
+.markdown-content .warning   { background: var(--warning-bg-color); }
+.markdown-content .caution   { background: var(--error-bg-color); }
 @media (prefers-color-scheme: dark) {
   .markdown-content .note      { background: #2d2d2d; }
-  .markdown-content .tip       { background: #1a2e1a; }
-  .markdown-content .important { background: #1a2d33; }
-  .markdown-content .warning   { background: #332a00; }
-  .markdown-content .caution   { background: #3b1d1e; }
 }
 .markdown-content .admonition-title {
   font-weight: bold;
@@ -175,16 +204,12 @@ body {
   align-items: center;
 }
 .markdown-content .note .admonition-title      { color: #474747; }
-.markdown-content .tip .admonition-title       { color: #003100; }
-.markdown-content .important .admonition-title { color: #193c47; }
-.markdown-content .warning .admonition-title   { color: #92400e; }
-.markdown-content .caution .admonition-title   { color: #4b1113; }
+.markdown-content .tip .admonition-title       { color: var(--success-text-color); }
+.markdown-content .important .admonition-title { color: var(--info-text-color); }
+.markdown-content .warning .admonition-title   { color: var(--warning-text-color); }
+.markdown-content .caution .admonition-title   { color: var(--error-text-color); }
 @media (prefers-color-scheme: dark) {
   .markdown-content .note .admonition-title      { color: #c7c7c7; }
-  .markdown-content .tip .admonition-title       { color: #a8e6a8; }
-  .markdown-content .important .admonition-title { color: #a3d9e9; }
-  .markdown-content .warning .admonition-title   { color: #f2d680; }
-  .markdown-content .caution .admonition-title   { color: #f2a0a3; }
 }
 .markdown-content .admonition-title::before {
   display: inline-block;
@@ -248,7 +273,7 @@ body {
 .markdown-content .spoiler {
   filter: blur(5px);
   background-color: rgba(128, 128, 128, 0.2);
-  border-radius: 3px;
+  border-radius: var(--r-xs);
   transition: filter 0.4s ease, background-color 0.4s ease;
   cursor: pointer;
   padding: 0 2px;
@@ -258,7 +283,7 @@ body {
 
 /* 注音 {文字}(假名) */
 .markdown-content ruby { ruby-align: center; margin: 0 2px; ruby-position: over; }
-.markdown-content rt { font-size: 0.65em; color: #888; user-select: none; transform: translateY(-2px); }
+.markdown-content rt { font-size: 0.65em; color: var(--text-sub); user-select: none; transform: translateY(-2px); }
 
 /* 彩虹字 ==..== */
 .markdown-content .rainbow-text {
@@ -296,7 +321,7 @@ body {
 .markdown-content .typst-render .typst-title {
   margin-top: 0.8rem;
   font-size: 0.9rem;
-  color: #666;
+  color: var(--text-sub);
   font-family: 'Times New Roman', Times, serif;
 }
 
@@ -306,7 +331,7 @@ body {
   max-width: 480px;
   margin: 1.5rem auto;
   border: 1px solid var(--border);
-  border-radius: 12px;
+  border-radius: var(--r-lg);
   padding: 1rem 1.25rem;
   text-decoration: none;
   color: var(--text);
@@ -334,7 +359,7 @@ body {
   max-width: 400px;
   margin: 1.5rem auto;
   border: 1px solid var(--border);
-  border-radius: 12px;
+  border-radius: var(--r-lg);
   text-decoration: none;
   color: var(--text);
   background: var(--bg);
@@ -343,13 +368,18 @@ body {
 .markdown-content .music-card { display: flex; gap: 1rem; padding: 1rem; }
 .markdown-content .music-cover-wrapper { flex-shrink: 0; }
 .markdown-content .music-cover {
-  width: 72px; height: 72px; border-radius: 8px;
+  width: 72px; height: 72px; border-radius: var(--r-md);
   background: var(--code-bg); background-size: cover;
 }
 .markdown-content .music-info { display: flex; flex-direction: column; justify-content: center; }
 .markdown-content .music-title { font-weight: 600; }
 .markdown-content .music-artist { font-size: 0.85em; color: var(--text-sub); }
-.markdown-content .fetch-error { opacity: 0.5; border: 1px solid #ff6b6b; }
+.markdown-content .fetch-error {
+  opacity: 0.5;
+  border: 1px solid var(--error-color);
+  background: var(--error-bg-color);
+  border-radius: var(--r-sm);
+}
 
 /* 单张正文图片：宽度不超过正文栏并保持原始比例，水平居中（与博客 markdown.css 对应）
    没有 max-width 时大图会按固有像素宽渲染，直接横向溢出预览 iframe */
@@ -358,7 +388,7 @@ body {
   height: auto;
   margin: 1rem auto;
   display: block;
-  border-radius: 6px;
+  border-radius: var(--r-md);
 }
 
 /* 连续图片自动拼图（与博客 src/styles/markdown.css 对应）
@@ -389,7 +419,7 @@ body {
   flex: none;
   height: var(--collage-row-height);
   overflow: hidden;
-  border-radius: 10px;
+  border-radius: var(--r-md);
   background: var(--code-bg);
 }
 

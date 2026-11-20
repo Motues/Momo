@@ -1,15 +1,3 @@
-/* 颜色变量 */
-:root {
-    --quote-left-color: #dadde1;
-
-    /* alerts color */
-    --primary-color: #007acc;
-}
-
-[data-theme="dark"] {
-    --quote-left-color: #606770;
-}
-
 .markdown-content {
   line-height: 1.75;
 }
@@ -22,9 +10,11 @@
   contain-intrinsic-size: auto 16rem;
 }
 
+/* 正文标题字号：h1 / h3 / h4 / h6 复用界面字号标尺，
+   h2 取 3xl（28px），h5 取 lg（18px）。 */
 .markdown-content h1 {
   padding: 0.5rem 0;
-  font-size: 2rem;
+  font-size: var(--momo-font-size-4xl);
   font-weight: 700;
   margin: 2rem 0 1rem;
   border-bottom: 1px solid var(--text-color);
@@ -32,32 +22,32 @@
 
 .markdown-content h2 {
   padding: 0.4rem 0;
-  font-size: 1.75rem;
+  font-size: var(--momo-font-size-3xl);
   font-weight: 700;
   margin: 1.8rem 0 1rem;
   border-bottom: 1px solid var(--text-color);
 }
 
 .markdown-content h3 {
-  font-size: 1.5rem;
+  font-size: var(--momo-font-size-2xl);
   font-weight: 600;
   margin: 1.5rem 0 0.8rem;
 }
 
 .markdown-content h4 {
-  font-size: 1.25rem;
+  font-size: var(--momo-font-size-xl);
   font-weight: 600;
   margin: 1.2rem 0 0.6rem;
 }
 
 .markdown-content h5 {
-  font-size: 1.1rem;
+  font-size: var(--momo-font-size-lg);
   font-weight: 600;
   margin: 1rem 0 0.5rem;
 }
 
 .markdown-content h6 {
-  font-size: 1rem;
+  font-size: var(--momo-font-size-base);
   font-weight: 600;
   margin: 1rem 0 0.5rem;
 }
@@ -96,7 +86,7 @@
   text-decoration-color: currentColor;
   text-decoration-thickness: 1px;
   text-underline-offset: 2px;
-  transition: opacity 0.3s ease, color 0.3s ease;
+  transition: opacity var(--momo-t-fast) var(--momo-ease-out), color var(--momo-t-fast) var(--momo-ease-out);
 }
 
 .markdown-content p a:hover,
@@ -140,7 +130,7 @@
   /* 图形略微超出收紧后的 viewBox（不到 0.03 个单位），这里不裁掉 */
   overflow: visible;
   user-select: none;
-  transition: color 0.3s ease, opacity 0.3s ease;
+  transition: color var(--momo-t-fast) var(--momo-ease-out), opacity var(--momo-t-fast) var(--momo-ease-out);
 }
 
 /* 悬停链接时箭头跟着一起变色（并和文字一样略微透明） */
@@ -174,7 +164,7 @@
 }
 
 .markdown-content li::marker {
-  transition: color 0.2s ease;
+  transition: color var(--momo-t-fast) var(--momo-ease-out);
 }
 
 .markdown-content li:hover::marker {
@@ -187,7 +177,7 @@
 }
 
 .markdown-content blockquote {
-  font-family: "LXGW Bright Medium";
+  font-family: var(--momo-font-sans);
   margin: 1.5rem 0;
   padding: 0.1rem 1.2rem;
   border-left: 4px solid var(--quote-left-color);
@@ -206,19 +196,10 @@
 .markdown-content h3 code,
 .markdown-content table code {
   padding: 0.2rem 0.4rem;
-  background-color: rgba(0, 0, 0, 0.05);
-  border-radius: 4px;
-  font-family: 'JetBrains Mono Variable', ui-monospace;
+  background-color: var(--code-bg-color);
+  border-radius: var(--momo-radius-xs);
+  font-family: var(--momo-font-mono);
   font-size: 0.9em;
-}
-
-
-[data-theme="dark"] .markdown-content p code,
-[data-theme="dark"] .markdown-content li code,
-[data-theme="dark"] .markdown-content h2 code,
-[data-theme="dark"] .markdown-content h3 code,
-[data-theme="dark"] .markdown-content table code {
-  background-color: rgba(255, 255, 255, 0.1);
 }
 
 /* 代码块由 Expressive Code 渲染（样式见构建产物 /_astro/ec.*.css，配置见 ec.config.mjs），
@@ -228,8 +209,8 @@
   padding: 1rem;
   overflow: auto;
   background-color: rgba(0, 0, 0, 0.05);
-  border-radius: 6px;
-  font-family: 'JetBrains Mono Variable', ui-monospace;
+  border-radius: var(--momo-radius-md);
+  font-family: var(--momo-font-mono);
   line-height: 1.5;
 }
 
@@ -274,11 +255,11 @@
 }
 
 .markdown-content tbody tr {
-  transition: background-color 0.2s ease;
+  transition: background-color var(--momo-t-fast) var(--momo-ease-out);
 }
 
 .markdown-content tbody tr:hover {
-  background-color: var(--button-hover-color)
+  background-color: var(--surface-color-hover)
 }
 
 .markdown-content th,
@@ -301,7 +282,7 @@
   height: auto;
   margin: 1rem auto;
   display: block;
-  border-radius: 6px;
+  border-radius: var(--momo-radius-md);
 }
 
 /* 连续图片自动拼图（插件 src/plugins/rehype-image-collage.mjs，开关见 siteConfig.theme.imageCollage）
@@ -332,7 +313,7 @@
   flex: none;
   height: var(--collage-row-height);
   overflow: hidden;
-  border-radius: 10px;
+  border-radius: var(--momo-radius-md);
   background: var(--button-hover-color);
 }
 
@@ -349,7 +330,7 @@
   margin: 0;
   border-radius: 0;
   object-fit: cover;
-  transition: transform 0.35s ease;
+  transition: transform var(--momo-t-slow) var(--momo-ease-out);
 }
 
 .markdown-content .image-collage .collage-item:hover .collage-media img {
@@ -391,80 +372,58 @@
 
 .note, .tip, .warning, .important, .caution {
   padding: 0.5rem 1rem;
-  border-radius: 0.25rem;
+  border-radius: var(--momo-radius-sm);
   margin: 1rem 0;
   /* border-left: 6px solid; */
 }
 
+/* 四种语义色与 variables.css 的 token 同源：改色只改 token。
+   note 是中性说明块，保持灰调，不占用语义色。 */
 .note {
-  border-color: #757575; /* Indigo */
+  border-color: #757575;
   background: #eeeeee;
 }
 
 .tip {
-  border-color: #009400; /* Emerald */
-  background: #e6f6e6;
+  border-color: var(--success-color);
+  background: var(--success-bg-color);
 }
 
 .important {
-  border-color: #4cb3d4; /* Red */
-  background: #eef9fd;
+  border-color: var(--info-color);
+  background: var(--info-bg-color);
 }
 
 .warning {
-  border-color: #e6a700; /* Amber */
-  background: #fff7ed;
+  border-color: var(--warning-color);
+  background: var(--warning-bg-color);
 }
 
 .caution {
-  border-color: #e13238; /* Yellow */
-  background: #ffebec;
+  border-color: var(--error-color);
+  background: var(--error-bg-color);
 }
 
 [data-theme="dark"] .note {
-  border-color: #757575; /* Indigo */
+  border-color: #757575;
   background: #2d2d2d;
-}
-
-[data-theme="dark"] .tip {
-  border-color: #009400; /* Emerald */
-  background: #1a2e1a;
-}
-
-[data-theme="dark"] .important {
-  border-color: #4cb3d4; /* Red */
-  background: #1a2d33;
-}
-
-[data-theme="dark"] .warning {
-  border-color: #e6a700; /* Amber */
-  background: #332a00;
-}
-
-[data-theme="dark"] .caution {
-  border-color: #e13238; /* Yellow */
-  background: #3b1d1e;
 }
 
 .admonition-title {
   font-weight: bold;
-  font-size: large;
+  font-size: var(--momo-font-size-lg);
   margin-bottom: 0.5rem;
   display: flex;
   align-items: center;
 }
 
 .note .admonition-title      { color: #474747; }
-.tip .admonition-title       { color: #003100; }
-.important .admonition-title { color: #193c47; }
-.warning .admonition-title   { color: #92400e; }
-.caution .admonition-title   { color: #4b1113; }
+.tip .admonition-title       { color: var(--success-text-color); }
+.important .admonition-title { color: var(--info-text-color); }
+.warning .admonition-title   { color: var(--warning-text-color); }
+.caution .admonition-title   { color: var(--error-text-color); }
 
-[data-theme="dark"] .note .admonition-title      { color: #c7c7c7; }
-[data-theme="dark"] .tip .admonition-title       { color: #a8e6a8; }
-[data-theme="dark"] .important .admonition-title { color: #a3d9e9; }
-[data-theme="dark"] .warning .admonition-title   { color: #f2d680; }
-[data-theme="dark"] .caution .admonition-title   { color: #f2a0a3; }
+[data-theme="dark"] .note .admonition-title { color: #c7c7c7; }
 
 .admonition-title::before {
   display: inline-block;
@@ -500,17 +459,21 @@
     width: 100%;
     max-width: 400px;
     margin: 1.5rem auto;
-    border-radius: 12px;
+    border-radius: var(--momo-radius-lg);
     /* box-shadow: 0 4px 12px var(--shadow-color); */
     text-decoration: none;
-    transition: all 0.8s ease !important; 
+    /* 只过渡真正会变的两个属性；边框走 t-fast（换色），阴影走 t-base（浮起）。
+       早先是 `all 0.8s ease !important`：既不在时长标尺里，也会连带布局属性。 */
+    transition:
+        border-color var(--momo-t-fast) var(--momo-ease-out),
+        box-shadow var(--momo-t-base) var(--momo-ease-out);
     border: 1px solid var(--button-border-color);
     overflow: hidden;
     position: relative;
 }
 
 .card-music:hover {
-    box-shadow: 0 8px 20px var(--shadow-color);
+    box-shadow: var(--momo-shadow-lg);
     /* transform: translateY(-3px); */
     border-color: var(--link-color);
 }
@@ -532,11 +495,11 @@
 .music-cover {
     width: 100%;
     height: 100%;
-    border-radius: 8px;
+    border-radius: var(--momo-radius-md);
     background-size: cover;
     background-position: center;
     background-color: var(--button-hover-color);
-    transition: all 0.3s ease;
+    transition: all var(--momo-t-base) var(--momo-ease-out);
 }
 
 /* 添加网易云音乐图标样式 */
@@ -574,7 +537,7 @@
 .music-title {
     font-weight: 600;
     color: var(--text-color);
-    font-size: 1rem;
+    font-size: var(--momo-font-size-base);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -582,29 +545,18 @@
 
 .music-artist {
     color: var(--text-color-70);
-    font-size: 0.9rem;
+    font-size: var(--momo-font-size-md);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
 }
 
-
-[data-theme="dark"] .music-title {
-    color: #ffffff;
-}
-
-[data-theme="dark"] .music-artist {
-    color: #aaa;
-}
-
+/* GitHub 卡片请求失败：半透明 + 语义错误色。合并了早先互相覆盖的两条定义。 */
 .fetch-error {
-  background-color: #ffe6e6;
-  border: 1px solid #ffcccc;
-}
-
-[data-theme="dark"] .fetch-error {
-  background-color: #4d2626;
-  border-color: #733030;
+  opacity: 0.5;
+  background-color: var(--error-bg-color);
+  border: 1px solid var(--error-color);
+  border-radius: var(--momo-radius-sm);
 }
 
 
@@ -612,10 +564,13 @@
 .card-github {
     display: block;
     padding: 16px;
-    border-radius: 8px;
+    border-radius: var(--momo-radius-md);
     /* box-shadow: 0 4px 12px var(--shadow-color); */
     text-decoration: none;
-    transition: all 0.8s ease !important;
+    /* 与 .card-music 同一套过渡：只动描边与阴影，时长走 token */
+    transition:
+        border-color var(--momo-t-fast) var(--momo-ease-out),
+        box-shadow var(--momo-t-base) var(--momo-ease-out);
     border: 1px solid var(--button-border-color);
     max-width: 500px;
     margin: 1rem auto;
@@ -623,7 +578,7 @@
 }
 
 .card-github:hover {
-    box-shadow: 0 6px 16px var(--shadow-color);
+    box-shadow: var(--momo-shadow-lg);
     /* transform: translateY(-2px); */
     border-color: var(--link-color);
 }
@@ -685,7 +640,7 @@
 
 .card-github .gc-description {
     color: var(--text-color-70);
-    font-size: 0.9em;
+    font-size: var(--momo-font-size-md);
     margin-bottom: 12px;
     line-height: 1.4;
 }
@@ -693,7 +648,7 @@
 .card-github .gc-infobar {
     display: flex;
     gap: 16px;
-    font-size: 0.85em;
+    font-size: var(--momo-font-size-sm);
     color: var(--text-color-70);
 }
 
@@ -733,16 +688,16 @@
 .card-github .gc-license {
     margin-left: auto;
     padding: 2px 8px;
-    border-radius: 10px;
-    font-size: 0.8em;
+    border-radius: var(--momo-radius-pill);
+    font-size: var(--momo-font-size-xs);
     background: var(--button-hover-color);
 }
 
 .card-github .gc-language {
     display: inline-block;
     padding: 2px 8px;
-    border-radius: 10px;
-    font-size: 0.8em;
+    border-radius: var(--momo-radius-pill);
+    font-size: var(--momo-font-size-xs);
     background: var(--button-hover-color);
     margin-left: 8px;
 }
@@ -752,13 +707,8 @@
     color: inherit;
 }
 
-.fetch-error {
-    opacity: 0.5;
-    border: 1px solid #ff6b6b;
-}
-
 .quote {
-    font-family: "LXGW Bright Medium";
+    font-family: var(--momo-font-sans);
     position: relative;
     padding: 0 3rem;
 	  margin: 3.5rem 0;
@@ -803,8 +753,8 @@ div.quote::after {
 .spoiler {
   filter: blur(5px);
   background-color: rgba(128, 128, 128, 0.2);
-  border-radius: 3px;
-  transition: filter 0.4s ease, background-color 0.4s ease;
+  border-radius: var(--momo-radius-xs);
+  transition: filter var(--momo-t-slow) var(--momo-ease-out), background-color var(--momo-t-slow) var(--momo-ease-out);
   cursor: pointer;
   padding: 0 2px;
 }
@@ -828,10 +778,10 @@ ruby {
 }
 
 rt {
-  font-size: 0.65em;  
-  color: #888;   
-  user-select: none;  
-  transform: translateY(-2px); 
+  font-size: 0.65em;
+  color: var(--text-color-30);
+  user-select: none;
+  transform: translateY(-2px);
 }
 
 .rainbow-text {
@@ -868,8 +818,8 @@ rt {
 
 .typst-render .typst-title {
   margin-top: 0.8rem;
-  font-size: 0.9rem;
-  color: #666;
+  font-size: var(--momo-font-size-md);
+  color: var(--text-color-70);
   font-family: 'Times New Roman', Times, serif;
 }
 
@@ -880,10 +830,13 @@ rt {
   text-decoration-thickness: 2px;
 }
 
+/* 正文图片的 LQIP 淡入：与 ImageModule 的 .lqip-bg 同步，时长走 t-slow */
 .lqip-markdown-img {
   background: var(--lqip);
   background-size: cover;
-  transition: filter 0.6s ease, opacity 0.6s ease;
+  transition:
+    filter var(--momo-t-slow) var(--momo-ease-out),
+    opacity var(--momo-t-slow) var(--momo-ease-out);
   display: block;
   width: 100%;
 }

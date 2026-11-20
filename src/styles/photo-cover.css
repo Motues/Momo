@@ -240,7 +240,16 @@
     }
 
     html:has(.photo-cover-copy) #header-bar button {
+        /* .momo-btn 自带表面色与文字色；照片页的工具栏要是「透明底 + 白描边」，
+           这里把它改回继承 #header-bar 的插值色，否则会变成一排实心按钮。 */
+        background-color: transparent;
+        color: inherit;
         border-color: color-mix(in srgb, rgb(255 255 255 / 0.4) calc(var(--photo-ink) * 100%), var(--button-border-color));
+    }
+
+    /* 照片上悬停给一点白色底；滚回主题色后自动落回普通的 surface-hover */
+    html:has(.photo-cover-copy) #header-bar button:hover {
+        background-color: color-mix(in srgb, #fff calc(var(--photo-ink) * 18%), var(--surface-color-hover));
     }
 
     /* ---- 桌面端导航胶囊：整颗跟着滚动进度插值（和 Cover 一样，不是滚一像素就硬切）----
@@ -285,7 +294,7 @@
        「首页是黑字、其它三项是白字」（当前页就是首页）。色块是半透明白，白字压在
        上面依然清楚；滚下来后色块与文字一起回到主题色。 */
 
-    @media (max-width: 775px) {
+    @media (max-width: 776px) {
         /* 移动端顶栏自己的半透明底色不动，额外叠一层黑色并随进度淡出 */
         html:has(.photo-cover-copy) #main-header {
             background-image: linear-gradient(rgb(0 0 0 / calc(0.35 * var(--photo-ink, 0))),
