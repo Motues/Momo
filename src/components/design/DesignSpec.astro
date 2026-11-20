@@ -1,0 +1,1248 @@
+---
+import MainPageLayout from '@layouts/MainPageLayout.astro';
+import PostCard from '@components/PostCard.astro';
+import Markdown from '@components/misc/Markdown.astro';
+import { Icon } from 'astro-icon/components';
+import { render } from 'astro:content';
+import { getSpec, getBlogEntrySort } from '@utils/contentUtils';
+import { blogCoverUrl } from '@utils/urlUtils';
+import tokensCss from '@styles/variables.css?raw';
+import avatarSrc from '@assets/Motues.jpg';
+import '@styles/design.css';
+
+interface Props {
+  lang?: 'zh' | 'en';
+}
+
+const { lang = 'zh' } = Astro.props;
+const isEn = lang === 'en';
+const currentLang = isEn ? 'en' : 'zh-cn';
+
+/* --------------------------------------------------------------------------
+ * 直接从 variables.css 读 token 值：规范页展示的永远是「正在生效的那一份」，
+ * 改 token 不需要回来改文案。深色值从 [data-theme="dark"] 块里单独取。
+ * ----------------------------------------------------------------------- */
+function blockOf(source: string, pattern: RegExp) {
+  return source.match(pattern)?.[1] ?? '';
+}
+
+function parseTokens(block: string) {
+  const map: Record<string, string> = {};
+  for (const match of block.matchAll(/(--[a-z0-9-]+)\s*:\s*([^;]+);/gi)) {
+    map[match[1]] = match[2].replace(/\s+/g, ' ').trim();
+  }
+  return map;
+}
+
+const lightVars = parseTokens(blockOf(tokensCss, /:root\s*\{([\s\S]*?)\n\}/));
+const darkVars = parseTokens(blockOf(tokensCss, /\[data-theme="dark"\]\s*\{([\s\S]*?)\n\}/));
+
+const token = (name: string, dark = false) =>
+  (dark ? darkVars[name] ?? lightVars[name] : lightVars[name]) ?? '—';
+
+/* 文章卡片示例：取当前语言首页会展示的那一篇，链接与首页完全一致。
+   注意用 getBlogEntrySort 而不是 getCollection：前者的 id 已经去掉语言后缀
+   （markdown 而不是 markdown/zh-cn），直接塞给 PostCard 才是真实文章地址。 */
+const posts = await getBlogEntrySort(currentLang);
+const sampleEntry = posts.find((post) => post.id === 'markdown') ?? posts[0];
+
+/* 正文排版示例：真实 Markdown 渲染（含代码块、表格、图注） */
+const sampleSpec = await getSpec(currentLang, 'design');
+const { Content: ProseSample } = sampleSpec ? await render(sampleSpec) : { Content: null };
+
+/* 自定义语法示例：直接渲染真实指令，卡片里的数据由插件内置脚本实时请求，
+   与文章页完全一致。换仓库 / 换歌曲只改 src/content/spec/design/{github,music}/。 */
+const githubCardSpec = await getSpec(currentLang, 'design/github');
+const { Content: GithubCardSample } = githubCardSpec ? await render(githubCardSpec) : { Content: null };
+const musicCardSpec = await getSpec(currentLang, 'design/music');
+const { Content: MusicCardSample } = musicCardSpec ? await render(musicCardSpec) : { Content: null };
+
+const T = {
+  zh: {
+    title: '设计规范',
+    description: 'Momo 的设计规范：颜色、排版、间距、圆角、阴影、动效与组件。',
+    eyebrow: 'Momo · Design System',
+    lead: 'Momo 的视觉规范：颜色、排版、间距、圆角、阴影、动效与站内组件。',
+    toc: '目录',
+    sections: {
+      color: {
+        title: '色彩',
+        desc: '颜色分三层：基础表面、文字层级、语义色。',
+      },
+      type: {
+        title: '排版',
+        desc: '正文用思源宋体，界面短文案用霞鹜文楷，站名与页脚用 EB Garamond，代码与数字用 JetBrains Mono。字号见下面的标尺。',
+      },
+      space: {
+        title: '间距',
+        desc: '以 4px 为基数，共 10 档。组件内部间距同样取这一组值。',
+      },
+      radius: {
+        title: '圆角',
+        desc: '四档加胶囊。卡片用 lg，按钮与输入框用 md，分类 chip 用 sm（6px 圆角标签），小角标用 xs。',
+      },
+      shadow: {
+        title: '阴影',
+        desc: '静态卡片用 xs/sm，浮层用 md，抽屉与灯箱用 lg/xl。',
+      },
+      motion: {
+        title: '动效',
+        desc: '三档时长、三条曲线。位移用 ease-out 收尾，有体积的元素可轻微过冲；文字只换颜色。',
+      },
+      button: {
+        title: '按钮',
+        desc: '三种变体（默认 / 主操作 / 幽灵）× 三种尺寸。主操作每个页面一个。',
+      },
+      field: {
+        title: '表单',
+        desc: '输入框、文本域与搜索框共用一套边界与占位色。聚焦时描边变为品牌蓝。',
+      },
+      card: {
+        title: '卡片',
+        desc: '卡片 = 表面色 + 1px 描边 + lg 圆角 + 一档阴影。文章卡片不上底色，只留描边与阴影；可点击的卡片悬停时上浮 2px、阴影升一档。',
+      },
+      tag: {
+        title: '标签',
+        desc: '可点的分类 / 筛选用 chip（6px 圆角的标签），只读的语言 / 分类标记用 tag（4px 角标）；选中态一律蓝底白字。',
+      },
+      notice: {
+        title: '提示',
+        desc: '五种语义提示块（note / tip / important / warning / caution），左侧语义色描边、标题带图标；tip / important / warning / caution 的颜色直接取语义色 token，note 保持中性灰。',
+      },
+      layout: {
+        title: '版式',
+        desc: '页面宽度只有两档：正文 776px、顶栏 / 页脚 1024px。断点与 Tailwind 的 sm / lg 对齐，移动端在 776px 切换。',
+      },
+      prose: {
+        title: '正文排版',
+        desc: '下面这段是真实 Markdown 渲染结果，和文章页共用同一份 markdown.css：标题、引用、列表、代码、表格、图注。',
+      },
+      custom: {
+        title: '自定义语法',
+        desc: '音乐卡片、GitHub 卡片、居中引用与行内语法都由 Markdown 插件生成；下面用同一套类名渲染，两张卡片直接渲染真实指令、数据实时请求。',
+      },
+      comment: {
+        title: '评论',
+        desc: '评论区没有卡片外壳：头像 + 昵称 + 时间 + 正文，下面是昵称 / 邮箱 / 网址与正文输入框，按钮与正文同字号。评论正文支持 Markdown，表情按 1.25em 行内显示。',
+        note: '示例直接复用线上评论组件（CommentItem / Comments）的工具类：4px 圆角（Tailwind rounded）、text-red-500、min-h-[100px]，均为有意保留。',
+      },
+      state: {
+        title: '状态',
+        desc: '三种状态：加载中、空状态、请求失败。',
+      },
+      a11y: {
+        title: '无障碍',
+        desc: '键盘焦点始终可见，图标按钮必须有可读名称；系统开启「减少动态效果」时，位移动画停下，颜色变化保留。',
+      },
+      structure: {
+        title: '样式归属',
+        desc: '新样式按层级放置：token、基础规则、公共组件，或页面私有。',
+      },
+    },
+    colors: {
+      surfaces: '表面',
+      text: '文字',
+      borderBrand: '描边与品牌色',
+      semantic: '语义色',
+      light: '浅色',
+      dark: '深色',
+    },
+    type: {
+      scale: '字号标尺',
+      weights: '字重',
+      leading: '行高',
+      fonts: '字体栈',
+      usageAdj: '正文与长文',
+      usageTitle: '标题与站名',
+      usageUI: '界面与表单',
+      usageCode: '代码与数字',
+    },
+    spacing: { name: '间距', value: '值' },
+    radius: { name: '圆角', value: '值' },
+    shadow: {
+      xs: '静态卡片',
+      sm: '卡片 / 图片',
+      md: '浮层 / 悬停',
+      lg: '抽屉 / 大弹层',
+      xl: '灯箱 / 全屏',
+    },
+    motion: {
+      duration: '时长',
+      easing: '曲线',
+      replay: '重播',
+      fast: 'hover / focus',
+      base: '位移 / 入场',
+      slow: '长过渡 / 错峰',
+      press: '按压反馈',
+      reveal: '入场 / 滚动显现',
+    },
+    buttons: {
+      variants: '变体',
+      sizes: '尺寸',
+      primary: '主操作',
+      default: '次操作',
+      ghost: '幽灵',
+      disabled: '禁用',
+      icon: '图标按钮',
+      sm: '小',
+      md: '中',
+      lg: '大',
+    },
+    fields: {
+      name: '昵称',
+      placeholder: '写点什么…',
+      textarea: '评论内容',
+      disabled: '禁用状态',
+    },
+    cards: {
+      post: '真实文章卡片',
+      static: '静态卡片',
+      staticDesc: '只有表面、描边与一档阴影。',
+      hover: '可悬浮卡片',
+      hoverDesc: '悬停时上浮 2px，阴影升一档。',
+      friend: '友链行',
+      friendDesc: '头像 + 名称 + 一句话简介，右侧箭头在悬停时滑入。',
+    },
+    tags: {
+      all: '全部',
+      selected: '选中',
+      category: '分类',
+      locale: '语言标记',
+    },
+    notices: {
+      note: '一条普通说明。',
+      tip: '能省时间的建议。',
+      important: '重要，操作前先看。',
+      warning: '需要留意，但不阻断操作。',
+      caution: '操作有风险，可能导致内容丢失。',
+    },
+    layout: {
+      page: '正文列 · 776px',
+      header: '顶栏 / 页脚 · 1024px',
+      breakpoints: '断点',
+    },
+    custom: {
+      github: 'GitHub 仓库卡片',
+      githubSyntax: '::github{repo="Motues/Momo"}',
+      music: '音乐卡片',
+      musicSyntax: '::music{id="30431366"}',
+      quote: '居中引用',
+      quoteSyntax: '::quote[内容]',
+      quoteBody: '同一类信息，用同一种样式呈现。',
+      inline: '行内语法',
+      inlineSyntax: '{中文}(拼音) · !!折叠!! · ==彩虹== · ++下划线++',
+      ruby: '设计',
+      rubyReading: 'shè jì',
+      spoiler: '悬停或点击展开',
+      rainbow: '彩虹文字',
+      underline: '下划线',
+    },
+    comments: {
+      name: '示例访客',
+      time: '刚刚',
+      body: '评论正文沿用正文的排版规则：<strong>加粗</strong>、<code>行内代码</code>、列表都能用。',
+      reply: '回复',
+      nameLabel: '昵称',
+      emailLabel: '邮箱',
+      siteLabel: '网址',
+      required: '必填',
+      optional: '选填',
+      placeholder: '写下你的想法…',
+      submit: '发送',
+      preview: '预览',
+    },
+    states: {
+      loading: '加载中',
+      loadingDesc: '正在加载数据',
+      empty: '这里什么都没有',
+      emptyDesc: '换个关键词，或者晚点再来。',
+      error: '内容没有加载出来',
+      errorDesc: '可能是网络不稳定，稍后再试一次。',
+      retry: '重新加载',
+    },
+    a11y: {
+      focus: '键盘焦点',
+      focusDesc: '按 Tab 浏览时，按钮与链接会出现 2px 蓝色描边。',
+      labels: '图标按钮',
+      labelsDesc: '只有图标的按钮必须带 aria-label，读屏软件能念出来。',
+      motion: '减少动态效果',
+      motionDesc: '系统开启后，位移动画停止，颜色变化保留。',
+    },
+    structure: {
+      rows: [
+        ['Token', 'variables.css', '--momo-radius-lg'],
+        ['Base', 'global.css', 'body / ::selection'],
+        ['Component', 'components.css', '.momo-card'],
+        ['Feature', '页面 / 组件私有样式', '.ds-swatch'],
+      ],
+    },
+  },
+  en: {
+    title: 'Design System',
+    description: 'Momo’s design system: color, typography, spacing, radius, shadow, motion and components.',
+    eyebrow: 'Momo · Design System',
+    lead: 'Momo’s visual spec: color, typography, spacing, radius, shadow, motion, and the components used across the site.',
+    toc: 'Contents',
+    sections: {
+      color: {
+        title: 'Color',
+        desc: 'Colors come in three layers: surfaces, text hierarchy, and semantic colors.',
+      },
+      type: {
+        title: 'Typography',
+        desc: 'Body copy uses Source Serif; UI labels use WenKai; the wordmark and footer use EB Garamond; code and numbers use JetBrains Mono. Sizes are listed below.',
+      },
+      space: {
+        title: 'Spacing',
+        desc: 'A 4px base with ten steps. Inner component spacing uses the same set.',
+      },
+      radius: {
+        title: 'Radius',
+        desc: 'Four steps plus a pill. Cards use lg, buttons and fields use md, filter chips use sm (6px rounded labels), tiny badges use xs.',
+      },
+      shadow: {
+        title: 'Shadow',
+        desc: 'Static cards use xs/sm, popovers use md, drawers and the lightbox use lg/xl.',
+      },
+      motion: {
+        title: 'Motion',
+        desc: 'Three durations, three curves. Movement settles with ease-out; objects with volume may overshoot slightly. Text only changes color.',
+      },
+      button: {
+        title: 'Buttons',
+        desc: 'Three variants (default / primary / ghost) × three sizes. One primary action per page.',
+      },
+      field: {
+        title: 'Forms',
+        desc: 'Inputs, textareas and search share the same border and placeholder color. Focus turns the border brand blue.',
+      },
+      card: {
+        title: 'Cards',
+        desc: 'A card is surface + 1px border + lg radius + one shadow step. Article cards skip the surface and keep only border and shadow; clickable cards lift 2px and gain one shadow step on hover.',
+      },
+      tag: {
+        title: 'Tags',
+        desc: 'Interactive categories / filters use chip (a 6px rounded label); read-only locale and category markers use tag (a 4px badge). Selected is always blue on white.',
+      },
+      notice: {
+        title: 'Notices',
+        desc: 'Five semantic callouts (note / tip / important / warning / caution) with a colored left rule and an icon in the title. tip / important / warning / caution take their colors straight from the semantic tokens.',
+      },
+      layout: {
+        title: 'Layout',
+        desc: 'Only two widths: 776px for prose, 1024px for header and footer. Breakpoints follow Tailwind sm / lg; mobile kicks in at 776px.',
+      },
+      prose: {
+        title: 'Prose',
+        desc: 'The block below is real Markdown, rendered by the same markdown.css as article pages: headings, quotes, lists, code, tables, captions.',
+      },
+      custom: {
+        title: 'Custom syntax',
+        desc: 'Music cards, GitHub cards, centered quotes and inline syntax all come from Markdown plugins; the demos below use the same classes, and the two cards render the real directives with live data.',
+      },
+      comment: {
+        title: 'Comments',
+        desc: 'The comment area has no card shell: avatar + name + time + body, then name / email / website fields and the body input, with buttons at body size. Bodies support Markdown; emoji render inline at 1.25em.',
+        note: 'The demo reuses the utility classes of the live comment components (CommentItem / Comments): 4px radius (Tailwind rounded), text-red-500 and min-h-[100px], kept as they are.',
+      },
+      state: {
+        title: 'States',
+        desc: 'Three states: loading, empty, and failed.',
+      },
+      a11y: {
+        title: 'Accessibility',
+        desc: 'Keyboard focus stays visible, icon-only buttons always have a readable name, and reduced-motion stops movement while keeping color changes.',
+      },
+      structure: {
+        title: 'Where styles live',
+        desc: 'New styles go in one of four layers: token, base rule, shared component, or page-private.',
+      },
+    },
+    colors: {
+      surfaces: 'Surfaces',
+      text: 'Text',
+      borderBrand: 'Borders & brand',
+      semantic: 'Semantic',
+      light: 'Light',
+      dark: 'Dark',
+    },
+    type: {
+      scale: 'Type scale',
+      weights: 'Weights',
+      leading: 'Line height',
+      fonts: 'Font stacks',
+      usageAdj: 'Body & long copy',
+      usageTitle: 'Headings & wordmark',
+      usageUI: 'UI & forms',
+      usageCode: 'Code & numerals',
+    },
+    spacing: { name: 'Space', value: 'Value' },
+    radius: { name: 'Radius', value: 'Value' },
+    shadow: {
+      xs: 'Static card',
+      sm: 'Card / image',
+      md: 'Popover / hover',
+      lg: 'Drawer / large layer',
+      xl: 'Lightbox / full screen',
+    },
+    motion: {
+      duration: 'Duration',
+      easing: 'Easing',
+      replay: 'Replay',
+      fast: 'hover / focus',
+      base: 'movement / enter',
+      slow: 'long / stagger',
+      press: 'press feedback',
+      reveal: 'entrance / scroll reveal',
+    },
+    buttons: {
+      variants: 'Variants',
+      sizes: 'Sizes',
+      primary: 'Primary',
+      default: 'Secondary',
+      ghost: 'Ghost',
+      disabled: 'Disabled',
+      icon: 'Icon button',
+      sm: 'Small',
+      md: 'Medium',
+      lg: 'Large',
+    },
+    fields: {
+      name: 'Name',
+      placeholder: 'Say something…',
+      textarea: 'Comment',
+      disabled: 'Disabled',
+    },
+    cards: {
+      post: 'Real article card',
+      static: 'Static card',
+      staticDesc: 'Surface, border and one shadow step.',
+      hover: 'Interactive card',
+      hoverDesc: 'Lifts 2px and gains one shadow step on hover.',
+      friend: 'Friend link row',
+      friendDesc: 'Avatar + name + one-line description, with an arrow that slides in on hover.',
+    },
+    tags: {
+      all: 'All',
+      selected: 'Selected',
+      category: 'Category',
+      locale: 'Locale badge',
+    },
+    notices: {
+      note: 'A plain note.',
+      tip: 'A suggestion that saves time.',
+      important: 'Read this before acting.',
+      warning: 'Worth noticing, but not blocking.',
+      caution: 'Risky: this can lose content.',
+    },
+    layout: {
+      page: 'Prose column · 776px',
+      header: 'Header / footer · 1024px',
+      breakpoints: 'Breakpoints',
+    },
+    custom: {
+      github: 'GitHub repo card',
+      githubSyntax: '::github{repo="Motues/Momo"}',
+      music: 'Music card',
+      musicSyntax: '::music{id="30431366"}',
+      quote: 'Centered quote',
+      quoteSyntax: '::quote[content]',
+      quoteBody: 'The same kind of information, shown the same way.',
+      inline: 'Inline syntax',
+      inlineSyntax: '{base}(reading) · !!spoiler!! · ==rainbow== · ++underline++',
+      ruby: 'Design',
+      rubyReading: 'dɪˈzaɪn',
+      spoiler: 'hover or click to reveal',
+      rainbow: 'Rainbow text',
+      underline: 'Underline',
+    },
+    comments: {
+      name: 'Sample guest',
+      time: 'just now',
+      body: 'Comment bodies follow prose rules: <strong>bold</strong>, <code>inline code</code> and lists all work.',
+      reply: 'Reply',
+      nameLabel: 'Name',
+      emailLabel: 'Email',
+      siteLabel: 'Website',
+      required: 'Required',
+      optional: 'Optional',
+      placeholder: 'Write something…',
+      submit: 'Send',
+      preview: 'Preview',
+    },
+    states: {
+      loading: 'Loading',
+      loadingDesc: 'Loading data',
+      empty: 'Nothing here',
+      emptyDesc: 'Try another keyword, or come back later.',
+      error: 'Content failed to load',
+      errorDesc: 'The network may be unstable. Try once more.',
+      retry: 'Reload',
+    },
+    a11y: {
+      focus: 'Keyboard focus',
+      focusDesc: 'Tab through the page: buttons and links get a 2px blue outline.',
+      labels: 'Icon buttons',
+      labelsDesc: 'Icon-only buttons need an aria-label so screen readers can name them.',
+      motion: 'Reduced motion',
+      motionDesc: 'When enabled, movement stops and color changes stay.',
+    },
+    structure: {
+      rows: [
+        ['Token', 'variables.css', '--momo-radius-lg'],
+        ['Base', 'global.css', 'body / ::selection'],
+        ['Component', 'components.css', '.momo-card'],
+        ['Feature', 'page / component styles', '.ds-swatch'],
+      ],
+    },
+  },
+} as const;
+
+const t = T[lang];
+const nav = Object.entries(t.sections).map(([id, section], index) => ({
+  id,
+  index: String(index + 1).padStart(2, '0'),
+  ...section,
+}));
+
+/* 展示用数据集 */
+const colorGroups = [
+  {
+    key: 'surfaces',
+    items: [
+      { name: '--bg-color', label: isEn ? 'Page background' : '页面底色', usage: isEn ? 'body' : 'body 背景' },
+      { name: '--surface-color', label: isEn ? 'Surface' : '卡片表面', usage: isEn ? 'cards / panels' : '卡片、面板' },
+      { name: '--surface-color-hover', label: isEn ? 'Surface hover' : '表面悬浮', usage: isEn ? 'hover / chips' : '悬停、分类 chip' },
+    ],
+  },
+  {
+    key: 'text',
+    items: [
+      { name: '--text-color', label: isEn ? 'Text' : '正文', usage: isEn ? 'headings / body' : '标题、正文' },
+      { name: '--text-color-70', label: isEn ? 'Muted text' : '次要文字', usage: isEn ? 'meta / captions' : '元信息、说明' },
+      { name: '--text-color-30', label: isEn ? 'Faint text' : '弱化文字', usage: isEn ? 'placeholder / disabled' : '占位、禁用' },
+    ],
+  },
+  {
+    key: 'borderBrand',
+    items: [
+      { name: '--border-color', label: isEn ? 'Border' : '描边', usage: isEn ? 'dividers / cards' : '分隔线、卡片' },
+      { name: '--border-color-strong', label: isEn ? 'Strong border' : '强调描边', usage: isEn ? 'hover / focus' : '悬停、聚焦' },
+      { name: '--quote-left-color', label: isEn ? 'Quote rule' : '引用块描边', usage: isEn ? 'blockquote left rule' : '引用块左侧竖线' },
+      { name: '--link-color', label: isEn ? 'Brand (text)' : '品牌蓝（文字）', usage: isEn ? 'links / icons' : '链接、图标' },
+      { name: '--accent-bg', label: isEn ? 'Brand (fill)' : '品牌蓝（底色）', usage: isEn ? 'primary button' : '主按钮、选中态' },
+      { name: '--accent-fg', label: isEn ? 'On brand' : '品牌色上的文字', usage: isEn ? 'text on accent' : '蓝底上的白字' },
+      { name: '--accent-soft', label: isEn ? 'Brand tint' : '品牌淡底', usage: isEn ? 'soft highlight' : '选中底色、光晕' },
+    ],
+  },
+  {
+    key: 'semantic',
+    items: [
+      { name: '--success-color', label: isEn ? 'Success' : '成功', usage: isEn ? 'tip callout' : 'tip 提示块' },
+      { name: '--success-bg-color', label: isEn ? 'Success surface' : '成功底色', usage: isEn ? 'tip callout' : 'tip 提示块底色' },
+      { name: '--error-color', label: isEn ? 'Error' : '错误', usage: isEn ? 'caution callout' : 'caution 提示块' },
+      { name: '--error-bg-color', label: isEn ? 'Error surface' : '错误底色', usage: isEn ? 'caution callout' : 'caution 提示块底色' },
+      { name: '--warning-color', label: isEn ? 'Warning' : '警告', usage: isEn ? 'warning callout' : 'warning 提示块' },
+      { name: '--warning-bg-color', label: isEn ? 'Warning surface' : '警告底色', usage: isEn ? 'warning callout' : 'warning 提示块底色' },
+      { name: '--info-color', label: isEn ? 'Info' : '提示', usage: isEn ? 'important callout' : 'important 提示块' },
+      { name: '--info-bg-color', label: isEn ? 'Info surface' : '提示底色', usage: isEn ? 'important callout' : 'important 提示块底色' },
+    ],
+  },
+];
+
+const typeScale = [
+  { name: '--momo-font-size-2xs', usage: isEn ? 'badges / labels' : '角标、极小说明', sample: 'Momo Ag 123' },
+  { name: '--momo-font-size-xs', usage: isEn ? 'captions / meta' : '说明、元信息', sample: 'Momo Ag 123' },
+  { name: '--momo-font-size-sm', usage: isEn ? 'secondary text' : '次要正文', sample: 'Momo Ag 123' },
+  { name: '--momo-font-size-md', usage: isEn ? 'body in UI' : '界面正文', sample: 'Momo Ag 123' },
+  { name: '--momo-font-size-base', usage: isEn ? 'article body' : '文章正文', sample: 'Momo Ag 123' },
+  { name: '--momo-font-size-lg', usage: isEn ? 'card title / prose h5 (18px)' : '卡片标题、正文 h5（18px）', sample: 'Momo Ag 123' },
+  { name: '--momo-font-size-xl', usage: isEn ? 'card title large' : '大卡片标题', sample: 'Momo Ag 123' },
+  { name: '--momo-font-size-2xl', usage: isEn ? 'section heading' : '分区标题', sample: 'Momo Ag 123' },
+  { name: '--momo-font-size-3xl', usage: isEn ? 'prose h2 (28px)' : '正文 h2（28px）', sample: 'Momo 设计规范' },
+  { name: '--momo-font-size-4xl', usage: isEn ? 'article h1' : '文章一级标题', sample: 'Momo 设计规范' },
+  { name: '--momo-font-size-display', usage: isEn ? 'design hero (clamp 36–56px)' : '规范页 hero（clamp 36–56px）', sample: 'Momo 设计规范' },
+];
+
+const weights = [
+  { name: '--momo-font-weight-regular', value: '400' },
+  { name: '--momo-font-weight-medium', value: '500' },
+  { name: '--momo-font-weight-semibold', value: '600' },
+  { name: '--momo-font-weight-bold', value: '700' },
+];
+
+const leadings = [
+  { name: '--momo-leading-tight', value: '1.25', usage: isEn ? 'headings' : '标题' },
+  { name: '--momo-leading-normal', value: '1.5', usage: isEn ? 'UI copy' : '界面文字' },
+  { name: '--momo-leading-relaxed', value: '1.75', usage: isEn ? 'long copy' : '长文正文' },
+];
+
+const fontStacks = [
+  { name: '--momo-font-serif', label: isEn ? 'Source Serif · body' : '思源宋体 · 正文', sample: isEn ? 'Life is colorful.' : '生活多彩，记录当下。' },
+  { name: '--momo-font-display', label: isEn ? 'EB Garamond · wordmark' : 'EB Garamond · 站名', sample: 'Momo' },
+  { name: '--momo-font-sans', label: isEn ? 'WenKai · UI' : '霞鹜文楷 · 界面', sample: 'Search / 搜索' },
+  { name: '--momo-font-mono', label: isEn ? 'JetBrains Mono · code' : 'JetBrains Mono · 代码', sample: 'const token = 8;' },
+];
+
+const spaces = Array.from({ length: 10 }, (_, index) => `--momo-space-${index + 1}`);
+const radii = [
+  { name: '--momo-radius-xs', usage: isEn ? 'inline code / tag' : '行内代码、角标（tag）' },
+  { name: '--momo-radius-sm', usage: isEn ? 'chip / tooltip / callout' : '分类 chip、提示块、气泡' },
+  { name: '--momo-radius-md', usage: isEn ? 'buttons / fields / rows' : '按钮、输入框、列表行' },
+  { name: '--momo-radius-lg', usage: isEn ? 'cards / code blocks' : '卡片、代码块' },
+  { name: '--momo-radius-xl', usage: isEn ? 'modals / drawers' : '弹窗、抽屉' },
+  { name: '--momo-radius-pill', usage: isEn ? 'pills / avatars' : '胶囊、头像' },
+];
+const shadows = ['xs', 'sm', 'md', 'lg', 'xl'].map((level) => ({
+  name: `--momo-shadow-${level}`,
+  label: (t.shadow as Record<string, string>)[level],
+}));
+const durations = [
+  { name: '--momo-t-fast', usage: t.motion.fast },
+  { name: '--momo-t-base', usage: t.motion.base },
+  { name: '--momo-t-slow', usage: t.motion.slow },
+  { name: '--momo-t-press', usage: t.motion.press },
+  { name: '--momo-t-reveal', usage: t.motion.reveal },
+];
+const easings = [
+  { name: '--momo-ease-out', label: isEn ? 'settle · no overshoot' : '收尾 · 不过冲' },
+  { name: '--momo-ease-pop', label: isEn ? 'light overshoot' : '轻微过冲' },
+  { name: '--momo-ease-sheet', label: isEn ? 'sheet · fast in, slow out' : '抽屉 · 快起慢收' },
+];
+const breakpoints = [
+  { value: '640px', label: isEn ? 'Tailwind sm · small phone' : 'Tailwind sm · 小屏手机' },
+  { value: '776px', label: isEn ? 'site mobile boundary · TOC / FabMenu' : '站点移动端分界 · 目录 / 悬浮按钮' },
+  { value: '1024px', label: isEn ? 'Tailwind lg · desktop layout' : 'Tailwind lg · 桌面布局' },
+];
+const structureRows = t.structure.rows as unknown as string[][];
+---
+
+<MainPageLayout
+  title={`${t.title} - Momo`}
+  lang={currentLang}
+  description={t.description}
+  noindex={true}
+  markdownFont={true}
+>
+  <div class="ds-page" data-pagefind-ignore>
+    <header class="ds-hero">
+      <span class="ds-eyebrow">{t.eyebrow}</span>
+      <h1 class="ds-title">{t.title}</h1>
+      <p class="ds-lead">{t.lead}</p>
+    </header>
+
+    <div class="ds-layout">
+      <aside class="ds-toc" aria-label={t.toc}>
+        <p class="ds-toc-title">{t.toc}</p>
+        <ol>
+          {nav.map((item) => (
+            <li><a href={`#${item.id}`} data-index={item.index}>{item.title}</a></li>
+          ))}
+        </ol>
+      </aside>
+
+      <div class="ds-content">
+        <!-- 01 色彩 -->
+        <section class="ds-section" id="color">
+          <div class="ds-section-head">
+            <span class="ds-index">01</span>
+            <h2>{t.sections.color.title}</h2>
+          </div>
+          <p>{t.sections.color.desc}</p>
+
+          {colorGroups.map((group) => (
+            <div>
+              <h3>{(t.colors as Record<string, string>)[group.key]}</h3>
+              <div class="ds-grid ds-grid--colors">
+                {group.items.map((item) => (
+                  <article class="ds-swatch">
+                    <div class="ds-swatch-chip" style={`--swatch: var(${item.name})`}></div>
+                    <div class="ds-swatch-body">
+                      <code class="ds-swatch-name">{item.name}</code>
+                      <span class="ds-swatch-value">{t.colors.light} {token(item.name)}</span>
+                      <span class="ds-swatch-value">{t.colors.dark} {token(item.name, true)}</span>
+                      <span class="ds-swatch-usage">{item.label} · {item.usage}</span>
+                    </div>
+                  </article>
+                ))}
+              </div>
+            </div>
+          ))}
+        </section>
+
+        <!-- 02 排版 -->
+        <section class="ds-section" id="type">
+          <div class="ds-section-head">
+            <span class="ds-index">02</span>
+            <h2>{t.sections.type.title}</h2>
+          </div>
+          <p>{t.sections.type.desc}</p>
+
+          <h3>{t.type.scale}</h3>
+          <div>
+            {typeScale.map((item) => (
+              <div class="ds-type-row">
+                <div class="ds-type-meta">
+                  <code class="ds-type-token">{item.name}</code>
+                  <span class="ds-type-value">{token(item.name)} · {item.usage}</span>
+                </div>
+                <span class="ds-type-sample" style={`font-size: var(${item.name})`}>{item.sample}</span>
+              </div>
+            ))}
+          </div>
+
+          <h3>{t.type.weights}</h3>
+          <div class="ds-font-list">
+            {weights.map((item) => (
+              <div class="ds-font-row">
+                <span style={`font-weight: ${item.value}`}>{isEn ? 'Momo Design System' : 'Momo 设计规范 Ag'}</span>
+                <span class="ds-font-meta">{item.name} · {item.value}</span>
+              </div>
+            ))}
+          </div>
+
+          <h3>{t.type.leading}</h3>
+          <div class="ds-font-list">
+            {leadings.map((item) => (
+              <div class="ds-font-row">
+                <span style={`line-height: ${item.value}; font-size: var(--momo-font-size-sm)`}>
+                  {isEn
+                    ? 'A line of copy that wraps, so the rhythm of the text is visible at a glance.'
+                    : '一段需要换行的文字，用来看清不同行高对阅读节奏的影响。'}
+                </span>
+                <span class="ds-font-meta">{item.name} · {item.value} · {item.usage}</span>
+              </div>
+            ))}
+          </div>
+
+          <h3>{t.type.fonts}</h3>
+          <div class="ds-font-list">
+            {fontStacks.map((item) => (
+              <div class="ds-font-row">
+                <span class="ds-font-sample" style={`font-family: var(${item.name})`}>{item.sample}</span>
+                <span class="ds-font-meta">{item.label}<br />{item.name}</span>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        <!-- 03 间距 -->
+        <section class="ds-section" id="space">
+          <div class="ds-section-head">
+            <span class="ds-index">03</span>
+            <h2>{t.sections.space.title}</h2>
+          </div>
+          <p>{t.sections.space.desc}</p>
+          {spaces.map((name) => (
+            <div class="ds-space-row">
+              <code class="ds-space-token">{name}</code>
+              <span class="ds-space-value">{token(name)}</span>
+              <span class="ds-space-bar" style={`width: calc(var(${name}) * 3)`}></span>
+            </div>
+          ))}
+        </section>
+
+        <!-- 04 圆角 -->
+        <section class="ds-section" id="radius">
+          <div class="ds-section-head">
+            <span class="ds-index">04</span>
+            <h2>{t.sections.radius.title}</h2>
+          </div>
+          <p>{t.sections.radius.desc}</p>
+          <div class="ds-grid ds-grid--radius">
+            {radii.map((item) => (
+              <div class="ds-radius-tile">
+                <span class="ds-radius-box" style={`--radius: var(${item.name})`}></span>
+                <code class="ds-radius-name">{item.name.replace('--momo-radius-', '')}</code>
+                <span class="ds-radius-value">{token(item.name)}</span>
+                <span class="ds-radius-value">{item.usage}</span>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        <!-- 05 阴影 -->
+        <section class="ds-section" id="shadow">
+          <div class="ds-section-head">
+            <span class="ds-index">05</span>
+            <h2>{t.sections.shadow.title}</h2>
+          </div>
+          <p>{t.sections.shadow.desc}</p>
+          <div class="ds-grid ds-grid--shadow">
+            {shadows.map((item) => (
+              <div class="ds-shadow-card" style={`--shadow: var(${item.name})`}>
+                <strong>{item.name.replace('--momo-shadow-', '').toUpperCase()}</strong>
+                <span class="ds-hint">{item.label}</span>
+                <code class="ds-hint">{item.name}</code>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        <!-- 06 动效 -->
+        <section class="ds-section" id="motion">
+          <div class="ds-section-head">
+            <span class="ds-index">06</span>
+            <h2>{t.sections.motion.title}</h2>
+          </div>
+          <p>{t.sections.motion.desc}</p>
+
+          <h3>{t.motion.duration}</h3>
+          <div class="ds-motion-table">
+            {durations.map((item) => (
+              <div class="ds-motion-row">
+                <code class="ds-motion-token">{item.name}</code>
+                <span class="ds-motion-value">{token(item.name)}</span>
+                <span class="ds-hint">{item.usage}</span>
+              </div>
+            ))}
+          </div>
+
+          <h3>{t.motion.easing}</h3>
+          <div class="ds-motion-table">
+            {easings.map((item) => (
+              <div class="ds-motion-row">
+                <code class="ds-motion-token">{item.name}</code>
+                <span class="ds-motion-value">{token(item.name)}</span>
+                <span class="ds-hint">{item.label}</span>
+              </div>
+            ))}
+          </div>
+
+          <p class="ds-hint">
+            {isEn
+              ? `Entry travel: cards rise ${token('--momo-rise-card')} with a 0.96 scale (--momo-ease-pop); prose blocks rise ${token('--momo-rise-prose')} (--momo-ease-out).`
+              : `入场行程：卡片上移 ${token('--momo-rise-card')} 并带 0.96 缩放（--momo-ease-pop），正文块上移 ${token('--momo-rise-prose')}（--momo-ease-out）。`}
+          </p>
+
+          <h3>{isEn ? 'Preview' : '现场演示'}</h3>
+          <div class="ds-motion-table">
+            {durations.slice(0, 3).map((item, index) => (
+              <div class="ds-motion-demo" id={`ds-demo-${index}`} data-ds-demo>
+                <code class="ds-motion-token">{item.name}</code>
+                <span class="ds-motion-track">
+                  <span
+                    class="ds-motion-dot"
+                    style={`--duration: var(${item.name}); --ease: var(--momo-ease-out)`}
+                  ></span>
+                </span>
+                <button class="momo-btn momo-btn--sm" type="button" data-ds-replay={`ds-demo-${index}`}>
+                  {t.motion.replay}
+                </button>
+              </div>
+            ))}
+          </div>
+
+          <div class="ds-lift-grid" style="margin-top: var(--momo-space-4)">
+            <div class="ds-lift-card">--momo-lift · -1px</div>
+            <div class="ds-lift-card">--momo-lift-card · -2px</div>
+            <div class="ds-lift-card">--momo-lift-emoji · -4px</div>
+          </div>
+        </section>
+
+        <!-- 07 按钮 -->
+        <section class="ds-section" id="button">
+          <div class="ds-section-head">
+            <span class="ds-index">07</span>
+            <h2>{t.sections.button.title}</h2>
+          </div>
+          <p>{t.sections.button.desc}</p>
+
+          <h3>{t.buttons.variants}</h3>
+          <div class="ds-grid ds-grid--buttons">
+            <button class="momo-btn momo-btn--primary" type="button">{t.buttons.primary}</button>
+            <button class="momo-btn" type="button">{t.buttons.default}</button>
+            <button class="momo-btn momo-btn--ghost" type="button">{t.buttons.ghost}</button>
+            <button class="momo-btn" type="button" disabled>{t.buttons.disabled}</button>
+            <button class="momo-btn momo-btn--icon" type="button" aria-label={t.buttons.icon}>
+              <Icon name="fa6-solid:magnifying-glass" class="w-4 h-4" />
+            </button>
+          </div>
+
+          <h3>{t.buttons.sizes}</h3>
+          <div class="ds-grid ds-grid--buttons">
+            <button class="momo-btn momo-btn--sm" type="button">{t.buttons.sm}</button>
+            <button class="momo-btn" type="button">{t.buttons.md}</button>
+            <button class="momo-btn momo-btn--lg" type="button">{t.buttons.lg}</button>
+          </div>
+        </section>
+
+        <!-- 08 表单 -->
+        <section class="ds-section" id="field">
+          <div class="ds-section-head">
+            <span class="ds-index">08</span>
+            <h2>{t.sections.field.title}</h2>
+          </div>
+          <p>{t.sections.field.desc}</p>
+          <div class="ds-field-grid">
+            <label>
+              <span class="ds-label">{t.fields.name}</span>
+              <input class="momo-field" type="text" placeholder={t.fields.placeholder} />
+            </label>
+            <label>
+              <span class="ds-label">{t.fields.disabled}</span>
+              <input class="momo-field" type="text" value={t.fields.disabled} disabled />
+            </label>
+            <label>
+              <span class="ds-label">{t.fields.textarea}</span>
+              <textarea class="momo-field" rows="3" placeholder={t.fields.placeholder}></textarea>
+            </label>
+          </div>
+        </section>
+
+        <!-- 09 卡片 -->
+        <section class="ds-section" id="card">
+          <div class="ds-section-head">
+            <span class="ds-index">09</span>
+            <h2>{t.sections.card.title}</h2>
+          </div>
+          <p>{t.sections.card.desc}</p>
+
+          <div class="ds-card-stack">
+            {sampleEntry && (
+              <div>
+                <h3>{t.cards.post}</h3>
+                <PostCard
+                  entry={sampleEntry}
+                  title={sampleEntry.data.title}
+                  description={sampleEntry.data.description}
+                  image={blogCoverUrl(sampleEntry.data.image, sampleEntry.id)}
+                  pubDate={sampleEntry.data.pubDate}
+                  url={sampleEntry.id}
+                  fallback={sampleEntry.isFallback}
+                />
+              </div>
+            )}
+
+            <div class="ds-grid" style="grid-template-columns: repeat(auto-fit, minmax(200px, 1fr))">
+              <div class="momo-card ds-tile">
+                <strong>{t.cards.static}</strong>
+                <p class="ds-hint">{t.cards.staticDesc}</p>
+              </div>
+              <div class="momo-card momo-card--interactive ds-tile">
+                <strong>{t.cards.hover}</strong>
+                <p class="ds-hint">{t.cards.hoverDesc}</p>
+              </div>
+            </div>
+
+            <div>
+              <h3>{t.cards.friend}</h3>
+              <a
+                class="momo-card group flex items-center justify-between p-4 hover:bg-[var(--button-hover-color)] active:bg-[var(--button-hover-color)] transition-colors duration-300"
+                href={isEn ? '/en/friends/' : '/friends/'}
+                aria-label={t.cards.friend}
+              >
+                <div class="flex items-center min-w-0">
+                  <img src={avatarSrc.src} alt="" class="w-16 h-16 rounded-full object-cover mr-4 flex-shrink-0" />
+                  <div class="min-w-0">
+                    <h4 class="font-bold text-lg truncate transition-colors duration-300 group-hover:text-[var(--link-color)] group-active:text-[var(--link-color)]">Momo</h4>
+                    <p class="text-[var(--text-color-70)] text-sm truncate">{t.cards.friendDesc}</p>
+                  </div>
+                </div>
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke-width="2"
+                  stroke="currentColor"
+                  class="w-5 h-5 text-[var(--link-color)] opacity-0 transform translate-x-[-10px] group-hover:opacity-100 group-hover:translate-x-0 group-active:opacity-100 group-active:translate-x-0 transition duration-300 ml-2 flex-shrink-0"
+                >
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
+                </svg>
+              </a>
+            </div>
+          </div>
+        </section>
+
+        <!-- 10 标签 -->
+        <section class="ds-section" id="tag">
+          <div class="ds-section-head">
+            <span class="ds-index">10</span>
+            <h2>{t.sections.tag.title}</h2>
+          </div>
+          <p>{t.sections.tag.desc}</p>
+          <div class="ds-grid ds-grid--buttons">
+            <button class="momo-chip is-active" type="button">{t.tags.all}</button>
+            <button class="momo-chip" type="button">{t.tags.selected}</button>
+            <span class="momo-tag">{t.tags.category}</span>
+            <span class="momo-tag" style="font-family: var(--momo-font-mono); text-transform: uppercase">zh-cn</span>
+          </div>
+        </section>
+
+        <!-- 11 提示 -->
+        <section class="ds-section" id="notice">
+          <div class="ds-section-head">
+            <span class="ds-index">11</span>
+            <h2>{t.sections.notice.title}</h2>
+          </div>
+          <p>{t.sections.notice.desc}</p>
+          <div class="ds-admonition-grid">
+            <div class="note"><span class="admonition-title">NOTE</span><p>{t.notices.note}</p></div>
+            <div class="tip"><span class="admonition-title">TIP</span><p>{t.notices.tip}</p></div>
+            <div class="important"><span class="admonition-title">IMPORTANT</span><p>{t.notices.important}</p></div>
+            <div class="warning"><span class="admonition-title">WARNING</span><p>{t.notices.warning}</p></div>
+            <div class="caution"><span class="admonition-title">CAUTION</span><p>{t.notices.caution}</p></div>
+          </div>
+        </section>
+
+        <!-- 12 版式 -->
+        <section class="ds-section" id="layout">
+          <div class="ds-section-head">
+            <span class="ds-index">12</span>
+            <h2>{t.sections.layout.title}</h2>
+          </div>
+          <p>{t.sections.layout.desc}</p>
+          <div class="ds-container-diagram">
+            <div class="ds-container-bar">
+              <span>{t.layout.header}</span>
+              <code>--header-width</code>
+            </div>
+            <div class="ds-container-bar ds-container-bar--narrow">
+              <span>{t.layout.page}</span>
+              <code>--page-width</code>
+            </div>
+          </div>
+
+          <h3>{t.layout.breakpoints}</h3>
+          <div class="ds-breakpoints">
+            {breakpoints.map((item) => (
+              <div class="ds-breakpoint">
+                <b>{item.value}</b>
+                <span>{item.label}</span>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        <!-- 13 正文 -->
+        <section class="ds-section" id="prose">
+          <div class="ds-section-head">
+            <span class="ds-index">13</span>
+            <h2>{t.sections.prose.title}</h2>
+          </div>
+          <p>{t.sections.prose.desc}</p>
+          <div class="ds-prose-demo">
+            <Markdown noReveal={true}>
+              {ProseSample && <ProseSample />}
+            </Markdown>
+          </div>
+        </section>
+
+        <!-- 14 自定义语法 -->
+        <section class="ds-section" id="custom">
+          <div class="ds-section-head">
+            <span class="ds-index">14</span>
+            <h2>{t.sections.custom.title}</h2>
+          </div>
+          <p>{t.sections.custom.desc}</p>
+
+          <div class="ds-custom-cards">
+            <div class="ds-custom-block">
+              <h3>{t.custom.github}</h3>
+              <code class="ds-custom-syntax">{t.custom.githubSyntax}</code>
+              {/* 真实指令渲染：卡片数据由插件自带的脚本实时请求，与文章页完全一致 */}
+              <Markdown noReveal={true}>
+                {GithubCardSample && <GithubCardSample />}
+              </Markdown>
+            </div>
+
+            <div class="ds-custom-block">
+              <h3>{t.custom.music}</h3>
+              <code class="ds-custom-syntax">{t.custom.musicSyntax}</code>
+              <Markdown noReveal={true}>
+                {MusicCardSample && <MusicCardSample />}
+              </Markdown>
+            </div>
+          </div>
+
+          <div class="ds-custom-block">
+            <h3>{t.custom.quote}</h3>
+            <code class="ds-custom-syntax">{t.custom.quoteSyntax}</code>
+            <div class="quote">
+              <p>{t.custom.quoteBody}</p>
+            </div>
+          </div>
+
+          <div class="ds-custom-block">
+            <h3>{t.custom.inline}</h3>
+            <code class="ds-custom-syntax">{t.custom.inlineSyntax}</code>
+            <p class="ds-inline-demo">
+              <ruby>{t.custom.ruby}<rt>{t.custom.rubyReading}</rt></ruby>
+              <span class="spoiler">{t.custom.spoiler}</span>
+              <span class="rainbow-text">{t.custom.rainbow}</span>
+              <span class="underline-text">{t.custom.underline}</span>
+            </p>
+          </div>
+        </section>
+
+        <!-- 15 评论 -->
+        <section class="ds-section" id="comment">
+          <div class="ds-section-head">
+            <span class="ds-index">15</span>
+            <h2>{t.sections.comment.title}</h2>
+          </div>
+          <p>{t.sections.comment.desc}</p>
+          <p class="ds-hint">{t.sections.comment.note}</p>
+          <div class="ds-comment-demo">
+            <!-- 评论条目：与 CommentItem.svelte 同结构（40px 头像 + 昵称 / 时间 + 正文 + 回复） -->
+            <div class="flex gap-2 md:gap-3 w-full max-w-full">
+              <img src={avatarSrc.src} alt="" class="w-10 h-10 rounded-full object-cover shrink-0" />
+              <div class="flex-1 min-w-0">
+                <div class="flex items-center flex-wrap gap-x-2 gap-y-1">
+                  <span class="font-semibold text-[var(--text-color)]">{t.comments.name}</span>
+                  <span class="text-sm text-[var(--text-color-70)]">{t.comments.time}</span>
+                </div>
+                <div
+                  class="text-[var(--text-color)] mt-1 leading-relaxed w-full max-w-full min-w-0 text-sm comment-content"
+                  set:html={t.comments.body}
+                >
+                </div>
+                <div class="mt-1 flex items-center gap-4 text-sm text-[var(--text-color-70)]">
+                  <button type="button" class="hover:text-[var(--link-color)]">{t.comments.reply}</button>
+                </div>
+              </div>
+            </div>
+
+            <!-- 评论表单：与 Comments.svelte 同结构（昵称 / 邮箱 / 网址 + 正文 + 预览 / 发送） -->
+            <div class="space-y-4">
+              <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                <div>
+                  <label for="ds-comment-name" class="block text-sm text-[var(--text-color)] mb-1">
+                    {t.comments.nameLabel}<span class="text-red-500">*</span>
+                  </label>
+                  <input
+                    id="ds-comment-name"
+                    type="text"
+                    placeholder={t.comments.required}
+                    class="rounded w-full text-[var(--text-color)] border border-[var(--button-border-color)] focus:outline-none focus:border-[var(--link-color)] text-sm p-2"
+                  />
+                </div>
+                <div>
+                  <label for="ds-comment-email" class="block text-sm text-[var(--text-color)] mb-1">
+                    {t.comments.emailLabel}<span class="text-red-500">*</span>
+                  </label>
+                  <input
+                    id="ds-comment-email"
+                    type="email"
+                    placeholder={t.comments.required}
+                    class="rounded w-full text-[var(--text-color)] border border-[var(--button-border-color)] focus:outline-none focus:border-[var(--link-color)] text-sm p-2"
+                  />
+                </div>
+                <div>
+                  <label for="ds-comment-site" class="block text-sm text-[var(--text-color)] mb-1">{t.comments.siteLabel}</label>
+                  <input
+                    id="ds-comment-site"
+                    type="url"
+                    placeholder={t.comments.optional}
+                    class="rounded w-full text-[var(--text-color)] border border-[var(--button-border-color)] focus:outline-none focus:border-[var(--link-color)] text-sm p-2"
+                  />
+                </div>
+              </div>
+
+              <textarea
+                rows="4"
+                placeholder={t.comments.placeholder}
+                class="rounded w-full border text-[var(--text-color)] border-[var(--button-border-color)] focus:outline-none focus:border-[var(--link-color)] text-sm p-3 min-h-[100px]"
+              ></textarea>
+
+              <div class="flex flex-wrap items-center justify-end gap-3">
+                <button
+                  type="button"
+                  class="rounded px-4 py-2 text-sm font-medium text-[var(--text-color)] border border-[var(--button-border-color)] hover:bg-[var(--button-hover-bg-color)]"
+                >
+                  {t.comments.preview}
+                </button>
+                <button
+                  type="button"
+                  class="rounded px-4 py-2 text-sm font-medium text-[var(--text-color)] border border-[var(--button-border-color)] hover:bg-[var(--button-hover-bg-color)]"
+                >
+                  {t.comments.submit}
+                </button>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- 16 状态 -->
+        <section class="ds-section" id="state">
+          <div class="ds-section-head">
+            <span class="ds-index">16</span>
+            <h2>{t.sections.state.title}</h2>
+          </div>
+          <p>{t.sections.state.desc}</p>
+          <div class="ds-state-grid">
+            <div class="ds-state">
+              <span class="spinner" aria-hidden="true"></span>
+              <strong>{t.states.loading}</strong>
+              <span class="ds-hint">{t.states.loadingDesc}</span>
+            </div>
+            <div class="ds-state">
+              <span style="font-size: var(--momo-font-size-4xl); line-height: 1">∅</span>
+              <strong>{t.states.empty}</strong>
+              <span class="ds-hint">{t.states.emptyDesc}</span>
+            </div>
+            <div class="ds-state">
+              <span style="font-size: var(--momo-font-size-4xl); line-height: 1">!</span>
+              <strong>{t.states.error}</strong>
+              <span class="ds-hint">{t.states.errorDesc}</span>
+              <button class="momo-btn momo-btn--sm" type="button">{t.states.retry}</button>
+            </div>
+          </div>
+        </section>
+
+        <!-- 17 无障碍 -->
+        <section class="ds-section" id="a11y">
+          <div class="ds-section-head">
+            <span class="ds-index">17</span>
+            <h2>{t.sections.a11y.title}</h2>
+          </div>
+          <p>{t.sections.a11y.desc}</p>
+
+          <h3>{t.a11y.focus}</h3>
+          <p class="ds-hint">{t.a11y.focusDesc}</p>
+          <div class="ds-a11y-row">
+            <button class="momo-btn" type="button">{t.a11y.focus}</button>
+            <a class="ds-focus-demo" href="#color">{isEn ? 'A sample link' : '一个示例链接'}</a>
+          </div>
+
+          <h3>{t.a11y.labels} · {t.a11y.motion}</h3>
+          <p class="ds-hint">{t.a11y.labelsDesc} {t.a11y.motionDesc}</p>
+        </section>
+
+        <!-- 18 样式归属 -->
+        <section class="ds-section" id="structure">
+          <div class="ds-section-head">
+            <span class="ds-index">18</span>
+            <h2>{t.sections.structure.title}</h2>
+          </div>
+          <p>{t.sections.structure.desc}</p>
+          <div class="ds-prose-demo">
+            <!-- 这层是手写的「长得像正文」的表，同样要退出入场动画：
+                 Layout 的入场动画只作用于第一个 .markdown-content 的直接子元素，
+                 不写 data-no-reveal 的话这张表会从 opacity: 0 开始、要滚进视口才淡入。 -->
+            <div class="markdown-content" data-no-reveal>
+              <table>
+                <thead>
+                  <tr>
+                    <th>{isEn ? 'Layer' : '层级'}</th>
+                    <th>{isEn ? 'Location' : '存放位置'}</th>
+                    <th>{isEn ? 'Example' : '典型例子'}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {structureRows.map((row) => (
+                    <tr>
+                      <td>{row[0]}</td>
+                      <td><code>{row[1]}</code></td>
+                      <td><code>{row[2]}</code></td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+      </div>
+    </div>
+  </div>
+</MainPageLayout>

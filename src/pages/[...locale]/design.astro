@@ -1,0 +1,20 @@
+---
+import DesignSpec from '@components/design/DesignSpec.astro';
+import { localeCodes } from '@utils/seo';
+import { i18n } from 'astro:config/client';
+
+/* 与 about / archives / friends 共用同一套 locale 路由：
+   默认语言不带前缀（/design），其它语言带前缀（/en/design）。
+   以前是两个静态入口（design.astro + en/design.astro），加一种语言就得再抄一份。 */
+export function getStaticPaths() {
+    return localeCodes().map((locale) => ({
+        params: { locale: locale === i18n!.defaultLocale ? undefined : locale },
+    }));
+}
+
+const currentLang = Astro.currentLocale || i18n!.defaultLocale;
+/* 规范页文案只有中 / 英两套（硬编码在 DesignSpec 的 T 对象里），其它语言回退中文 */
+const lang = currentLang.toLowerCase().startsWith('en') ? 'en' : 'zh';
+---
+
+<DesignSpec lang={lang} />

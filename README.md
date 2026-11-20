@@ -82,3 +82,4 @@ Momo 取自小红书📕，每个新用户最初的昵称，象征着初始新�
 * [Astro](https://astro.build/)
 * [Fuwari](https://github.com/saicaca/fuwari)
 * [Tyndall](https://github.com/moyuin-aka/tyndall-public)
+* [设计规范](https://momo.motues.top/design)

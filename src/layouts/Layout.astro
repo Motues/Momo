@@ -347,6 +347,51 @@ const photoCoverOn = photoCoverEnabled();
             window.__momoUmamiUrl = url;
             window.umami?.track?.();
         });
+
+        // 5. 设计规范页（/design）的交互。
+        //    页面自己的 <script> 会被 Astro 提到 </body> 前、在 swup 容器之外，
+        //    从站内跳进来时不会执行；所以统一放在这个只跑一次的全局脚本里：
+        //    重播用事件委托（整行都能点），目录高亮在每次 page-load 后重新收集。
+        document.addEventListener('click', (event) => {
+            const node = event.target instanceof Element ? event.target : null;
+            if (!node) return;
+            const trigger = node.closest('[data-ds-replay]') || node.closest('.ds-motion-demo');
+            if (!trigger) return;
+            const id = trigger.getAttribute('data-ds-replay') || trigger.id;
+            const target = id ? document.getElementById(id) : null;
+            if (!target) return;
+            // 先移除、强制回流、再加回，动画才会从头播放
+            target.classList.remove('is-playing');
+            void target.offsetWidth;
+            target.classList.add('is-playing');
+        });
+
+        function setupDesignToc() {
+            const links = Array.from(document.querySelectorAll('.ds-toc a'));
+            if (!links.length) return;
+            if (window.__dsTocObserver) window.__dsTocObserver.disconnect();
+            const sections = links
+                .map((link) => document.querySelector(link.getAttribute('href')))
+                .filter(Boolean);
+            const observer = new IntersectionObserver((entries) => {
+                for (const entry of entries) {
+                    if (!entry.isIntersecting) continue;
+                    const id = '#' + entry.target.id;
+                    for (const link of links) {
+                        link.classList.toggle('is-active', link.getAttribute('href') === id);
+                    }
+                }
+            }, { rootMargin: '-20% 0px -70% 0px', threshold: 0 });
+            sections.forEach((section) => observer.observe(section));
+            window.__dsTocObserver = observer;
+        }
+
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', setupDesignToc, { once: true });
+        } else {
+            setupDesignToc();
+        }
+        document.addEventListener('astro:page-load', setupDesignToc);
     </script>
 </head>
 <body class="h-full bg-[var(--bg-color)]" {...osAttrs}>

@@ -23,6 +23,7 @@ if (profileConfig.indexPage) {
         <a target="_blank" href="https://tailwindcss.com/" title="tailwindcss" class="tooltip-wrapper"><Icon name="simple-icons:tailwindcss" class="inline-block"/></a> 
         <a target="_blank" href="https://github.com/Motues/Momo" title="Momo" class="tooltip-wrapper"><Icon name="simple-icons:github" class="inline-block"/></a> 
         | 
+        <a href="/design/" target="_self" id="footer-design-link" title="设计规范" aria-label="设计规范" class="tooltip-wrapper"><Icon name="fluent:color-24-filled" class="inline-block" viewBox="2 2 20 20" /></a>
         <a href="/rss.xml" target="_self" title="RSS" class="tooltip-wrapper"><Icon name="simple-icons:rss" class="inline-block" /></a>
         </p>
     </div>
@@ -31,11 +32,10 @@ if (profileConfig.indexPage) {
 
 <style>
     footer {
-        font-family:  "EB Garamond", cursive !important; 
+        font-family: var(--momo-font-display) !important;
     }
    .right a {
         color: inherit;
-        /* transition: color 0.3s ease; */
         text-decoration: none;
         position: relative;
         display: inline-block;
@@ -58,22 +58,22 @@ if (profileConfig.indexPage) {
         transform: translateX(-50%);
         padding: 4px 8px;
         background-color: var(--text-color);
-        color:var(--bg-color);
-        font-size: 12px; 
-        font-weight: bold;
-        border-radius: 6px;
+        color: var(--bg-color);
+        font-size: var(--momo-font-size-xs);
+        font-weight: var(--momo-font-weight-bold);
+        border-radius: var(--momo-radius-sm);
         white-space: nowrap;
-        z-index: 1000;
+        z-index: var(--momo-z-fab);
         opacity: 0;
-        animation: fadeInTooltip 0.3s forwards;
-        margin-bottom: 5px;
+        animation: fadeInTooltip var(--momo-t-base) forwards;
+        margin-bottom: var(--momo-space-1);
         text-align: center;
     }
 
     /* 隐藏浏览器默认的title提示 */
     .tooltip-wrapper {
         text-decoration: none !important;
-        margin: 0 2px;
+        margin: 0 var(--momo-space-1);
     }
 
     .tooltip-wrapper:hover {
@@ -87,3 +87,23 @@ if (profileConfig.indexPage) {
         }
     }
 </style>
+
+<script>
+  import { registerPageInit } from '@utils/pageInit';
+  import { currentLangFromUrl } from '@utils/locale';
+
+  // 页脚在 swup 容器之外、换页不重建，语言切换后链接与文案要自己跟上。
+  // 语言以地址为准（见 utils/locale 的说明），不要依赖 <html lang>——
+  // 那是 swup head 插件「顺带」同步的，首屏与关闭 updateHead 时都不可靠。
+  // 设计规范页走和其他页面同一套 locale 路由：/design/（默认语言）与 /en/design/，
+  // 文案不复用 i18n 配置、直接写死；入口是纯图标，名称走 title / aria-label。
+  registerPageInit(() => {
+    const link = document.getElementById('footer-design-link');
+    if (!link) return;
+    const isEnglish = currentLangFromUrl() === 'en';
+    const label = isEnglish ? 'Design System' : '设计规范';
+    link.setAttribute('href', isEnglish ? '/en/design/' : '/design/');
+    link.setAttribute('title', label);
+    link.setAttribute('aria-label', label);
+  });
+</script>

@@ -1,0 +1,789 @@
+/* ============================================================================
+ * 设计规范页（/design）
+ * ----------------------------------------------------------------------------
+ * 只服务规范页，不参与全站样式。所有颜色 / 圆角 / 阴影 / 动效都取自
+ * variables.css 的 token，改 token 后本页自动跟着变。
+ * ========================================================================== */
+
+.ds-page {
+  --ds-toc: 220px;
+  --ds-gap: 48px;
+  width: min(1080px, 90vw);
+  margin: 0 auto;
+  padding: 2.5rem 0 5rem;
+  color: var(--text-color);
+}
+
+/* ---------- Hero ---------- */
+.ds-hero {
+  position: relative;
+  padding: 1rem 0 3rem;
+  text-align: center;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.ds-eyebrow {
+  display: inline-block;
+  margin-bottom: 1rem;
+  padding: 4px 12px;
+  border: 1px solid var(--border-color);
+  border-radius: var(--momo-radius-pill);
+  color: var(--text-color-70);
+  font-family: var(--momo-font-mono);
+  font-size: var(--momo-font-size-2xs);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.ds-title {
+  margin: 0;
+  /* 展示级字号只此一处：token 的值本身就是 clamp（390px 下 36px，宽屏收到 56px） */
+  font-size: var(--momo-font-size-display);
+  font-weight: var(--momo-font-weight-bold);
+  line-height: var(--momo-leading-tight);
+  letter-spacing: 0.04em;
+}
+
+.ds-lead {
+  max-width: 44rem;
+  margin: 1.25rem auto 0;
+  color: var(--text-color-70);
+  font-size: var(--momo-font-size-md);
+  line-height: var(--momo-leading-relaxed);
+}
+
+/* ---------- 布局 ----------
+ * 目录在正文左侧，做成 C 版那种带编号的属性面板：
+ * 标题栏 + 编号行 + 选中淡蓝底。桌面端 220px，窄屏回到正文上方并排成多列。
+ */
+.ds-layout {
+  display: grid;
+  grid-template-columns: var(--ds-toc) minmax(0, 1fr);
+  gap: var(--ds-gap);
+  align-items: start;
+  margin-top: 2.5rem;
+}
+
+.ds-content {
+  min-width: 0;
+}
+
+.ds-toc {
+  position: sticky;
+  top: 7rem;
+  overflow: hidden;
+  padding: 0;
+  border: 1px solid var(--border-color);
+  border-radius: var(--momo-radius-lg);
+  background-color: var(--surface-color);
+  box-shadow: var(--momo-shadow-xs);
+}
+
+.ds-toc-title {
+  margin: 0;
+  padding: 0.6rem 0.8rem;
+  border-bottom: 1px solid var(--border-color);
+  background-color: var(--surface-color-hover);
+  color: var(--text-color);
+  font-family: var(--momo-font-serif);
+  font-size: var(--momo-font-size-xs);
+  font-weight: var(--momo-font-weight-semibold);
+  letter-spacing: 0.06em;
+}
+
+.ds-toc ol {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  margin: 0;
+  padding: 0.35rem;
+  list-style: none;
+}
+
+.ds-toc a {
+  display: grid;
+  grid-template-columns: 24px minmax(0, 1fr);
+  gap: 0.35rem;
+  padding: 0.35rem 0.45rem;
+  border-radius: var(--momo-radius-xs);
+  color: var(--text-color-70);
+  font-family: var(--momo-font-serif);
+  font-size: var(--momo-font-size-xs);
+  text-decoration: none;
+  transition:
+    color var(--momo-t-fast) var(--momo-ease-out),
+    background-color var(--momo-t-fast) var(--momo-ease-out);
+}
+
+.ds-toc a::before {
+  content: attr(data-index);
+  color: var(--text-color-30);
+  font-family: var(--momo-font-serif);
+  font-size: 11px;
+  line-height: 1.6;
+}
+
+.ds-toc a:hover {
+  background-color: var(--surface-color-hover);
+  color: var(--text-color);
+}
+
+.ds-toc a.is-active {
+  background-color: var(--accent-soft);
+  color: var(--link-color);
+}
+
+.ds-toc a.is-active::before {
+  color: var(--link-color);
+}
+
+/* ---------- Section ---------- */
+.ds-section {
+  padding-top: 2.5rem;
+  scroll-margin-top: 6rem;
+}
+
+.ds-section + .ds-section {
+  margin-top: 1rem;
+  border-top: 1px solid var(--border-color);
+}
+
+.ds-section-head {
+  display: flex;
+  align-items: baseline;
+  gap: var(--momo-space-3);
+  margin-bottom: 0.5rem;
+}
+
+.ds-index {
+  color: var(--link-color);
+  font-family: var(--momo-font-mono);
+  font-size: var(--momo-font-size-lg);
+  font-weight: var(--momo-font-weight-medium);
+  line-height: 1;
+  letter-spacing: 0.02em;
+}
+
+/* 只作用于规范页自己的标题与说明；正文示例里的 Markdown 元素保持原样 */
+.ds-section h2:not(.markdown-content h2) {
+  margin: 0;
+  font-size: var(--momo-font-size-2xl);
+  font-weight: var(--momo-font-weight-bold);
+  letter-spacing: 0.02em;
+}
+
+.ds-section h3:not(.markdown-content h3) {
+  margin: 2rem 0 0.75rem;
+  font-size: var(--momo-font-size-lg);
+  font-weight: var(--momo-font-weight-bold);
+}
+
+.ds-section > p:not(.markdown-content p) {
+  max-width: 46rem;
+  margin: 0.5rem 0 1.25rem;
+  color: var(--text-color-70);
+  font-size: var(--momo-font-size-md);
+  line-height: var(--momo-leading-relaxed);
+}
+
+.ds-section .ds-hint {
+  color: var(--text-color-30);
+  font-size: var(--momo-font-size-xs);
+}
+
+.ds-section code {
+  padding: 1px 5px;
+  border-radius: var(--momo-radius-xs);
+  background-color: var(--surface-color-hover);
+  font-family: var(--momo-font-mono);
+  font-size: 0.88em;
+}
+
+.ds-hint {
+  color: var(--text-color-30);
+  font-size: var(--momo-font-size-xs);
+}
+
+/* ---------- 通用网格 / 卡片 ---------- */
+.ds-grid {
+  display: grid;
+  gap: var(--momo-space-3);
+}
+
+.ds-grid--colors {
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+}
+
+.ds-grid--radius {
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+}
+
+.ds-grid--shadow {
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+}
+
+.ds-grid--buttons {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--momo-space-3);
+}
+
+.ds-tile {
+  padding: 1rem;
+  border: 1px solid var(--border-color);
+  border-radius: var(--momo-radius-lg);
+  background-color: var(--surface-color);
+  box-shadow: var(--momo-shadow-xs);
+}
+
+/* ---------- 色彩 ---------- */
+.ds-swatch {
+  overflow: hidden;
+  border: 1px solid var(--border-color);
+  border-radius: var(--momo-radius-lg);
+  background-color: var(--surface-color);
+}
+
+.ds-swatch-chip {
+  height: 72px;
+  background-color: var(--swatch);
+  /* 白色 / 透明色块也要看得出边界 */
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--text-color) 8%, transparent);
+}
+
+.ds-swatch-body {
+  padding: 0.65rem 0.75rem 0.8rem;
+}
+
+.ds-swatch-name {
+  display: block;
+  overflow: hidden;
+  color: var(--text-color);
+  font-family: var(--momo-font-mono);
+  font-size: var(--momo-font-size-2xs);
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+
+.ds-swatch-value {
+  display: block;
+  margin-top: 2px;
+  color: var(--text-color-30);
+  font-family: var(--momo-font-mono);
+  font-size: var(--momo-font-size-2xs);
+  word-break: break-all;
+}
+
+.ds-swatch-usage {
+  display: block;
+  margin-top: 4px;
+  color: var(--text-color-70);
+  font-size: var(--momo-font-size-xs);
+}
+
+.ds-swatch--dark .ds-swatch-value {
+  color: var(--link-color);
+}
+
+/* ---------- 排版 ---------- */
+.ds-type-row {
+  display: grid;
+  grid-template-columns: 190px minmax(0, 1fr);
+  gap: var(--momo-space-4);
+  align-items: baseline;
+  padding: 0.85rem 0;
+  border-top: 1px dashed var(--border-color);
+}
+
+.ds-type-row:first-child {
+  border-top: 0;
+}
+
+.ds-type-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.ds-type-token {
+  color: var(--text-color);
+  font-family: var(--momo-font-mono);
+  font-size: var(--momo-font-size-2xs);
+}
+
+.ds-type-value {
+  color: var(--text-color-30);
+  font-family: var(--momo-font-mono);
+  font-size: var(--momo-font-size-2xs);
+}
+
+.ds-type-sample {
+  line-height: var(--momo-leading-tight);
+  word-break: break-word;
+}
+
+.ds-font-list {
+  display: grid;
+  gap: var(--momo-space-2);
+}
+
+.ds-font-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--momo-space-3);
+  padding: 0.85rem 1rem;
+  border: 1px solid var(--border-color);
+  border-radius: var(--momo-radius-md);
+  background-color: var(--surface-color);
+}
+
+.ds-font-sample {
+  font-size: 1.35rem;
+}
+
+.ds-font-meta {
+  color: var(--text-color-30);
+  font-family: var(--momo-font-mono);
+  font-size: var(--momo-font-size-2xs);
+  text-align: right;
+}
+
+/* ---------- 间距 / 圆角 / 阴影 ---------- */
+.ds-space-row {
+  display: flex;
+  align-items: center;
+  gap: var(--momo-space-4);
+  padding: 0.4rem 0;
+  font-size: var(--momo-font-size-xs);
+}
+
+.ds-space-bar {
+  height: 10px;
+  border-radius: var(--momo-radius-pill);
+  background-color: var(--link-color);
+  opacity: 0.75;
+}
+
+.ds-space-token {
+  min-width: 120px;
+  font-family: var(--momo-font-mono);
+}
+
+.ds-space-value {
+  min-width: 56px;
+  color: var(--text-color-30);
+  font-family: var(--momo-font-mono);
+}
+
+.ds-radius-tile {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  align-items: center;
+  padding: 1rem 0.75rem;
+  border: 1px solid var(--border-color);
+  background-color: var(--surface-color);
+}
+
+.ds-radius-box {
+  width: 64px;
+  height: 64px;
+  border: 2px solid var(--link-color);
+  background-color: var(--accent-soft);
+  border-radius: var(--radius);
+}
+
+.ds-radius-name {
+  color: var(--text-color);
+  font-family: var(--momo-font-mono);
+  font-size: var(--momo-font-size-2xs);
+}
+
+.ds-radius-value {
+  color: var(--text-color-30);
+  font-family: var(--momo-font-mono);
+  font-size: var(--momo-font-size-2xs);
+}
+
+.ds-shadow-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  padding: 1.25rem 1rem;
+  border-radius: var(--momo-radius-lg);
+  background-color: var(--surface-color);
+  box-shadow: var(--shadow);
+}
+
+/* ---------- 动效 ---------- */
+.ds-motion-table {
+  display: grid;
+  gap: var(--momo-space-2);
+}
+
+.ds-motion-row {
+  display: grid;
+  grid-template-columns: 150px minmax(0, 1.5fr) minmax(0, 1fr);
+  gap: var(--momo-space-3);
+  align-items: center;
+  padding: 0.6rem 0.75rem;
+  border: 1px solid var(--border-color);
+  border-radius: var(--momo-radius-md);
+  background-color: var(--surface-color);
+  font-size: var(--momo-font-size-xs);
+}
+
+.ds-motion-token {
+  font-family: var(--momo-font-mono);
+}
+
+.ds-motion-value {
+  color: var(--text-color-30);
+  font-family: var(--momo-font-mono);
+  font-size: var(--momo-font-size-2xs);
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
+.ds-motion-demo {
+  display: flex;
+  align-items: center;
+  gap: var(--momo-space-3);
+  padding: 1.25rem;
+  border: 1px solid var(--border-color);
+  border-radius: var(--momo-radius-lg);
+  background-color: var(--surface-color);
+  cursor: pointer;
+  transition: border-color var(--momo-t-fast) var(--momo-ease-out);
+}
+
+.ds-motion-demo:hover {
+  border-color: var(--border-color-strong);
+}
+
+.ds-motion-track {
+  position: relative;
+  flex: 1;
+  height: 8px;
+  border-radius: var(--momo-radius-pill);
+  background-color: var(--surface-color-hover);
+}
+
+.ds-motion-dot {
+  position: absolute;
+  top: 50%;
+  left: 0;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background-color: var(--link-color);
+  transform: translate(0, -50%);
+}
+
+.ds-motion-demo.is-playing .ds-motion-dot {
+  animation: ds-slide var(--duration) var(--ease) forwards;
+}
+
+@keyframes ds-slide {
+  from {
+    left: 0;
+  }
+  to {
+    left: calc(100% - 18px);
+  }
+}
+
+.ds-lift-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: var(--momo-space-3);
+}
+
+.ds-lift-card {
+  padding: 1.25rem 1rem;
+  border: 1px solid var(--border-color);
+  border-radius: var(--momo-radius-md);
+  background-color: var(--surface-color);
+  box-shadow: var(--momo-shadow-xs);
+  font-size: var(--momo-font-size-sm);
+  transition:
+    transform var(--momo-t-base) var(--momo-ease-out),
+    box-shadow var(--momo-t-base) var(--momo-ease-out);
+}
+
+.ds-lift-card:hover {
+  transform: translateY(var(--momo-lift-card));
+  box-shadow: var(--momo-shadow-md);
+}
+
+/* ---------- 表单 / 按钮 ---------- */
+.ds-field-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: var(--momo-space-4);
+}
+
+.ds-label {
+  display: block;
+  margin-bottom: var(--momo-space-2);
+  color: var(--text-color-70);
+  font-size: var(--momo-font-size-xs);
+}
+
+/* ---------- 卡片族 ---------- */
+.ds-card-stack {
+  display: grid;
+  gap: var(--momo-space-4);
+}
+
+/* 卡片示例里的 auto-fit 网格会按「两列 200px」算 min-content，
+   390px 下把整页撑宽 100 多像素；允许子项收缩，reflow 后自然只剩一列。 */
+.ds-card-stack > * {
+  min-width: 0;
+}
+
+/* ---------- 提示 ---------- */
+.ds-admonition-grid {
+  display: grid;
+  gap: var(--momo-space-3);
+}
+
+.ds-admonition-grid .note,
+.ds-admonition-grid .tip,
+.ds-admonition-grid .important,
+.ds-admonition-grid .warning,
+.ds-admonition-grid .caution {
+  margin: 0;
+}
+
+/* 规范页里的提示块不依赖正文容器，单独补一点排版 */
+.ds-admonition-grid .admonition-title {
+  font-size: var(--momo-font-size-md);
+}
+
+.ds-admonition-grid p {
+  margin: 0;
+  font-size: var(--momo-font-size-sm);
+}
+
+/* ---------- 自定义语法 ---------- */
+.ds-custom-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: var(--momo-space-4);
+  align-items: start;
+  margin-top: var(--momo-space-4);
+}
+
+/* 卡片网格紧跟在说明文字后面，标题不再叠一档上边距 */
+.ds-section .ds-custom-cards .ds-custom-block > h3 {
+  margin-top: 0;
+}
+
+.ds-custom-syntax {
+  display: inline-block;
+  max-width: 100%;
+  margin: 0 0 var(--momo-space-2);
+  overflow-x: auto;
+  color: var(--text-color-70);
+  font-size: var(--momo-font-size-xs);
+}
+
+/* 卡片在文章里是居中的（自带外边距），规范页里交给网格排布 */
+.ds-custom-cards .card-github,
+.ds-custom-cards .card-music {
+  margin: 0;
+}
+
+/* 居中引用自带 3.5rem 的上下留白，规范页里收一档 */
+.ds-custom-block .quote {
+  margin: var(--momo-space-5) 0;
+}
+
+.ds-inline-demo {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--momo-space-3);
+  margin: 0;
+  font-size: var(--momo-font-size-md);
+  line-height: var(--momo-leading-relaxed);
+}
+
+/* ---------- 版式容器 ---------- */
+.ds-container-diagram {
+  display: flex;
+  flex-direction: column;
+  gap: var(--momo-space-3);
+  padding: 1.25rem;
+  border: 1px dashed var(--border-color-strong);
+  border-radius: var(--momo-radius-lg);
+  background-color: var(--surface-color);
+}
+
+.ds-container-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--momo-space-3);
+  padding: 0.65rem 1rem;
+  border-radius: var(--momo-radius-sm);
+  background-color: var(--accent-soft);
+  color: var(--text-color);
+  font-size: var(--momo-font-size-xs);
+}
+
+.ds-container-bar--narrow {
+  width: min(72%, 100%);
+  margin-left: auto;
+  margin-right: auto;
+  background-color: var(--surface-color-hover);
+}
+
+.ds-breakpoints {
+  display: grid;
+  gap: var(--momo-space-2);
+}
+
+.ds-breakpoint {
+  display: grid;
+  grid-template-columns: 90px minmax(0, 1fr);
+  gap: var(--momo-space-3);
+  padding: 0.7rem 0.9rem;
+  border: 1px solid var(--border-color);
+  border-radius: var(--momo-radius-md);
+  background-color: var(--surface-color);
+  font-size: var(--momo-font-size-xs);
+}
+
+.ds-breakpoint b {
+  font-family: var(--momo-font-mono);
+  font-weight: var(--momo-font-weight-semibold);
+}
+
+/* ---------- 正文示例 ---------- */
+.ds-prose-demo {
+  padding: 0.5rem 0 1rem;
+  border: 1px solid var(--border-color);
+  border-radius: var(--momo-radius-lg);
+  background-color: var(--surface-color);
+}
+
+.ds-prose-demo .markdown-content {
+  padding: 1.5rem 1.75rem 1rem;
+  /* 宽表格 / 代码块在示例里横向滚动，不要撑破整页 */
+  overflow-x: auto;
+}
+
+.ds-prose-demo .markdown-content > :first-child {
+  margin-top: 0;
+}
+
+/* ---------- 评论示例 ---------- */
+/* 结构与样式直接复用 CommentItem / Comments 的工具类，
+   规范页只补一点纵向间距，避免出现「另一套看起来像评论」的样式。 */
+.ds-comment-demo {
+  display: grid;
+  gap: var(--momo-space-6);
+}
+
+/* ---------- 状态 ---------- */
+.ds-state-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: var(--momo-space-3);
+}
+
+.ds-state {
+  display: flex;
+  min-height: 140px;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--momo-space-3);
+  padding: 1.25rem;
+  border: 1px solid var(--border-color);
+  border-radius: var(--momo-radius-lg);
+  background-color: var(--surface-color);
+  text-align: center;
+  font-size: var(--momo-font-size-sm);
+  color: var(--text-color-70);
+}
+
+.ds-state .spinner {
+  width: 28px;
+  height: 28px;
+  border-width: 3px;
+}
+
+/* ---------- 无障碍 ---------- */
+.ds-a11y-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--momo-space-3);
+  align-items: center;
+}
+
+.ds-focus-demo {
+  padding: 0.6rem 1rem;
+  border: 1px solid var(--border-color);
+  border-radius: var(--momo-radius-md);
+  background-color: var(--surface-color);
+  font-size: var(--momo-font-size-sm);
+}
+
+/* ---------- 响应式 ----------
+ * 断点只用站点定义的三档：640（Tailwind sm）/ 776（站点移动端分界）/ 1024（桌面双栏），
+ * 写法统一为 max-width（含该值），免得同一档出现 767 / 775 / 900 / 1024 四种写法。 */
+@media (max-width: 776px) {
+  /* 移动端顶栏是 fixed，正文要让出它的高度 */
+  .ds-page {
+    padding-top: 6rem;
+  }
+}
+
+@media (max-width: 1024px) {
+  .ds-layout {
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--momo-space-5);
+  }
+
+  /* 目录回到正文上方；面板横向排成三列，别在窄屏占满一屏 */
+  .ds-toc {
+    position: static;
+  }
+
+  .ds-toc ol {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0 var(--momo-space-1);
+  }
+
+  .ds-type-row {
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--momo-space-2);
+  }
+
+  .ds-motion-row {
+    grid-template-columns: 110px 70px minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 640px) {
+  .ds-toc ol {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .ds-prose-demo .markdown-content {
+    padding: 1rem;
+    overflow-x: auto;
+  }
+
+  .ds-motion-row {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 2px;
+  }
+}
