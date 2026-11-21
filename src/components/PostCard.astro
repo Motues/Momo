@@ -50,11 +50,12 @@ const revealAttrs = siteConfig.theme.AOS
         <>
         {isBgMode ? (
             <div class="bg-image">
-                <ImageModule src={image} alt={title} class="w-full h-full" priority={priority} widths={[360, 540, 776, 1080]} sizes="(max-width: 862px) 90vw, 776px" quality={65} />
+                {/* width 与 widths 最大档一致：不传的话 Astro 会按原图尺寸再生成一张全尺寸 src 兜底，有 srcset 的浏览器不会用它。档位与文章页封面共用，避免两套 widths 取并集。 */}
+                <ImageModule src={image} alt={title} class="w-full h-full" priority={priority} width={1080} widths={[480, 1080]} sizes="(max-width: 862px) 90vw, 776px" quality={65} />
             </div>
         ) : (
             <a href={pageUrl} class="cover h-60 overflow-hidden hover-scale block">
-                <ImageModule src={image} alt={title} class="w-full h-full object-cover" priority={priority} widths={[360, 540, 776, 1080]} sizes="(max-width: 862px) 90vw, 776px" quality={65} />
+                <ImageModule src={image} alt={title} class="w-full h-full object-cover" priority={priority} width={1080} widths={[480, 1080]} sizes="(max-width: 862px) 90vw, 776px" quality={65} />
             </a>
         )}
         </>

@@ -183,7 +183,7 @@ export async function coverShareImage(image: string, id: string): Promise<string
     const meta = contentImages[`/src/content/blog/${id}/${file}`]
     if (!meta) return ''
     try {
-        const optimized = await getImage({ src: meta, width: 1200, format: 'jpeg', quality: 82 })
+        const optimized = await getImage({ src: meta, width: 1200, format: 'jpeg', quality: 72 })
         return absoluteUrl(optimized.src)
     } catch {
         // 图片处理失败时不影响页面构建，只是不输出分享图

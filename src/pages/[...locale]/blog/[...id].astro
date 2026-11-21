@@ -121,7 +121,7 @@ const postJsonLd = articleJsonLd({
         {image && (
             <div class="cover overflow-hidden">
                 {/* 文章封面通常就是本页的 LCP 元素：优先加载 */}
-                <ImageModule src={image} alt={entry.data.title} class="w-full h-full object-cover" priority widths={[480, 776, 1080]} sizes="(max-width: 862px) 90vw, 776px" quality={65} />
+                <ImageModule src={image} alt={entry.data.title} class="w-full h-full object-cover" priority width={1080} widths={[480, 1080]} sizes="(max-width: 862px) 90vw, 776px" quality={65} />
             </div>
         )}
         {/* 页面级状态条（不是正文提示块）：圆角 8px 比提示块的 6px 大一档，属规范里的有意例外 */}

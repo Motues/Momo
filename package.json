@@ -4,7 +4,7 @@
   "version": "26.11.21",
   "scripts": {
     "dev": "astro dev",
-    "build": "astro build && node script/build-search-index.mjs",
+    "build": "astro build && node script/build-search-index.mjs && node script/prune-unused-images.mjs",
     "preview": "astro preview",
     "astro": "astro",
     "momo": "node script/momo/index.js",
