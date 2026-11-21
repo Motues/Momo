@@ -112,15 +112,18 @@
 
   /* 列表逐行 / 拼图逐行：一「行」是一个顶层 li 或一个 collage-item。
      同一网格行里的格子顶边相同，会同时进入视口、同时入场，看起来仍是整行一起浮出。
-     ⚠️ 行高只有一行文字，别再套 --momo-rise-prose（120px）那套大行程。 */
+     ⚠️ 行高只有一行文字，别再套 --momo-rise-prose（120px）那套大行程；
+     时长也走更短的 --momo-t-reveal-row：800ms 下相邻几行会一直同时在空中，
+     看着就是「整块淡入」，而不是一行接一行。 */
   html[data-reveal-on] .markdown-content:not([data-no-reveal]) > ul > li,
   html[data-reveal-on] .markdown-content:not([data-no-reveal]) > ol > li,
   html[data-reveal-on] .markdown-content:not([data-no-reveal]) > .image-collage > .collage-item {
-    /* 父级按 nth-child 给的错峰延迟会继承下来，逐行入场不需要它 */
+    /* 父级按 nth-child 给的错峰延迟会继承下来，逐行入场不需要它；
+       同一批点亮的行由 reveal.ts 在元素上内联写 --reveal-delay 做 80ms 递进 */
     --reveal-delay: 0ms;
     transition-property: opacity, transform;
-    transition-duration: var(--momo-t-reveal);
-    transition-delay: 0ms;
+    transition-duration: var(--momo-t-reveal-row);
+    transition-delay: var(--reveal-delay, 0ms);
     transition-timing-function: var(--momo-ease-out);
   }
 
@@ -157,6 +160,7 @@
     --momo-t-base: 1ms;
     --momo-t-slow: 1ms;
     --momo-t-reveal: 1ms;
+    --momo-t-reveal-row: 1ms;
   }
 
   [data-reveal],

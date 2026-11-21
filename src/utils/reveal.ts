@@ -29,10 +29,33 @@ import { registerPageInit } from '@utils/pageInit';
 const REVEAL_ATTR = 'data-reveal';
 const REVEALED_CLASS = 'is-revealed';
 const PROSE_SELECTOR = '.markdown-content:not([data-no-reveal])';
-/** 元素顶部越过视口底部 120px 才入场，和旧 AOS 的 offset 保持一致 */
-const OFFSET = 120;
+/**
+ * 触发线：元素顶边越过「视口底部往上 40px」就入场。
+ *
+ * 为什么不沿用 AOS 的 120px：正文块在流里首尾相接（加上折叠外边距也没多少），
+ * 触发线以下那一段就是完全不可见的空白，**空白上限就是这个值**。120px 在矮视口
+ * （笔记本带浏览器工具栏、移动端横屏、页面缩放 125% / 150%）上已经接近 1/4 屏，
+ * 文章首屏看着就是「内容到 3/4 处断了，下面一片空」。40px 只剩贴着底边的一条，
+ * 元素照样从屏幕下沿浮上来，看不出「先藏起来」。
+ */
+const OFFSET = 40;
 /** 等换页结束的兜底帧数（≈4s）：swup 的状态类万一卡住，也不能让内容永远不显现 */
 const WAIT_LIMIT = 240;
+/**
+ * 同一批里列表行的错峰步长。
+ *
+ * 光把 ul 拆到 li 还不够：首屏那一整块列表（换页后首屏就是列表时最明显）、或者快速
+ * 滚动时一轮回调点亮的好几行，会在同一帧里加类 —— 过渡时长、延迟、行程全都一样，
+ * 看上去就是「整块一起淡入」。
+ * ⚠️ 不能写成「前 N 行各错一步、后面的封顶」：第 N+1 行之后会挤成一批，页面前几行
+ * 正常、后面又一起出来。行多时改成压缩步长，让每一行仍然各有自己的起点。
+ */
+const ROW_STEP = 80;
+/**
+ * 一批列表行错峰的总跨度上限：行多时按行数压缩步长，而不是让后段一起落位。
+ * 600ms ≈ 行自身 480ms 的过渡，最后一行落位时前面几行刚好收尾 —— 再长就明显「等」。
+ */
+const ROW_SPAN = 600;
 
 let observer: IntersectionObserver | null = null;
 let watched = new Set<HTMLElement>();
@@ -41,11 +64,45 @@ let firstPage = true;
 let pageToken = 0;
 
 /** 加类即落位；类留在 DOM 上，所以这一页不会再被隐藏（含 resize / 再观察） */
-function reveal(el: HTMLElement): void {
+function reveal(el: HTMLElement, delay = 0): void {
   if (!el.isConnected || el.classList.contains(REVEALED_CLASS)) return;
+  if (delay > 0) el.style.setProperty('--reveal-delay', `${delay}ms`);
   el.classList.add(REVEALED_CLASS);
   observer?.unobserve(el);
   watched.delete(el);
+}
+
+/**
+ * 点亮一批元素：列表行按视觉顺序错峰，其它元素（卡片、正文块）保持原有延迟。
+ * 步长按「这一批里同一个列表有多少行」算：行少时是干脆的 80ms 递进，行多时压缩到
+ * 整批不超过 ROW_SPAN —— 每一行都有自己的起点，不会出现「前几行错开、后面挤成一批」。
+ * 不同批各自从 0 开始：滚动时逐行跨过触发线本来就先后有序，给靠后的行加绝对延迟
+ * 只会让它进视口之后还要干等。
+ */
+function revealBatch(list: HTMLElement[]): void {
+  const targets = list.filter(
+    (el) => el.isConnected && !el.classList.contains(REVEALED_CLASS),
+  );
+
+  const totals = new Map<Element, number>();
+  for (const el of targets) {
+    const parent = el.tagName === 'LI' ? el.parentElement : null;
+    if (parent) totals.set(parent, (totals.get(parent) ?? 0) + 1);
+  }
+
+  const seen = new Map<Element, number>();
+  for (const el of targets) {
+    const parent = el.tagName === 'LI' ? el.parentElement : null;
+    if (!parent) {
+      reveal(el);
+      continue;
+    }
+    const count = totals.get(parent) ?? 1;
+    const index = seen.get(parent) ?? 0;
+    seen.set(parent, index + 1);
+    const step = Math.min(ROW_STEP, ROW_SPAN / Math.max(count - 1, 1));
+    reveal(el, Math.round(index * step));
+  }
 }
 
 /**
@@ -92,6 +149,9 @@ function sync(options: { flush?: boolean } = {}): void {
   if (options.flush) void document.body.offsetHeight;
 
   const line = window.innerHeight - OFFSET;
+  // 先判定哪些越过触发线、哪些交给观察器，再统一点亮：错峰步长要按「这一批有多少行」
+  // 算，得先拿到整批，不能边扫边按「已经点亮了几行」拍脑袋。
+  const ready: HTMLElement[] = [];
   for (const el of pending()) {
     const delay = Number(el.dataset.revealDelay);
     if (delay > 0) el.style.setProperty('--reveal-delay', `${delay}ms`);
@@ -100,7 +160,7 @@ function sync(options: { flush?: boolean } = {}): void {
     // 顶部已经越过触发线的直接显现：首屏可见的元素、滚动位置恢复后位于视口
     // 上方的元素都属于这一类 —— 后者不会再和视口相交，等观察器只会永远不显示。
     if (!observer || top < line) {
-      reveal(el);
+      ready.push(el);
       continue;
     }
     if (!watched.has(el)) {
@@ -108,13 +168,14 @@ function sync(options: { flush?: boolean } = {}): void {
       observer.observe(el);
     }
   }
+  revealBatch(ready);
 
   revealAtPageEnd();
 }
 
 /**
- * 滚到页面最底部（或页面根本滚不动）时，末尾的元素再也无法「再往视口里进 120px」，
- * 只靠带 -120px 底边的观察器会一直停在 opacity: 0 —— 首页底部的分页栏、文章最后一个
+ * 滚到页面最底部（或页面根本滚不动）时，末尾的元素再也无法「再往视口里进 OFFSET」，
+ * 只靠带 -OFFSET 底边的观察器会一直停在 opacity: 0 —— 首页底部的分页栏、文章最后一个
  * 段落都会中招。这里补一次「只要露出来就落位」。
  */
 function revealAtPageEnd(): void {
@@ -214,11 +275,14 @@ export function initReveal(): void {
   if ('IntersectionObserver' in window) {
     observer = new IntersectionObserver(
       (entries) => {
-        for (const entry of entries) {
-          if (entry.isIntersecting) reveal(entry.target as HTMLElement);
-        }
+        // 一轮回调里可能同时点亮好几行（首屏 / 快速滚动）：先按视觉顺序排好，
+        // 再交给 revealBatch 错峰。boundingClientRect 是观察结果自带的，不额外读布局。
+        const hits = entries
+          .filter((entry) => entry.isIntersecting)
+          .sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top);
+        revealBatch(hits.map((entry) => entry.target as HTMLElement));
       },
-      // 底部内收 120px：元素要再进视口一点才入场，和 AOS 的 offset 一个意思
+      // 底部内收 OFFSET：元素要越过触发线才入场，线以下留的那一小截就是极限空白
       { rootMargin: `0px 0px -${OFFSET}px 0px` },
     );
   }

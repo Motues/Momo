@@ -157,6 +157,7 @@ Shadow color always comes from `--shadow-color` (black 15% in light, black 55% i
 | `--momo-t-slow` | 360ms | Long transitions, list stagger |
 | `--momo-t-press` | 90ms | Press feedback (`:active` only) |
 | `--momo-t-reveal` | 800ms | Entrance: card pop / prose rise |
+| `--momo-t-reveal-row` | 480ms | Entrance: list / collage rows |
 
 ### 7.2 Curves
 
@@ -168,7 +169,7 @@ Shadow color always comes from `--shadow-color` (black 15% in light, black 55% i
 
 Lift distances (hover): `--momo-lift` -1px, `--momo-lift-card` -2px, `--momo-lift-emoji` -4px.
 
-Entry travel (first appearance): cards `--momo-rise-card` 32px (with a 0.96 scale, curve `--momo-ease-pop`), prose blocks `--momo-rise-prose` 120px (curve `--momo-ease-out`, no bounce), duration always `--momo-t-reveal` (800ms).
+Entry travel (first appearance): cards `--momo-rise-card` 32px (with a 0.96 scale, curve `--momo-ease-pop`), prose blocks `--momo-rise-prose` 120px (curve `--momo-ease-out`, no bounce), duration `--momo-t-reveal` (800ms). Lists and collages enter row by row and use the shorter `--momo-t-reveal-row` (480ms); rows revealed in the same batch are staggered by 80ms, compressed so the whole batch finishes within 600ms (long lists keep a distinct start for every row instead of clipping the tail into one group) so they read as one row after another instead of a single block fade.
 
 Rules:
 

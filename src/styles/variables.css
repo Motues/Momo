@@ -172,6 +172,7 @@
   --momo-t-slow: 360ms; /* 较长过渡、列表错走 */
   --momo-t-press: 90ms; /* 按下反馈，只在 :active 里用 */
   --momo-t-reveal: 800ms; /* 入场（卡片 pop / 正文 rise，见 global.css 与 @utils/reveal） */
+  --momo-t-reveal-row: 480ms; /* 列表 / 拼图逐行入场：行比整块短，相邻行才不会糊成一片 */
 
   /* 丝滑收尾：位移 / 缩放，不过冲 */
   --momo-ease-out: cubic-bezier(0.22, 1, 0.36, 1);

@@ -132,7 +132,7 @@
 </script>
 
 <div class="archives mx-auto w-full max-w-[var(--page-width)]">
-    <div data-reveal="rise" class="text-center pt-5 pb-10 max-w-[var(--page-width)] mx-auto md:mt-0 mt-28">
+    <div class="text-center pt-5 pb-10 max-w-[var(--page-width)] mx-auto md:mt-0 mt-28">
         <h1 class="text-[var(--text-color)] text-3xl py-5 font-bold">{t("header.archive")}</h1>
         <p class="text-[var(--text-color-70)] font-bold">{t("cover.subTitle.archive", {count: filteredPosts.length})}</p>
     </div>

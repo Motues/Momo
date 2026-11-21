@@ -157,6 +157,7 @@ Tailwind 的 `p-4` / `gap-6` 与这把尺子同源（1 单位 = 4px），可以�
 | `--momo-t-slow` | 360ms | 长过渡、列表错峰 |
 | `--momo-t-press` | 90ms | 按下反馈（只在 `:active`） |
 | `--momo-t-reveal` | 800ms | 入场：卡片 pop / 正文 rise |
+| `--momo-t-reveal-row` | 480ms | 入场：列表 / 拼图逐行 |
 
 ### 7.2 曲线
 
@@ -168,7 +169,7 @@ Tailwind 的 `p-4` / `gap-6` 与这把尺子同源（1 单位 = 4px），可以�
 
 抬升行程（hover）：`--momo-lift` -1px、`--momo-lift-card` -2px、`--momo-lift-emoji` -4px。
 
-入场行程（首次出现）：卡片 `--momo-rise-card` 32px（配 0.96 缩放，曲线 `--momo-ease-pop`）、正文块 `--momo-rise-prose` 120px（曲线 `--momo-ease-out`，不回弹），时长统一走 `--momo-t-reveal`（800ms）。
+入场行程（首次出现）：卡片 `--momo-rise-card` 32px（配 0.96 缩放，曲线 `--momo-ease-pop`）、正文块 `--momo-rise-prose` 120px（曲线 `--momo-ease-out`，不回弹），时长走 `--momo-t-reveal`（800ms）；列表与拼图按行入场，时长换更短的 `--momo-t-reveal-row`（480ms），同一批点亮的多行再按 80ms 递进错峰（整批总跨度不超过 600ms，行多时压缩步长而不是给后段封顶），看起来才是一行一行往下铺，而不是整块淡入。
 
 规则：
 
