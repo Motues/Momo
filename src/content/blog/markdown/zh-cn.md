@@ -161,7 +161,7 @@ int main() {
 - `title="文件路径"`：显示标题栏；`frame="terminal"` 显示终端窗口（三个圆点）
 - `{2,4-5}`：高亮指定行；`ins={2}` / `del={1}`：diff 标记
 - `showLineNumbers` / `startLineNumber=10`：显示行号
-- `collapse={3-10}`：折叠指定行；`wrap`：自动换行；`frame="none"`：不显示标题栏
+- `collapse={3-10}`：折叠指定行（展开后段首 / 段尾仍保留一个收起控件，可再次折叠）；`wrap`：自动换行；`frame="none"`：不显示标题栏
 
 ````
 ```js title="src/app.js" {3} ins={4} del={5} showLineNumbers

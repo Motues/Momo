@@ -160,7 +160,7 @@ Syntax highlighting is powered by [Expressive Code](https://expressive-code.com/
 - `title="path/to/file"` shows a title bar; `frame="terminal"` renders a terminal window
 - `{2,4-5}` highlights lines; `ins={2}` / `del={1}` add diff markers
 - `showLineNumbers` / `startLineNumber=10` show line numbers
-- `collapse={3-10}` collapses lines; `wrap` wraps long lines; `frame="none"` hides the frame
+- `collapse={3-10}` collapses lines (a collapse control stays at the start / end of the expanded section, so you can fold it again); `wrap` wraps long lines; `frame="none"` hides the frame
 
 ````
 ```js title="src/app.js" {3} ins={4} del={5} showLineNumbers

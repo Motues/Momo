@@ -11,7 +11,7 @@
 //   ```js title="src/app.js" {3-5} showLineNumbers startLineNumber=10
 //   ```js ins={2} del={1}          // diff 标记
 //   ```bash frame="terminal"        // 终端窗口（三个圆点）
-//   ```js collapse={6-20} wrap      // 折叠 + 自动换行
+//   ```js collapse={6-20} wrap      // 折叠 + 自动换行（展开后段首 / 段尾保留收起控件）
 //   ```js frame="none"              // 不显示标题栏
 import { pluginCollapsibleSections, pluginCollapsibleSectionsTexts } from '@expressive-code/plugin-collapsible-sections'
 import { pluginLineNumbers } from '@expressive-code/plugin-line-numbers'
@@ -42,6 +42,11 @@ export default {
   defaultProps: {
     wrap: false,
     showLineNumbers: false,
+    // 折叠段默认用 collapsible-auto：展开后段首 / 段尾保留一个可点击的收起控件，
+    // 可以再次折叠。EC 默认的 `github` 样式一展开就把 summary 整个 display:none，
+    // 展开后没有任何入口能折回去；collapsible-auto 会在段落贴代码块底部时把控件放
+    // 在下方、否则放在上方。单个代码块写 collapseStyle=... 仍可覆盖这里。
+    collapseStyle: 'collapsible-auto',
   },
 
   frames: {
@@ -54,5 +59,10 @@ export default {
     codeFontFamily: "'JetBrains Mono Variable', ui-monospace, monospace",
     codeFontSize: '0.9rem',
     borderRadius: '8px',
+    collapsibleSections: {
+      // 展开后的代码行不再铺一层底色：只保留可点击的 summary 行，
+      // 否则折叠段会像被整块选中（折叠状态的那条底色仍然保留，用作可点的提示）。
+      openBackgroundColorCollapsible: 'transparent',
+    },
   },
 }
