@@ -19,7 +19,7 @@ Momo originates from Xiaohongshu📕, serving as the default nickname for every 
 * **Mobile Adaptation**: Components optimized for mobile devices, delivering the same experience as desktop browsers
 * **Image experience**: Click any image to open the lightbox; consecutive images are automatically laid out as a grid; images inside posts support an LQIP gradient placeholder
 * **Extensive Markdown syntax**: KaTeX, Typst (compiled to SVG at build time), Alert components, GitHub / NetEase Music cards, quote component, ruby annotations, spoilers, rainbow text, underline, new-tab links, Expressive Code and more
-* **Local search**: Localized search built with [pagefind](https://pagefind.app/), no external service required
+* **Local search**: Built-in index generated at build time and split by language, with Chinese-aware matching and deep links to the matched paragraph; no external service required
 * **Internationalization (i18n)**: Supports multilingual switching, currently available in Simplified Chinese and English
 * **Commenting**: Supports local deployment and Cloudflare deployment. See [Backend](https://github.com/Motues/Momo-Backend) for details; with silent verification enabled on the backend, visitors pass the human check automatically without solving puzzles or typing codes; once an emoji pack URL is configured on the backend, the comment box and reply boxes offer an emoji panel (image emoji and text emoticons) that inserts at the cursor and renders as small inline images in the body
 * **SEO**: canonical URLs, hreflang alternates, Open Graph / Twitter Cards, structured data, `sitemap.xml` and `robots.txt`
@@ -66,7 +66,7 @@ All commands below can be executed in the root directory
 | --- | --- |
 | `pnpm install` | Install dependencies |
 | `pnpm dev` | Start local server at `http://localhost:4321` |
-| `pnpm build` | Build release version to `./dist` (including the pagefind search index) |
+| `pnpm build` | Build release version to `./dist` (including the built-in search index) |
 | `pnpm preview` | Preview built release version |
 | `pnpm astro ...` | Run `astro` commands, e.g., `astro add` |
 | `pnpm cms` | Start the local CMS at `http://localhost:5188` (run `pnpm install` first) |

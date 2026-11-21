@@ -29,6 +29,7 @@ import { admonition } from '../../src/plugins/rehype-component-admonition.ts'
 import { GithubCardComponent } from '../../src/plugins/rehype-component-github-card.ts'
 import { MusicCardComponent } from '../../src/plugins/rehype-component-music-card.ts'
 import { QuoteComponent } from '../../src/plugins/rehype-component-quote.ts'
+import { rehypeSearchAnchor } from '../../src/plugins/rehype-search-anchor.ts'
 import ecConfig, { ecThemeOptions } from '../../ec.config.mjs'
 import { normalizeData, BLOG_DIR } from './store.mjs'
 import { CONFIG_PATH, readConfig } from './config-file.mjs'
@@ -164,6 +165,8 @@ function createProcessor(base, locale, ec, collage) {
   if (ec.enabled) {
     processor.use(rehypeExpressiveCode, { ...ec.options, getBlockLocale: () => locale })
   }
+  // 与博客一致的搜索锚点；预览里不影响展示，只为保持插件链与最终 HTML 结构一致
+  processor.use(rehypeSearchAnchor)
   return processor.use(rehypeStringify, { allowDangerousHtml: true })
 }
 

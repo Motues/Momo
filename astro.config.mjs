@@ -21,6 +21,7 @@ import { remarkCombined } from './src/plugins/remark-combined.ts';
 import { remarkTypst } from './src/plugins/remark-typst.ts';
 import { remarkReadingTime } from './src/plugins/remark-reading-time.ts';
 import { remarkLqip } from './src/plugins/remark-lqip.ts';
+import { rehypeSearchAnchor } from './src/plugins/rehype-search-anchor.ts';
 
 import svelte from "@astrojs/svelte";
 import swupIntegration from '@swup/astro';
@@ -110,7 +111,6 @@ export default defineConfig({
       rehypePlugins: [
         rehypeKatex,
         customFigurePlugin,
-        // [文字](url){target="_blank"}：新标签页打开 + 右上箭头图标
         rehypeLinkTarget,
         [rehypeImageCollage, {
           enable: collageSettings.enable !== false,
@@ -132,6 +132,7 @@ export default defineConfig({
             },
           },
         ],
+        rehypeSearchAnchor,
       ]
     })
   },

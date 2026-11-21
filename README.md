@@ -18,7 +18,7 @@ Momo 取自小红书📕，每个新用户最初的昵称，象征着初始新�
 * **移动端适配**：组件针对移动端进行优化，拥有和电脑浏览器一样的流畅体验
 * **图片体验**：点击图片打开灯箱；连续放置的多张图片自动拼成网格；文章内图片支持 LQIP 弥散渐变占位
 * **丰富的 Markdown 语法**：KaTeX、Typst（构建期编译为 SVG）、Alert 提示块、GitHub / 网易云音乐卡片、引用组件、注音（Ruby）、折叠、彩虹文字、下划线、新标签页链接，Expressive Code 等
-* **本地搜索**：使用 [pagefind](https://pagefind.app/) 实现本地化搜索，无需外部服务
+* **本地搜索**：自研索引，构建期按语言生成，支持中文分词与直接跳转到命中的正文段落，无需外部服务
 * **国际化（i18n）**：支持多语言切换，目前支持简体中文、英文
 * **评论功能**：支持本地部署和 Cloudflare 部署，具体参考 [Backend](https://github.com/Motues/Momo-Backend)；后端开启无感验证后，访客无需点选图片或输入验证码即可自动完成人机校验；后端配置表情包地址后，评论框与回复框带表情面板（图片表情与颜文字），可插入光标处并在正文里渲染成小图
 * **SEO**：canonical、hreflang 多语言对照、Open Graph / Twitter Card、结构化数据、`sitemap.xml` 与 `robots.txt`
@@ -65,7 +65,7 @@ Momo 取自小红书📕，每个新用户最初的昵称，象征着初始新�
 | --- | --- |
 | `pnpm install` | 安装依赖 |
 | `pnpm dev` | 启动本地服务器，运行在 `http://localhost:4321` |
-| `pnpm build` | 构建发布版本到 `./dist` 目录下（含 pagefind 搜索索引） |
+| `pnpm build` | 构建发布版本到 `./dist` 目录下（含自研搜索索引） |
 | `pnpm preview` | 预览构建后的发布版本 |
 | `pnpm astro ...` | 运行 `astro` 命令，例如 `astro add` |
 | `pnpm cms` | 启动本地 CMS 管理后台，运行在 `http://localhost:5188`（首次使用前先执行 `pnpm install`） |

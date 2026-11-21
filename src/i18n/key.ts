@@ -39,6 +39,13 @@ export interface Translation {
         placeholder: string;
         noresult: string;
         error: string;
+        label: string;
+        hint: string;
+        searching: string;
+        results: string;
+        tip: string;
+        devHint: string;
+        page: string;
     };
     license: {
         author: string;

@@ -844,3 +844,43 @@ rt {
 .lqip-markdown-img.lqip-loaded {
   background: transparent;
 }
+
+/* ============================================================================
+ * 搜索深链锚点
+ * ----------------------------------------------------------------------------
+ * 正文块由 rehype-search-anchor 注入 id（标题沿用 slug），搜索结果会直接跳到
+ * `#s-12` 这类锚点。短块最终由 Layout 滚到视口中心；这里的 scroll-margin 是
+ * 原生锚点 / 长块退化到「顶栏下方」时的兜底偏移。
+ * ========================================================================== */
+
+.markdown-content :is(h1, h2, h3, h4, h5, h6, [data-search-anchor]) {
+  scroll-margin-top: 6rem;
+}
+
+@media (max-width: 776px) {
+  .markdown-content :is(h1, h2, h3, h4, h5, h6, [data-search-anchor]) {
+    scroll-margin-top: 5.5rem;
+  }
+}
+
+@keyframes search-hit-fade {
+  0% {
+    background-color: color-mix(in srgb, var(--link-color) 16%, transparent);
+  }
+  100% {
+    background-color: transparent;
+  }
+}
+
+.markdown-content [data-search-anchor]:target,
+.markdown-content .is-search-target {
+  animation: search-hit-fade 2.4s var(--momo-ease-out);
+  border-radius: var(--momo-radius-xs);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .markdown-content [data-search-anchor]:target,
+  .markdown-content .is-search-target {
+    animation: none;
+  }
+}

@@ -15,7 +15,7 @@ interface Props {
 const className = Astro.props.class ?? ''
 const noReveal = Astro.props.noReveal ?? false
 ---
-<div data-pagefind-body data-no-reveal={noReveal ? '' : undefined} class:list={['markdown-content', className]}>
+<div data-search-content data-no-reveal={noReveal ? '' : undefined} class:list={['markdown-content', className]}>
     <slot/>
 </div>
 

@@ -3,7 +3,6 @@ import "@styles/global.css"
 import { Icon } from "astro-icon/components"
 import { profileConfig, siteConfig } from "@/config"
 import ThemeIcon from "./control/ThemeIcon.astro"
-import { baseUrl } from "@utils/urlUtils"
 
 import { i18n } from "astro:config/client";
 import i18nit from '@i18n/translation'
@@ -85,7 +84,7 @@ if (profileConfig.indexPage) {
 ---
 
 <!-- header -->
-<div id="main-header" data-pagefind-script={baseUrl('/pagefind/pagefind.js')} class="fixed top-0 left-0 right-0 z-50 transition-transform duration-300 ease-in-out md:relative md:translate-y-0">
+<div id="main-header" class="fixed top-0 left-0 right-0 z-50 transition-transform duration-300 ease-in-out md:relative md:translate-y-0">
 <!-- id="header-bar"：logo + 工具按钮这一条。照片封面时由 PhotoCover.astro 把它整条切白，
      顶栏在 swup 容器外不会重建，所以这里给一个稳定的钩子而不是靠结构选择器 -->
 <div id="header-bar" class="flex items-center pt-2 md:py-4 text-[var(--text-color)] max-w-[var(--header-width)] mx-auto">
@@ -857,81 +856,3 @@ function initHeaderScroll() {
 
 registerPageInit(initHeaderScroll);
 </script>
-
-
-{import.meta.env.PROD && 
-<script is:inline data-swup-ignore-script>
-// ⚠️ 不要用 define:vars 往这个脚本里注入变量：Astro 会丢掉 define:vars 内联脚本上的
-// 其它属性（包括 data-swup-ignore-script），于是 swup 每次换页都会把它重放一遍，
-// 挂在 document 上的监听器就会成倍累积。需要构建期的值就放到元素的 data-* 上（见 #main-header）。
-function pagefindScriptUrl() {
-  return document.getElementById('main-header')?.getAttribute('data-pagefind-script') || '/pagefind/pagefind.js';
-}
-
-async function loadAndSearch(options) {
-  const quiet = options?.quiet === true;
-
-  // 1. 如果已经加载过了，直接返回
-  if (window.pagefind && typeof window.pagefind.search === 'function') {
-    return;
-  }
-  
-  if (window.pagefindLoading) return;
-  window.pagefindLoading = true;
-
-  try {
-    // 动态导入脚本
-    const pagefind = await import(pagefindScriptUrl());
-    await pagefind.options({ excerptLength: 20 });
-    window.pagefind = pagefind;
-    
-    // 触发自定义事件，通知搜索组件：Pagefind 准备好了
-    document.dispatchEvent(new CustomEvent('pagefind-ready'));
-  } catch (error) {
-    // 预取失败不打扰用户：真正的点击还会再试一次，并给出可见提示
-    if (quiet) console.info('Pagefind 索引预取失败（不影响页面其它功能）:', error?.message ?? error);
-    else console.error('Pagefind 加载失败:', error);
-  } finally {
-    window.pagefindLoading = false;
-  }
-}
-
-// 2. 绑定到搜索按钮
-// 顶栏在 swup 容器外、脚本只执行一次，用 dataset 守卫避免重复绑定
-function attachSearchListener() {
-  const btn = document.getElementById('search-button');
-  if (btn && btn.dataset.searchBound !== 'true') {
-    btn.dataset.searchBound = 'true';
-    btn.addEventListener('click', () => loadAndSearch({ quiet: false }), { once: true });
-  }
-}
-
-// swup 下首屏不会派发 astro:page-load，所以这里直接先跑一次；
-// 监听 astro:page-load 只是兜底（顶栏万一被重建也能重新绑定）。
-attachSearchListener();
-document.addEventListener('astro:page-load', attachSearchListener);
-
-// 3. 空闲时预取索引：首次点击搜索不再有几百毫秒空窗。
-//    放到 idle 里执行，避免和首屏资源抢带宽；省流模式或慢网下不预取。
-function prefetchPagefind() {
-  if (window.__momoPagefindPrefetched) return;
-  window.__momoPagefindPrefetched = true;
-
-  const conn = navigator.connection;
-  if (conn?.saveData) return;
-  if (conn?.effectiveType && /(^|-)2g$/.test(conn.effectiveType)) return;
-
-  const run = () => { if (!window.pagefind) loadAndSearch({ quiet: true }); };
-  if (typeof window.requestIdleCallback === 'function') {
-    window.requestIdleCallback(run, { timeout: 3000 });
-  } else {
-    setTimeout(run, 1200);
-  }
-}
-
-// 首屏直接预取一次（swup 下首屏没有 astro:page-load），换页时由监听兜底
-//（__momoPagefindPrefetched 保证整个会话只预取一次）
-prefetchPagefind();
-document.addEventListener('astro:page-load', prefetchPagefind);
-</script>
-}

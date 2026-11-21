@@ -10,7 +10,7 @@ export function GET(_context: APIContext) {
     'User-agent: *',
     'Allow: /',
     // 搜索索引资源对爬虫没有价值，避免浪费抓取配额
-    `Disallow: ${baseUrl('/pagefind/')}`,
+    `Disallow: ${baseUrl('/search-index/')}`,
     '',
     `Sitemap: ${absoluteUrl('/sitemap.xml')}`,
     '',

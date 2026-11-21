@@ -21,7 +21,6 @@ export const CONFIG_PATHS = [
   'ec.config.mjs',
   'svelte.config.js',
   'tsconfig.json',
-  'pagefind.yml',
   'src/config.ts',
   'src/content.config.ts',
   'src/i18n',

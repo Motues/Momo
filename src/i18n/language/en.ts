@@ -28,7 +28,14 @@ const translation: Translation = {
     search: {
         placeholder: "Enter keywords to start searching",
         noresult: "No results found.",
-        error: "Search error occurred. Please try again later."
+        error: "Search error occurred. Please try again later.",
+        label: "Site search",
+        hint: "Type keywords to search this site",
+        searching: "Searching…",
+        results: "{count} results",
+        tip: "↑↓ select · Enter open · Esc close",
+        devHint: "Search index is not built yet: run pnpm build, then pnpm preview",
+        page: "Article",
     },
     license: {
         author: "Author",

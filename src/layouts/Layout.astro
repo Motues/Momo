@@ -292,7 +292,187 @@ const photoCoverOn = photoCoverEnabled();
             pendingScrollY = y;
         });
 
+        // ---- 锚点目标的入场落位 ----
+        // 正文块在入场动画里带 translateY(120px)（列表项是 32px）。如果直接
+        // scrollIntoView，量到的是「位移后」的位置；动画一结束目标就往上跳一截，
+        // 通常正好钻到固定顶栏后面。所以跳转前先把目标切成已落位、并临时关掉过渡。
+        const REVEAL_TARGET_SELECTOR =
+            '.markdown-content > *, .markdown-content > ul > li, .markdown-content > ol > li';
+
+        const settleRevealForHash = (hash) => {
+            if (!hash) return null;
+            let id = hash.replace(/^#/, '');
+            try {
+                id = decodeURIComponent(id);
+            } catch {
+                // 保留原样：非法百分号编码时按字面 id 找
+            }
+            const target = id ? document.getElementById(id) : null;
+            if (!target) return null;
+
+            // 顶层块自己带入场位移；脚注 li 这类「块内目标」则由外层 section 带着位移。
+            // 找到真正需要落位的那个元素，再拿原目标去滚动。
+            let reveal = target;
+            if (!target.matches(REVEAL_TARGET_SELECTOR)) {
+                const block = target.closest('.markdown-content > *');
+                if (!block) return null;
+                reveal = block;
+            }
+
+            reveal.style.transition = 'none';
+            reveal.classList.add('is-revealed');
+            void reveal.offsetHeight;
+            requestAnimationFrame(() => {
+                reveal.style.transition = '';
+            });
+            return target;
+        };
+
+        /**
+         * 把目标滚到视口中心。
+         * 目标本身比视口还高（长提示块 / 长列表）时无法完整居中，会退化为
+         * 「顶栏下方」，保证从块首开始读，而不是一进来就落在中间。
+         */
+        const alignHashTarget = (hash) => {
+            const target = settleRevealForHash(hash);
+            if (!target) return null;
+
+            const rect = target.getBoundingClientRect();
+            const viewport = window.innerHeight;
+            const documentTop = window.scrollY + rect.top;
+            const maxScroll = Math.max(0, document.documentElement.scrollHeight - viewport);
+
+            let expected;
+            if (rect.height > viewport * 0.75) {
+                let margin = parseFloat(getComputedStyle(target).scrollMarginTop);
+                if (!Number.isFinite(margin) || margin <= 0) {
+                    margin = window.innerWidth <= 776 ? 88 : 96;
+                }
+                expected = documentTop - margin;
+            } else {
+                // 目标块的中心对准视口中心
+                expected = documentTop + rect.height / 2 - viewport / 2;
+            }
+
+            expected = Math.min(Math.max(0, expected), maxScroll);
+            if (Math.abs(window.scrollY - expected) > 2) {
+                // 用 instant 而不是 auto：auto 会跟随 CSS 的 scroll-behavior: smooth，
+                // 跟随校正每 300ms 一次时会变成一段一直追不上的动画。
+                window.scrollTo({ top: expected, behavior: 'instant' });
+            }
+            return target;
+        };
+
+        // swup 用 pushState 改 hash 时浏览器不会重新计算 :target（实测 Chromium），
+        // 所以「跳进来的段落闪一下」不能只靠 CSS :target，必须再打一个临时的 class。
+        let flashTimer;
+        const flashHashTarget = (target) => {
+            document.querySelectorAll('.is-search-target').forEach((el) => {
+                el.classList.remove('is-search-target');
+            });
+            target.classList.add('is-search-target');
+            clearTimeout(flashTimer);
+            flashTimer = setTimeout(() => target.classList.remove('is-search-target'), 2400);
+        };
+
+        // 锚点跟随：图片 / GitHub 卡片 / 字体晚到会改变目标上方高度，
+        // 跳转后 3 秒内持续对齐；用户一滚动（滚轮 / 触摸 / 拖滚动条 / 键盘）立刻停。
+        let activeHashFollow = null;
+
+        const stopHashFollow = () => {
+            if (!activeHashFollow) return;
+            const stop = activeHashFollow;
+            activeHashFollow = null;
+            stop();
+        };
+
+        const followHash = (hash) => {
+            stopHashFollow();
+            if (!hash) return;
+
+            let stopped = false;
+            let flashed = false;
+            let intervalId;
+            let timeoutId;
+
+            const stop = () => {
+                if (stopped) return;
+                stopped = true;
+                clearInterval(intervalId);
+                clearTimeout(timeoutId);
+                window.removeEventListener('wheel', stop);
+                window.removeEventListener('touchmove', stop);
+                window.removeEventListener('pointerdown', stop);
+                window.removeEventListener('keydown', onKeyDown);
+                if (activeHashFollow === stop) activeHashFollow = null;
+            };
+            const onKeyDown = (event) => {
+                if (['ArrowUp', 'ArrowDown', 'PageUp', 'PageDown', 'Home', 'End', ' '].includes(event.key)) {
+                    stop();
+                }
+            };
+            const tick = () => {
+                if (stopped) return;
+                const target = alignHashTarget(hash);
+                if (!target) {
+                    stop();
+                    return;
+                }
+                if (!flashed) {
+                    flashHashTarget(target);
+                    flashed = true;
+                }
+            };
+
+            activeHashFollow = stop;
+            tick();
+            intervalId = setInterval(tick, 300);
+            timeoutId = setTimeout(stop, 3000);
+
+            window.addEventListener('wheel', stop, { passive: true });
+            window.addEventListener('touchmove', stop, { passive: true });
+            window.addEventListener('pointerdown', stop, { passive: true });
+            window.addEventListener('keydown', onKeyDown);
+            window.addEventListener('load', tick, { once: true });
+            document.fonts?.ready.then(tick).catch(() => {});
+        };
+
+        // 同页锚点（搜索结果 / 目录 / 脚注回跳）在 capture 阶段先落位，
+        // 等 swup / TOC 自己的滚动跑完再补一次精确位置。
+        document.addEventListener('click', (event) => {
+            if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+            const node = event.target instanceof Element ? event.target : null;
+            const link = node?.closest('a[href]');
+            if (!link) return;
+
+            let url;
+            try {
+                url = new URL(link.href, window.location.href);
+            } catch {
+                return;
+            }
+            if (url.origin !== window.location.origin || url.pathname !== window.location.pathname || !url.hash) return;
+            settleRevealForHash(url.hash);
+            setTimeout(() => followHash(url.hash), 0);
+        }, true);
+
+        // 首屏直接带锚点：浏览器的原生滚动发生在入场样式生效期间，DOM 就绪后跟随校正
+        const settleInitialHash = () => {
+            const hash = window.location.hash;
+            if (!hash) return;
+            settleRevealForHash(hash);
+            followHash(hash);
+        };
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', settleInitialHash, { once: true });
+        } else {
+            settleInitialHash();
+        }
+
         document.addEventListener('astro:after-swap', () => {
+            // swup 的 content:scroll 在本事件之后才执行，先让目标落位再让它量位置；
+            // 等 page-load 时再补一次精确偏移（此时新页面的 CSS 通常已经换好了）。
+            settleRevealForHash(window.location.hash);
             if (pendingScrollY === null) return;
             document.documentElement.style.scrollBehavior = 'auto';
             window.scrollTo(0, pendingScrollY);
@@ -308,6 +488,7 @@ const photoCoverOn = photoCoverEnabled();
 
         // 1. 开始准备跳转（swup 没有 astro:before-preparation）
         document.addEventListener('swup:visit:start', () => {
+            stopHashFollow();
             loaderTimeout = setTimeout(() => {
                 const overlay = document.getElementById('loading-overlay');
                 if (overlay) overlay.style.display = 'flex';
@@ -321,10 +502,14 @@ const photoCoverOn = photoCoverEnabled();
         document.addEventListener('astro:page-load', () => {
             hideLoadingOverlay();
             // 内容变高后（图片等）再补一次：after-swap 那一刻可能还没到目标位置
-            if (pendingScrollY !== null) {
+            const restored = pendingScrollY !== null;
+            if (restored) {
                 const y = pendingScrollY;
                 pendingScrollY = null;
                 if (Math.abs(window.scrollY - y) > 4) window.scrollTo(0, y);
+            } else {
+                // 普通跳转带锚点时，等 swup 自己的滚动跑完，再按顶栏偏移精确对齐
+                followHash(window.location.hash);
             }
             // 滚动位置恢复完毕，把平滑滚动交还给 CSS（见 before-swap 的说明）。
             //

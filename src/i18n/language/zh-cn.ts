@@ -28,7 +28,14 @@ const translation: Translation = {
     search: {
         placeholder: "输入关键词开始搜索",
         noresult: "未找到相关结果",
-        error: "搜索出现错误，请稍后重试"
+        error: "搜索出现错误，请稍后重试",
+        label: "站内搜索",
+        hint: "输入关键词搜索站内内容",
+        searching: "正在搜索…",
+        results: "{count} 条结果",
+        tip: "↑↓ 选择 · Enter 打开 · Esc 关闭",
+        devHint: "搜索索引尚未生成：请先运行 pnpm build，再用 pnpm preview 查看",
+        page: "文章",
     },
     license: {
         author: "作者",

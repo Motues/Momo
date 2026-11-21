@@ -1,11 +1,6 @@
 ---
-import type { SearchResult } from "@/global"
-import { baseUrl } from "@utils/urlUtils";
-import { getEntry, render } from 'astro:content'
 import { i18n } from "astro:config/client";
 import i18nit from "@i18n/translation";
-
-
 
 const currentLang = Astro.currentLocale || i18n!.defaultLocale;
 const t = i18nit(currentLang);
@@ -22,50 +17,54 @@ const translationsByLocale = Object.fromEntries(
       code,
       {
         placeholder: tr("search.placeholder"),
-        error: tr("search.error"),
         noresult: tr("search.noresult"),
+        error: tr("search.error"),
+        label: tr("search.label"),
+        hint: tr("search.hint"),
+        searching: tr("search.searching"),
+        // t() 在没传参数时会把 {count} 原样替换成 "count"，这里先把它保住，
+        // 真正填数字交给运行期的 updateCount()
+        results: tr("search.results", { count: "{count}" }),
+        tip: tr("search.tip"),
+        devHint: tr("search.devHint"),
+        page: tr("search.page"),
       },
     ];
   }),
 );
-
-const fakeResult: SearchResult[] = [
-	{
-		url: baseUrl("/"),
-		meta: {
-			title: "This Is a Fake Search Result",
-		},
-		excerpt:
-			"Because the search cannot work in the <mark>dev</mark> environment.",
-	},
-	{
-		url: baseUrl("/"),
-		meta: {
-			title: "If You Want to Test the Search",
-		},
-		excerpt: "Try running <mark>pnpm build && pnpm preview</mark> instead.",
-  }
-]
 ---
 <!--
-  层级：z-[1100] 必须高于右下角 FabMenu（#fabMenu 为 z-[1000]，其目录面板 z-[1001]
+  层级：z-[var(--momo-z-modal)] 必须高于右下角 FabMenu（#fabMenu 为 z-[1000]，其目录面板 z-[1001]
   是在 FAB 自己的层叠上下文里，所以盖过 1000 即可），否则遮罩与弹窗会压在 FAB 下面，
   浮动按钮会浮在遮罩之上；同时保持在图片灯箱（z-2000）之下。
 -->
-<div id="search-modal" data-i18n-search={JSON.stringify(translationsByLocale)} data-fake-results={JSON.stringify(fakeResult)} class="fixed inset-0 z-[var(--momo-z-modal)] opacity-0 pointer-events-none">
+<div
+  id="search-modal"
+  role="dialog"
+  aria-modal="true"
+  aria-label={t("search.label")}
+  data-i18n-search={JSON.stringify(translationsByLocale)}
+  class="fixed inset-0 z-[var(--momo-z-modal)] opacity-0 pointer-events-none"
+>
   <div class="absolute inset-0 modal-backdrop opacity-0" aria-hidden="true"></div>
 
   <div class="fixed inset-0 flex items-start justify-center p-4 pt-[25vh]">
-    <div class="search-modal-content momo-panel w-full max-w-2xl overflow-hidden scale-90 opacity-0 flex flex-col max-h-[40vh]">
+    <div class="search-modal-content momo-panel w-full max-w-2xl overflow-hidden scale-90 opacity-0 flex flex-col max-h-[60vh]">
       <div class="flex items-center p-4 border-b border-[var(--button-border-color)]">
         <svg class="w-5 h-5 text-[var(--text-color-70)] mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
         </svg>
-        <input 
-          type="text" 
+        <input
+          type="text"
           id="search-input"
+          role="combobox"
+          aria-expanded="false"
+          aria-controls="search-results-list"
+          aria-autocomplete="list"
+          autocomplete="off"
+          spellcheck="false"
           placeholder={t("search.placeholder")+"..."}
-          class="w-full bg-transparent border-0 focus:ring-0 focus:outline-none  text-[var(--text-color)]"
+          class="w-full bg-transparent border-0 focus:ring-0 focus:outline-none text-[var(--text-color)]"
         />
         <button id="close-search" class="ml-2 momo-btn momo-btn--ghost momo-icon-btn" aria-label="Close Search">
           <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
@@ -74,19 +73,21 @@ const fakeResult: SearchResult[] = [
         </button>
       </div>
       <!-- #search-results 是滚动容器（由 OverlayScrollbars 接管），
-           #search-results-list 才是真正被 innerHTML 重写的目标。
+           #search-results-list 才是真正被重写的目标。
            ⚠️ 两者必须分开：OS 会在容器里插入自己的包装层
-           （data-overlayscrollbars-padding / -content），而 innerHTML 赋值会把
-           这些包装层一起冲掉，实例当场失效。写到 list 上就只换它的子节点，
-           OS 的结构完好，内容变化由它自己的 MutationObserver 接手。 -->
+           （data-overlayscrollbars-padding / -content），重写容器的 innerHTML 会把
+           这些包装层一起冲掉，实例当场失效。只换 list 的子节点，OS 的结构完好。 -->
       <div id="search-results" class="overflow-y-auto flex-grow">
-        <div id="search-results-list">
-          <!-- data-search-hint：还停留在「默认提示」状态时，换页/换语言后要按当前语言改文案；
-               已经是搜索结果时不动（见 syncSearchLocale） -->
+        <div id="search-results-list" role="listbox" aria-label={t("search.label")}>
+          <!-- data-search-hint：还停留在「默认提示」状态时，换页/换语言后要按当前语言改文案 -->
           <div class="p-8 text-center text-[var(--text-color-70)]" data-search-hint>
-            <p>{t("search.placeholder")}</p>
+            <p>{t("search.hint")}</p>
           </div>
         </div>
+      </div>
+      <div class="search-footer">
+        <span class="search-footer-count" data-search-count aria-live="polite"></span>
+        <span class="search-footer-tip" data-search-tip>{t("search.tip")}</span>
       </div>
     </div>
   </div>
@@ -96,126 +97,524 @@ const fakeResult: SearchResult[] = [
 import { registerPageInit } from '@utils/pageInit';
 import { currentLangFromUrl } from '@utils/locale';
 import { lockPageScroll, unlockPageScroll } from '@utils/scrollLock';
+import { loadSearchIndex, SearchIndexError } from '@utils/search/load';
+import { search } from '@utils/search/rank';
+import type { PreparedIndex } from '@utils/search/rank';
+import type { SearchHit } from '@/types/search';
 
-/**
- * 搜索弹窗在 swup 容器之外、不会随换页重建，所以：
- * 1. 文案（placeholder / 空结果 / 出错）按**当前地址推导出的语言**重新挑一份
- *    （构建时每种语言的文案都渲染进了 #search-modal 的 data-i18n-search）；
- * 2. 挑出来的那份挂到 window 上，给下面那个 is:inline 的脚本用（它不能 import）。
- */
-function syncSearchLocale() {
-  const modal = document.getElementById('search-modal');
-  if (!modal) return;
+interface SearchTranslations {
+  placeholder: string;
+  noresult: string;
+  error: string;
+  label: string;
+  hint: string;
+  searching: string;
+  results: string;
+  tip: string;
+  devHint: string;
+  page: string;
+}
 
-  let byLocale;
+const FALLBACK_TRANSLATIONS: SearchTranslations = {
+  placeholder: 'Search',
+  noresult: 'No results found.',
+  error: 'Search failed. Please try again later.',
+  label: 'Site search',
+  hint: 'Type keywords to search this site',
+  searching: 'Searching…',
+  results: '{count} results',
+  tip: '↑↓ select · Enter open · Esc close',
+  devHint: 'Search index is not built yet: run pnpm build, then pnpm preview',
+  page: 'Article',
+};
+
+let translations: SearchTranslations = FALLBACK_TRANSLATIONS;
+// 当前弹窗文案 / 查询对应的语言；换语言后清掉旧输入与旧结果
+let activeLocale = '';
+
+// 索引按语言缓存；preparedLang 记住当前这份是哪种语言。
+let prepared: PreparedIndex | null = null;
+let preparedLang = '';
+let hits: SearchHit[] = [];
+let activeIndex = -1;
+// 每次输入 / 清空都 +1：索引加载是异步的，回来时如果已经换了查询就丢掉旧结果
+let searchSeq = 0;
+let debounceTimer: ReturnType<typeof setTimeout> | undefined;
+// 中文输入法拼写过程中 input 里是拼音，先不触发搜索，等 compositionend 再查
+let composing = false;
+
+function el<T extends Element>(id: string): T | null {
+  return document.getElementById(id) as T | null;
+}
+
+function isOpen(): boolean {
+  const modal = el<HTMLElement>('search-modal');
+  return Boolean(modal && !modal.classList.contains('opacity-0'));
+}
+
+function readTranslations(): SearchTranslations | null {
+  const modal = el<HTMLElement>('search-modal');
+  if (!modal) return null;
+
+  let byLocale: Record<string, SearchTranslations> | null = null;
   try {
     byLocale = JSON.parse(modal.getAttribute('data-i18n-search') || '{}');
   } catch {
+    return null;
+  }
+  if (!byLocale) return null;
+
+  return byLocale[currentLangFromUrl()] || Object.values(byLocale)[0] || null;
+}
+
+/**
+ * 弹窗在 swup 容器外、不会随换页重建，所以文案按**当前地址**重新挑一份；
+ * 语言变了就把已加载的索引作废（索引文件本身就是按语言拆开的）。
+ */
+function syncSearchLocale() {
+  const next = readTranslations();
+  if (!next) return;
+  translations = next;
+
+  const lang = currentLangFromUrl();
+  const localeChanged = activeLocale !== '' && activeLocale !== lang;
+  activeLocale = lang;
+
+  if (localeChanged) {
+    prepared = null;
+    preparedLang = '';
+    hits = [];
+    activeIndex = -1;
+    const input = el<HTMLInputElement>('search-input');
+    if (input) input.value = '';
+    // 弹窗虽然已经关了，但结果 DOM 还留在容器里；先把列表恢复成提示态，
+    // 否则下一次打开会短暂闪出上一门语言的旧结果。
+    showHint();
+  }
+
+  const modal = el<HTMLElement>('search-modal');
+  modal?.setAttribute('aria-label', translations.label);
+  el<HTMLElement>('search-results-list')?.setAttribute('aria-label', translations.label);
+
+  const input = el<HTMLInputElement>('search-input');
+  if (input) input.placeholder = `${translations.placeholder}...`;
+
+  const hint = document.querySelector('[data-search-hint] p');
+  if (hint) hint.textContent = translations.hint;
+
+  const tip = document.querySelector('[data-search-tip]');
+  if (tip) tip.textContent = translations.tip;
+}
+
+function setPageScrollLocked(locked: boolean) {
+  const modal = el<HTMLElement>('search-modal');
+  if (!modal) return;
+
+  // 滚动锁是计数式的，而弹窗在容器外不会重建；「是否已上锁」必须记在 DOM 上，
+  // 否则每次初始化闭包归零，会把并存的抽屉 / 灯箱锁一起打穿。
+  const state = locked ? '1' : '0';
+  if (modal.dataset.scrollLocked === state) return;
+  modal.dataset.scrollLocked = state;
+  if (locked) lockPageScroll();
+  else unlockPageScroll();
+}
+
+function openModal() {
+  const modal = el<HTMLElement>('search-modal');
+  if (!modal) return;
+
+  const lang = currentLangFromUrl();
+  if (preparedLang && preparedLang !== lang) {
+    prepared = null;
+    preparedLang = '';
+    hits = [];
+    activeIndex = -1;
+    const input = el<HTMLInputElement>('search-input');
+    if (input) input.value = '';
+    showHint();
+  }
+
+  const modalEl = modal as HTMLElement & { __closeTimer?: ReturnType<typeof setTimeout> };
+  clearTimeout(modalEl.__closeTimer);
+
+  modal.classList.remove('opacity-0', 'pointer-events-none');
+  modal.offsetHeight;
+  requestAnimationFrame(() => {
+    modal.firstElementChild?.classList.remove('opacity-0');
+    modal.firstElementChild?.classList.add('show');
+    const content = modal.querySelector('.search-modal-content');
+    content?.classList.remove('scale-90', 'opacity-0');
+    content?.classList.add('scale-100');
+  });
+
+  const input = el<HTMLInputElement>('search-input');
+  input?.setAttribute('aria-expanded', 'true');
+  setTimeout(() => input?.focus(), 240);
+  setPageScrollLocked(true);
+
+  // 打开时就加载索引：首次会等一会儿，但输入框可以立刻打字
+  void ensureIndex(false);
+}
+
+function closeModal() {
+  const modal = el<HTMLElement>('search-modal');
+  if (!modal) return;
+
+  el<HTMLInputElement>('search-input')?.setAttribute('aria-expanded', 'false');
+
+  const backdrop = modal.firstElementChild;
+  const content = modal.querySelector('.search-modal-content');
+  requestAnimationFrame(() => {
+    backdrop?.classList.add('opacity-0');
+    backdrop?.classList.remove('show');
+    content?.classList.add('scale-90', 'opacity-0');
+    content?.classList.remove('scale-100');
+  });
+
+  const modalEl = modal as HTMLElement & { __closeTimer?: ReturnType<typeof setTimeout> };
+  clearTimeout(modalEl.__closeTimer);
+  modalEl.__closeTimer = setTimeout(() => {
+    modal.classList.add('opacity-0', 'pointer-events-none');
+    // 等淡出结束再解锁：解锁早了，淡出的这几百毫秒里滚轮又能滚到后面的页面
+    setPageScrollLocked(false);
+  }, 240);
+}
+
+function setMessage(text: string, hint = false) {
+  const list = el<HTMLElement>('search-results-list');
+  if (!list) return;
+
+  const box = document.createElement('div');
+  box.className = 'p-8 text-center text-[var(--text-color-70)]';
+  if (hint) box.setAttribute('data-search-hint', '');
+  const paragraph = document.createElement('p');
+  paragraph.textContent = text;
+  box.append(paragraph);
+  list.replaceChildren(box);
+}
+
+function updateCount(count: number | null) {
+  const target = document.querySelector('[data-search-count]');
+  if (!target) return;
+  target.textContent = count === null ? '' : translations.results.replace('{count}', String(count));
+}
+
+function showHint() {
+  searchSeq++;
+  clearTimeout(debounceTimer);
+  hits = [];
+  activeIndex = -1;
+  setMessage(translations.hint, true);
+  updateCount(null);
+  el<HTMLInputElement>('search-input')?.removeAttribute('aria-activedescendant');
+}
+
+function showIndexError(error: unknown) {
+  searchSeq++;
+  hits = [];
+  activeIndex = -1;
+  const message =
+    error instanceof SearchIndexError && error.kind === 'missing'
+      ? translations.devHint
+      : translations.error;
+  setMessage(message);
+  updateCount(null);
+  el<HTMLInputElement>('search-input')?.removeAttribute('aria-activedescendant');
+}
+
+async function ensureIndex(showSearching: boolean): Promise<PreparedIndex | null> {
+  const lang = currentLangFromUrl();
+  if (prepared && preparedLang === lang) return prepared;
+
+  if (showSearching) setMessage(translations.searching);
+
+  try {
+    const index = await loadSearchIndex(lang);
+    if (currentLangFromUrl() !== lang) return null;
+    prepared = index;
+    preparedLang = lang;
+    return index;
+  } catch (error) {
+    showIndexError(error);
+    return null;
+  }
+}
+
+async function runSearch(query: string) {
+  const seq = ++searchSeq;
+  const lang = currentLangFromUrl();
+
+  if (!prepared || preparedLang !== lang) {
+    setMessage(translations.searching);
+    const index = await ensureIndex(false);
+    if (!index || seq !== searchSeq) return;
+  }
+
+  const current = el<HTMLInputElement>('search-input')?.value.trim() || '';
+  if (current !== query || currentLangFromUrl() !== lang || !prepared) return;
+
+  hits = search(prepared, query);
+  activeIndex = hits.length > 0 ? 0 : -1;
+  renderResults();
+}
+
+function renderResults() {
+  const list = el<HTMLElement>('search-results-list');
+  if (!list) return;
+
+  if (hits.length === 0) {
+    setMessage(translations.noresult);
+    updateCount(0);
+    el<HTMLInputElement>('search-input')?.removeAttribute('aria-activedescendant');
     return;
   }
 
-  const tr = byLocale[currentLangFromUrl()] || Object.values(byLocale)[0];
-  if (!tr) return;
-  window.__momoSearchTranslations = tr;
+  const fragment = document.createDocumentFragment();
+  hits.forEach((hit, index) => {
+    const link = document.createElement('a');
+    link.className = 'search-hit';
+    link.href = hit.url;
+    link.id = `search-hit-${index}`;
+    link.dataset.searchHit = '1';
+    link.setAttribute('role', 'option');
+    link.setAttribute('aria-selected', 'false');
 
-  const input = document.getElementById('search-input');
-  if (input) input.placeholder = `${tr.placeholder}...`;
+    const head = document.createElement('div');
+    head.className = 'search-hit-head';
 
-  // 只改「默认提示」那一份；已经显示搜索结果 / 无结果时不要覆盖用户看到的内容
-  const hint = document.getElementById('search-results')?.querySelector('[data-search-hint] p');
-  if (hint) hint.textContent = tr.placeholder;
+    const title = document.createElement('span');
+    title.className = 'search-hit-title';
+    title.textContent = hit.title;
+    head.append(title);
+
+    if (hit.trail) {
+      const trail = document.createElement('span');
+      trail.className = 'search-hit-trail';
+      trail.textContent = hit.trail;
+      head.append(trail);
+    } else if (!hit.anchor) {
+      // 页面级结果没有锚点，用「文章」标一下，避免只显示一行标题
+      const trail = document.createElement('span');
+      trail.className = 'search-hit-trail';
+      trail.textContent = translations.page;
+      head.append(trail);
+    }
+
+    link.append(head);
+
+    if (hit.parts.length > 0) {
+      const snippet = document.createElement('p');
+      snippet.className = 'search-hit-snippet';
+      for (const part of hit.parts) {
+        if (part.hit) {
+          const mark = document.createElement('mark');
+          mark.textContent = part.text;
+          snippet.append(mark);
+        } else {
+          snippet.append(document.createTextNode(part.text));
+        }
+      }
+      link.append(snippet);
+    }
+
+    fragment.append(link);
+  });
+
+  list.replaceChildren(fragment);
+  updateCount(hits.length);
+  setActive(0);
+}
+
+function hitElements(): HTMLAnchorElement[] {
+  const list = el<HTMLElement>('search-results-list');
+  return list ? Array.from(list.querySelectorAll<HTMLAnchorElement>('a[data-search-hit]')) : [];
+}
+
+function setActive(index: number) {
+  const items = hitElements();
+  const input = el<HTMLInputElement>('search-input');
+  if (items.length === 0) {
+    activeIndex = -1;
+    input?.removeAttribute('aria-activedescendant');
+    return;
+  }
+
+  activeIndex = ((index % items.length) + items.length) % items.length;
+  items.forEach((item, i) => {
+    const active = i === activeIndex;
+    item.classList.toggle('is-active', active);
+    item.setAttribute('aria-selected', active ? 'true' : 'false');
+  });
+
+  const active = items[activeIndex];
+  input?.setAttribute('aria-activedescendant', active.id);
+  // 结果列表由 OverlayScrollbars 接管，scrollIntoView 会找最近的滚动祖先
+  active.scrollIntoView({ block: 'nearest' });
+}
+
+function handleInput() {
+  if (composing) return;
+
+  const input = el<HTMLInputElement>('search-input');
+  if (!input) return;
+
+  const query = input.value.trim();
+  clearTimeout(debounceTimer);
+
+  if (!query) {
+    showHint();
+    return;
+  }
+
+  debounceTimer = setTimeout(() => {
+    void runSearch(query);
+  }, 140);
+}
+
+function onInputKeyDown(event: KeyboardEvent) {
+  if (!isOpen() || event.isComposing) return;
+
+  if (event.key === 'ArrowDown') {
+    event.preventDefault();
+    setActive(activeIndex + 1);
+  } else if (event.key === 'ArrowUp') {
+    event.preventDefault();
+    setActive(activeIndex - 1);
+  } else if (event.key === 'Enter' && activeIndex >= 0) {
+    const active = hitElements()[activeIndex];
+    if (active) {
+      event.preventDefault();
+      active.click();
+    }
+  }
+}
+
+function bindSearchInput() {
+  const input = el<HTMLInputElement>('search-input');
+  if (!input || input.dataset.bound === 'true') return;
+  input.dataset.bound = 'true';
+  input.addEventListener('input', handleInput);
+  input.addEventListener('keydown', onInputKeyDown);
+  input.addEventListener('compositionstart', () => {
+    composing = true;
+  });
+  input.addEventListener('compositionend', () => {
+    composing = false;
+    handleInput();
+  });
+}
+
+function bindResultClicks() {
+  const list = el<HTMLElement>('search-results-list');
+  if (!list || list.dataset.bound === 'true') return;
+  list.dataset.bound = 'true';
+
+  // 同页 #锚点 点击不会派发 swup:visit:start，必须在这里主动收起弹窗；
+  // 中键 / Ctrl 点击是新标签页，窗口保持打开。
+  list.addEventListener('click', (event) => {
+    const target = event.target instanceof Element ? event.target : null;
+    const link = target?.closest('a[data-search-hit]');
+    if (!link) return;
+    if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey || event.button !== 0) return;
+    closeModal();
+  });
+}
+
+function prefetchIndex() {
+  const lang = currentLangFromUrl();
+  const flag = `__momoSearchPrefetch_${lang}`;
+  const scope = window as Window & Record<string, unknown>;
+  if (scope[flag]) return;
+
+  const connection = (navigator as Navigator & {
+    connection?: { saveData?: boolean; effectiveType?: string };
+  }).connection;
+  if (connection?.saveData) return;
+  if (connection?.effectiveType && /(^|-)2g$/.test(connection.effectiveType)) return;
+
+  // 确认真的要预取后再置位，省流模式恢复后还能补一次
+  scope[flag] = true;
+
+  const run = () => {
+    loadSearchIndex(lang).catch(() => {
+      // 预取失败不打扰用户：打开搜索时还会再试一次并给出提示
+    });
+  };
+
+  if (typeof window.requestIdleCallback === 'function') {
+    window.requestIdleCallback(run, { timeout: 3000 });
+  } else {
+    setTimeout(run, 1200);
+  }
 }
 
 function initSearchModal() {
-  const searchButton = document.getElementById('search-button');
-  const searchModal = document.getElementById('search-modal');
-  const closeSearch = document.getElementById('close-search');
-  const searchInput = document.getElementById('search-input');
-  const modalBackdrop = searchModal?.firstElementChild;
-  const modalContent = searchModal?.querySelector('.search-modal-content');
+  const searchButton = el<HTMLButtonElement>('search-button');
+  const searchModal = el<HTMLElement>('search-modal');
+  const closeSearch = el<HTMLButtonElement>('close-search');
+  const searchInput = el<HTMLInputElement>('search-input');
 
   if (!searchButton || !searchModal) return;
 
   // 换页时本脚本会重新执行：先解绑上一次挂在 document 上的 keydown
-  window.__momoSearchModal?.cleanup?.();
+  (window as Window & { __momoSearchModal?: { cleanup?: () => void } }).__momoSearchModal?.cleanup?.();
 
-  // 定时器挂在**元素**上而不是闭包变量里：弹窗在 swup 容器外、换页不重建，
-  // 而 initSearchModal 每次换页都会重建闭包（记在闭包里换页后就找不到了）。
-  const modalEl = searchModal as HTMLElement & { __closeTimer?: ReturnType<typeof setTimeout> };
+  const onKeyDown = (event: KeyboardEvent) => {
+    const open = isOpen();
 
-  // 弹窗打开时锁住整页滚动（锁 <html>，见 @utils/scrollLock）：
-  // 遮罩与弹窗都不是滚动容器，滚轮 / 键盘会直接穿透到后面的页面。
-  // 锁是计数式的，所以「是否已上锁」必须记在元素 dataset 上（闭包每次换页都重建），
-  // 只在状态真的翻转时加减，否则会把并存的抽屉 / 灯箱锁一起打穿。
-  const setPageScrollLocked = (locked: boolean) => {
-    const state = locked ? '1' : '0';
-    if (searchModal.dataset.scrollLocked === state) return;
-    searchModal.dataset.scrollLocked = state;
-    if (locked) lockPageScroll();
-    else unlockPageScroll();
-  };
-
-  const openModal = () => {
-    clearTimeout(modalEl.__closeTimer);
-    searchModal.classList.remove('opacity-0', 'pointer-events-none');
-    searchModal.offsetHeight;
-    requestAnimationFrame(() => {
-      modalBackdrop?.classList.remove('opacity-0');
-      modalBackdrop?.classList.add('show');
-      modalContent?.classList.remove('scale-90', 'opacity-0');
-      modalContent?.classList.add('scale-100');
-    });
-    setTimeout(() => searchInput?.focus(), 240);
-    setPageScrollLocked(true);
-  };
-
-  const closeModal = () => {
-    requestAnimationFrame(() => {
-      modalBackdrop?.classList.add('opacity-0');
-      modalBackdrop?.classList.remove('show');
-      modalContent?.classList.add('scale-90', 'opacity-0');
-      modalContent?.classList.remove('scale-100');
-    });
-    clearTimeout(modalEl.__closeTimer);
-    modalEl.__closeTimer = setTimeout(() => {
-      searchModal.classList.add('opacity-0', 'pointer-events-none');
-      // 等淡出结束再解锁：解锁早了，淡出的这几百毫秒里滚轮又能滚到后面的页面
-      setPageScrollLocked(false);
-    }, 240);
-  };
-
-  // 搜索按钮在 swup 容器外的顶栏里，用 onclick 赋值保证幂等
-  searchButton.onclick = openModal;
-  if (closeSearch) closeSearch.onclick = closeModal;
-  searchModal.onclick = (e) => {
-    if (!modalContent?.contains(e.target)) closeModal();
-  };
-
-  const onKeyDown = (e) => {
-    if (e.key === 'Escape' && !searchModal.classList.contains('opacity-0')) {
+    if (event.key === 'Escape' && open) {
+      event.preventDefault();
       closeModal();
+      return;
+    }
+
+    // 全站快捷键：Ctrl/Cmd + K 打开搜索
+    if (!open && (event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'k') {
+      event.preventDefault();
+      openModal();
     }
   };
-  document.addEventListener('keydown', onKeyDown);
 
-  // 换页开始时收掉搜索弹窗：它在 swup 容器外不会重建，
-  // 而点搜索结果里的链接不会关掉它（以前靠整页替换复位）
   const onVisitStart = () => closeModal();
+
+  searchButton.onclick = openModal;
+  if (closeSearch) closeSearch.onclick = closeModal;
+  searchModal.onclick = (event) => {
+    const content = searchModal.querySelector('.search-modal-content');
+    if (!content?.contains(event.target as Node)) closeModal();
+  };
+
+  document.addEventListener('keydown', onKeyDown);
   document.addEventListener('swup:visit:start', onVisitStart);
 
-  window.__momoSearchModal = {
+  bindSearchInput();
+  bindResultClicks();
+
+  // 悬停 / 聚焦搜索按钮时提前拉索引，首次打开少等一会儿
+  if (searchButton.dataset.prefetchBound !== '1') {
+    searchButton.dataset.prefetchBound = '1';
+    searchButton.addEventListener('pointerenter', prefetchIndex, { passive: true });
+    searchButton.addEventListener('focus', prefetchIndex);
+  }
+
+  (window as Window & { __momoSearchModal?: { cleanup?: () => void } }).__momoSearchModal = {
     cleanup() {
       document.removeEventListener('keydown', onKeyDown);
       document.removeEventListener('swup:visit:start', onVisitStart);
     },
   };
+
+  // 首屏 / 换页都确保输入框已绑定（元素常驻，dataset 保证只绑一次）
+  bindSearchInput();
+  if (searchInput) searchInput.placeholder = `${translations.placeholder}...`;
+  prefetchIndex();
 }
 
 // 首屏 + 每次换页（swup 下首屏不会有 astro:page-load，见 @utils/pageInit）
 registerPageInit(syncSearchLocale);
 registerPageInit(initSearchModal);
+registerPageInit(prefetchIndex);
 </script>
-
 
 <style>
   /* 遮罩只动画 opacity：backdrop-filter 逐帧插值会持续触发合成与重绘，
@@ -224,12 +623,12 @@ registerPageInit(initSearchModal);
     from { opacity: 0; }
     to { opacity: 1; }
   }
-  
+
   @keyframes backdropFadeOut {
     from { opacity: 1; }
     to { opacity: 0; }
   }
-  
+
   .modal-backdrop {
     background-color: rgba(0, 0, 0, 0.3);
     /* 注意：构建时的 CSS 压缩器会把 backdrop-filter 与 -webkit-backdrop-filter
@@ -255,190 +654,115 @@ registerPageInit(initSearchModal);
       backdrop-filter: blur(2px);
     }
   }
-  
+
   .modal-backdrop.show {
     animation: backdropFadeIn var(--momo-t-base) var(--momo-ease-out) forwards;
   }
-  
+
   .modal-backdrop:not(.show) {
     animation: backdropFadeOut var(--momo-t-base) var(--momo-ease-out) forwards;
   }
-  
+
   #search-input::-webkit-input-placeholder {
     color: var(--text-color-70);
   }
-  
+
   #search-input::-moz-placeholder {
     color: var(--text-color-70);
   }
 </style>
 
-<script is:inline data-swup-ignore-script>
-// data-swup-ignore-script：swup 换页时会重放文档里的内联脚本，而这个脚本
-// 只该执行一次（搜索弹窗在容器外，重复执行只会让 astro:page-load 监听器成倍累积）。
-//
-// ⚠️ 这里不能用 define:vars 注入 fakeResult / translations：Astro 会丢掉 define:vars
-// 内联脚本上的其它属性（包括 data-swup-ignore-script），脚本就会被反复重放。
-// 构建期的值统一放在 #search-modal 的 data-* 上（data-i18n-search / data-fake-results）。
-//
-// 文案在运行时按当前语言取：syncSearchLocale()（上面那个模块脚本）会把当前语言那份
-// 挂到 window.__momoSearchTranslations；它还没跑时退回 data-i18n-search 里查一份。
-function tr() {
-  if (window.__momoSearchTranslations) return window.__momoSearchTranslations;
-  try {
-    const all = JSON.parse(document.getElementById('search-modal')?.getAttribute('data-i18n-search') || '{}');
-    const lang = (document.documentElement.lang || '').toLowerCase();
-    const hit = Object.entries(all).find(([code]) => code.toLowerCase() === lang) || Object.entries(all)[0];
-    if (hit) {
-      window.__momoSearchTranslations = hit[1];
-      return hit[1];
-    }
-  } catch {
-    /* 忽略：退回下面的兜底文案 */
-  }
-  return { placeholder: 'Search', error: 'Search failed', noresult: 'No results' };
-}
-
-/** 开发环境（或索引未加载成功）时用的假数据 */
-function fakeResults() {
-  try {
-    return JSON.parse(document.getElementById('search-modal')?.getAttribute('data-fake-results') || '[]');
-  } catch {
-    return [];
-  }
-}
-
-function initPagefindSearch() {
-  const searchInput = document.getElementById('search-input');
-  const searchResults = document.getElementById('search-results');
-  // innerHTML 只写到 list 上：#search-results 是 OverlayScrollbars 的宿主，
-  // 直接重写它的 innerHTML 会把 OS 的包装层一起冲掉（见上面标记处的说明）
-  const searchList = document.getElementById('search-results-list');
-  
-  if (!searchInput || !searchResults || !searchList) return;
-
-  // 避免重复绑定
-  if (searchInput.dataset.bound === 'true') return;
-  searchInput.dataset.bound = 'true';
-
-  let searchTimeout;
-
-  searchInput.addEventListener('input', (e) => {
-    const query = e.target.value.trim();
-    clearTimeout(searchTimeout);
-    
-    searchTimeout = setTimeout(() => {
-      if (query.length > 0) {
-        performSearch(query);
-      } else {
-        // 清空或显示默认状态（data-search-hint 让换页时的语言同步认得这块提示）
-        searchList.innerHTML = `
-          <div class="p-8 text-center text-[var(--text-color-70)]" data-search-hint>
-            <p>${tr().placeholder}</p>
-          </div>
-        `;
-      }
-    }, 300);
-  });
-}
-
-// 等待 Pagefind 就绪：Header 里的加载器会派发 pagefind-ready 事件
-// （原实现监听的是 pagefindready，名字对不上，所以永远等不到通知）
-function waitForPagefind(timeout = 4000) {
-  if (window.pagefind) return Promise.resolve(window.pagefind);
-  return new Promise((resolve) => {
-    const done = () => {
-      document.removeEventListener('pagefind-ready', done);
-      resolve(window.pagefind ?? null);
-    };
-    document.addEventListener('pagefind-ready', done, { once: true });
-    setTimeout(done, timeout);
-  });
-}
-
-async function performSearch(query) {
-  const searchList = document.getElementById('search-results-list');
-  const pagefind = window.pagefind ?? (await waitForPagefind());
-
-  // 开发环境（或索引未加载成功）时退回假数据
-  const isDev = !pagefind;
-
-  if (isDev) {
-    displayResults(fakeResults());
-  } else {
-    // 只需要初始化一次：重复调用 search() 即可，不必每次 destroy + init
-    try {
-      const searchResultsData = await pagefind.search(query);
-
-      // 并发取回每条结果的数据（原来是逐条 await，串行等待）
-      const results = (await Promise.all(
-        searchResultsData.results.map(async (result) => {
-          const data = await result.data();
-          return {
-            url: data.url,
-            meta: { title: data.meta.title },
-            excerpt: data.excerpt
-          };
-        })
-      ));
-
-      displayResults(results);
-    } catch (error) {
-      console.error('Search failed:', error);
-      searchList.innerHTML = `
-        <div class="p-8 text-center text-red-500">
-          <p>${tr().error}</p>
-        </div>
-      `;
-    }
-  }
-}
-
-function displayResults(results) {
-  // 只重写 #search-results-list：#search-results 是 OverlayScrollbars 的宿主，
-  // 直接写它的 innerHTML 会把 OS 的包装层冲掉（见 initPagefindSearch 的说明）
-  const searchList = document.getElementById('search-results-list');
-  if (!searchList) return;
-
-  if (results.length === 0) {
-    searchList.innerHTML = `
-      <div class="p-8 text-center text-[var(--text-color-70)]">
-        <p>${tr().noresult}</p>
-      </div>
-    `;
-    return;
-  }
-
-  searchList.innerHTML = results.map(result => `
-    <div class="p-4 border-b border-[var(--button-border-color)] hover:bg-[var(--button-hover-color)]">
-      <a href="${result.url}" class="block no-underline">
-        <h3 class="text-lg font-semibold text-[var(--text-color)] mb-2">${result.meta.title}</h3>
-        <p class="text-[var(--text-color-70)] text-sm">${result.excerpt}</p>
-      </a>
-    </div>
-  `).join('');
-}
-
-// ========== 初始化逻辑 ==========
-document.addEventListener('pagefind-ready', () => {
-  // console.log('Pagefind is ready');
-});
-document.addEventListener('pagefindloaderror', () => {
-  console.log('Pagefind failed to load, search functionality will not work');
-});
-
-// swup 下首屏不会派发 astro:page-load，所以这里先跑一次；
-// 监听 astro:page-load 只是兜底（dataset.bound 保证不会重复绑定）
-initPagefindSearch();
-document.addEventListener('astro:page-load', initPagefindSearch);
-</script>
-
-
 <style is:global>
-mark {
-  background-color: #ffeb3b00;
-  color: var(--link-color);
-  padding: 0 2px;
-  font-weight: 600;
-}
+  /* 结果行由脚本动态创建，样式必须走全局（Astro 的 scoped style 只作用于模板节点） */
+  .search-hit {
+    display: block;
+    padding: var(--momo-space-3) var(--momo-space-4);
+    border-bottom: 1px solid var(--button-border-color);
+    text-decoration: none;
+    color: inherit;
+    outline: none;
+    transition: background-color var(--momo-t-fast) var(--momo-ease-out);
+  }
+
+  .search-hit:last-child {
+    border-bottom: 0;
+  }
+
+  .search-hit:hover,
+  .search-hit.is-active {
+    background-color: var(--button-hover-color);
+  }
+
+  .search-hit:focus-visible {
+    background-color: var(--button-hover-color);
+    box-shadow: inset 0 0 0 2px var(--link-color);
+  }
+
+  .search-hit-head {
+    display: flex;
+    align-items: baseline;
+    gap: var(--momo-space-2);
+    min-width: 0;
+    margin-bottom: var(--momo-space-1);
+  }
+
+  .search-hit-title {
+    flex-shrink: 0;
+    max-width: 70%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: var(--momo-font-size-md);
+    font-weight: var(--momo-font-weight-semibold);
+    color: var(--text-color);
+  }
+
+  .search-hit-trail {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: var(--momo-font-size-xs);
+    color: var(--text-color-30);
+  }
+
+  .search-hit-snippet {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    overflow: hidden;
+    font-size: var(--momo-font-size-sm);
+    line-height: var(--momo-leading-normal);
+    color: var(--text-color-70);
+  }
+
+  .search-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--momo-space-3);
+    padding: var(--momo-space-2) var(--momo-space-4);
+    border-top: 1px solid var(--button-border-color);
+    font-size: var(--momo-font-size-xs);
+    color: var(--text-color-30);
+  }
+
+  .search-footer-count:empty {
+    display: none;
+  }
+
+  @media (max-width: 640px) {
+    .search-footer-tip {
+      display: none;
+    }
+  }
+
+  /* 结果摘要里的 <mark>：只换色、不加底色，避免整段变得花哨 */
+  mark {
+    background-color: transparent;
+    color: var(--link-color);
+    padding: 0 1px;
+    font-weight: var(--momo-font-weight-semibold);
+  }
 </style>
