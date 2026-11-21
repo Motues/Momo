@@ -132,7 +132,7 @@ Tailwind `p-4` / `gap-6` share the same base (1 unit = 4px) and can be mixed in.
 | `--momo-radius-xl` | 16px | Modals, drawers, large containers |
 | `--momo-radius-pill` | 999px | Pills, avatars, GitHub card language / license marks |
 
-One radius per class of element. Cards no longer mix `rounded` / `rounded-xl` / `rounded-2xl`; buttons no longer mix `rounded-md` and `rounded-full`. The one exception is the comment area: `CommentItem` / `Comments` keep the original 4px radius (`.rounded`) instead of `md`, so the comment UI stays identical to the previous release.
+One radius per class of element. Cards no longer mix `rounded` / `rounded-xl` / `rounded-2xl`; buttons no longer mix `rounded-md` and `rounded-full`. Comment inputs, textareas and buttons (including the preview box, reply form and emoji panel) all use `--momo-radius-sm` (6px); the original 4px radius is gone.
 
 ## 6. Shadow
 
@@ -172,7 +172,7 @@ Entry travel (first appearance): cards `--momo-rise-card` 32px (with a 0.96 scal
 
 Rules:
 
-- Entrance animation is built in (`src/utils/reveal.ts` + `src/styles/global.css`), with no third-party dependency: HTML declares `data-reveal="pop" | "rise"` and the script only adds `.is-revealed` at the right time; prose children are hidden structurally by CSS and revealed one by one — **do not hand-write `data-reveal` inside prose** (it would flash visible before hiding).
+- Entrance animation is built in (`src/utils/reveal.ts` + `src/styles/global.css`), with no third-party dependency: HTML declares `data-reveal="pop" | "rise"` and the script only adds `.is-revealed` at the right time; prose children are hidden structurally by CSS and revealed one by one — **do not hand-write `data-reveal` inside prose** (it would flash visible before hiding). Lists and image collages reveal row by row (each row waits for its own turn in the viewport), and the comment area reveals each top-level thread as a whole, with replies following their root comment.
 - After a swup page change, reveal must wait until `html.is-changing` / `is-animating` is gone: before that `scrollTo(0)` has not run and the page is still fading in, so the animation would play where nobody sees it.
 - Text changes color only, never bounces.
 - Elements with `backdrop-filter` must not animate via an ancestor's `opacity` (the blur drops for the whole frame); animate the element itself.

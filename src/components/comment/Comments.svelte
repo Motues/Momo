@@ -8,7 +8,6 @@
   import SilentVerify from './verify/SilentVerify.svelte';
   import i18nit from '../../i18n/translation.ts';
   import { parseMarkdown, validateMarkdown } from '@utils/markdown';
-  import { fly } from 'svelte/transition';
   import DOMPurify from 'dompurify';
   import { notify } from '@utils/notify';
 
@@ -528,24 +527,24 @@
         <div class="">
           <label for="author" class="block text-sm text-[var(--text-color)] mb-1">{t('comments.name')}<span class="text-red-500">*</span></label>
           <input id="author" type="text" placeholder={placeholderName || t('comments.required')} bind:value={author}
-            class="rounded w-full text-[var(--text-color)] border border-[var(--button-border-color)]  focus:outline-none focus:border-[var(--link-color)] text-sm p-2" />
+            class="rounded-[var(--momo-radius-sm)] w-full text-[var(--text-color)] border border-[var(--button-border-color)]  focus:outline-none focus:border-[var(--link-color)] text-sm p-2" />
         </div>
         <div class="">
           <label for="email" class="block text-sm text-[var(--text-color)] mb-1">{t('comments.email')}<span class="text-red-500">*</span></label>
           <input id="email" type="email" placeholder={placeholderEmail || t('comments.required')} bind:value={email}
-            class="rounded w-full text-[var(--text-color)] border border-[var(--button-border-color)]  focus:outline-none focus:border-[var(--link-color)] text-sm p-2" />
+            class="rounded-[var(--momo-radius-sm)] w-full text-[var(--text-color)] border border-[var(--button-border-color)]  focus:outline-none focus:border-[var(--link-color)] text-sm p-2" />
         </div>
         <div class="">
           <label for="url" class="block text-sm text-[var(--text-color)] mb-1">{t('comments.site')}</label>
           <input id="url" type="url" placeholder={placeholderUrl || t('comments.optional')} bind:value={url}
-            class="rounded w-full text-[var(--text-color)] border border-[var(--button-border-color)]  focus:outline-none focus:border-[var(--link-color)] text-sm p-2" />
+            class="rounded-[var(--momo-radius-sm)] w-full text-[var(--text-color)] border border-[var(--button-border-color)]  focus:outline-none focus:border-[var(--link-color)] text-sm p-2" />
         </div>
 
         {#if adminCommentKeyConfigured && isAdminEmail}
           <div>
             <label for="admin-key" class="block text-sm text-[var(--text-color)] mb-1">{t('comments.adminKey')}<span class="text-red-500">*</span></label>
             <input id="admin-key" type="password" placeholder={t('comments.adminKeyPlaceholder')} bind:value={adminKey}
-              class="rounded w-full text-[var(--text-color)] border border-[var(--button-border-color)] focus:outline-none focus:border-[var(--link-color)] text-sm p-2" />
+              class="rounded-[var(--momo-radius-sm)] w-full text-[var(--text-color)] border border-[var(--button-border-color)] focus:outline-none focus:border-[var(--link-color)] text-sm p-2" />
           </div>
         {/if}
       </div>
@@ -553,7 +552,7 @@
        <div class="mb-2">
         {#if showPreview}
           <div
-            class="rounded border text-[var(--text-color)] border-[var(--button-border-color)] p-3 min-h-[100px] text-sm leading-relaxed comment-preview"
+            class="rounded-[var(--momo-radius-sm)] border text-[var(--text-color)] border-[var(--button-border-color)] p-3 min-h-[100px] text-sm leading-relaxed comment-preview"
             use:emojify={{ images: emojiImages, html: content }}>
             {#if content.trim() === ''}
               <p>{t('comments.preview') || '预览'}</p>
@@ -570,7 +569,7 @@
           {/if}
         {:else}
           <textarea placeholder={placeholderContent || t('comments.welcome')}
-            class="rounded w-full border text-[var(--text-color)] border-[var(--button-border-color)] focus:outline-none focus:border-[var(--link-color)] text-sm p-3 min-h-[100px]"
+            class="rounded-[var(--momo-radius-sm)] w-full border text-[var(--text-color)] border-[var(--button-border-color)] focus:outline-none focus:border-[var(--link-color)] text-sm p-3 min-h-[100px]"
             bind:this={contentEl}
             bind:value={content}></textarea>
         {/if}
@@ -604,12 +603,12 @@
             type="button"
             on:click={togglePreview}
             disabled={!showPreview && !content.trim()}
-            class="rounded px-4 py-2 text-sm font-medium text-[var(--text-color)] border border-[var(--button-border-color)] hover:bg-[var(--button-hover-bg-color)] disabled:opacity-50 disabled:cursor-not-allowed"
+            class="rounded-[var(--momo-radius-sm)] px-4 py-2 text-sm font-medium text-[var(--text-color)] border border-[var(--button-border-color)] hover:bg-[var(--button-hover-bg-color)] disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {showPreview ? t('comments.write') : t('comments.preview')}
           </button>
           <button type="submit" disabled={submitting || !isContentWithinLimit(content) || (verifyEnabled && verifyTicket === null)}
-            class="rounded px-4 py-2 text-sm font-medium text-[var(--text-color)] border border-[var(--button-border-color)] hover:bg-[var(--button-hover-bg-color)] disabled:opacity-50">
+            class="rounded-[var(--momo-radius-sm)] px-4 py-2 text-sm font-medium text-[var(--text-color)] border border-[var(--button-border-color)] hover:bg-[var(--button-hover-bg-color)] disabled:opacity-50">
             {submitting ? t('comments.sending') : t('comments.send')}
           </button>
         </div>
@@ -638,24 +637,24 @@
 
       <div class="space-y-6">
         {#each comments as c}
-          <div in:fly={{ y: 24, duration: 400, opacity: 0 }}>
-            <CommentItem {c} {postSlug} {author} {email} {url} {language} {apiUrl}
-              {bloggerBadgeEnabled} {bloggerBadgeText} {adminCommentKeyConfigured} {adminEmailHashes}
-              emojiImages={emojiImages} {emojiCdnUrls} {emojiEnabled}
-              on:emojiSetChange={(e) => (emojiSet = e.detail)}
-              on:reply={(e) => setReplyingTo(e.detail)}
-              on:cancel={() => setReplyingTo(null)}
-              on:submit={async (e) => {
-                await submitComment(e.detail.parentId, e.detail);
-              }}
-              replyingToId={replyingToId}
-              replySubmittingId={replySubmittingId}
-              on:userInfoChange={(e) => {
-                author = e.detail.author;
-                email = e.detail.email;
-                url = e.detail.url;
-              }} />
-          </div>
+          <!-- 入场交给 CommentItem 自己的 data-reveal（整串评论一起浮出）。
+               这里不要再套 in:fly：一外层飞入、一内层上浮，两段动画会叠在一起。 -->
+          <CommentItem {c} {postSlug} {author} {email} {url} {language} {apiUrl}
+            {bloggerBadgeEnabled} {bloggerBadgeText} {adminCommentKeyConfigured} {adminEmailHashes}
+            emojiImages={emojiImages} {emojiCdnUrls} {emojiEnabled}
+            on:emojiSetChange={(e) => (emojiSet = e.detail)}
+            on:reply={(e) => setReplyingTo(e.detail)}
+            on:cancel={() => setReplyingTo(null)}
+            on:submit={async (e) => {
+              await submitComment(e.detail.parentId, e.detail);
+            }}
+            replyingToId={replyingToId}
+            replySubmittingId={replySubmittingId}
+            on:userInfoChange={(e) => {
+              author = e.detail.author;
+              email = e.detail.email;
+              url = e.detail.url;
+            }} />
         {/each}
       </div>
 
@@ -663,7 +662,7 @@
         <div class="flex justify-center mt-8">
           <button on:click={loadMoreComments}
             disabled={loadingMore}
-            class="px-6 py-2.5 w-full text-sm font-medium text-[var(--text-color)] bg-transparent hover:bg-[var(--button-hover-color)] active:bg-[var(--button-hover-color)] transition-colors duration-300 ease-in-out disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2">
+            class="rounded-[var(--momo-radius-sm)] px-6 py-2.5 w-full text-sm font-medium text-[var(--text-color)] bg-transparent hover:bg-[var(--button-hover-color)] active:bg-[var(--button-hover-color)] transition-colors duration-300 ease-in-out disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2">
             {#if loadingMore}
               <svg class="animate-spin h-4 w-4 text-[var(--text-color)]" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                 <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>

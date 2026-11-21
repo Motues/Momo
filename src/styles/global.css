@@ -96,17 +96,39 @@
   }
 
   /* 正文块不打属性：文章内容在首屏 HTML 里就可见，靠 JS 事后打标记会先闪一下
-     再藏起来。这里直接按结构隐藏，脚本只需给直接子元素加 .is-revealed。 */
-  html[data-reveal-on] .markdown-content:not([data-no-reveal]) > * {
+     再藏起来。这里直接按结构隐藏，脚本只需给直接子元素加 .is-revealed。
+     列表与图片拼图是例外：它们不整块位移，动画交给下面的「逐行」规则。 */
+  html[data-reveal-on] .markdown-content:not([data-no-reveal]) > *:not(ul):not(ol):not(.image-collage) {
     transition-property: opacity, transform;
     transition-duration: var(--momo-t-reveal);
     transition-delay: var(--reveal-delay, 0ms);
     transition-timing-function: var(--momo-ease-out);
   }
 
-  html[data-reveal-on] .markdown-content:not([data-no-reveal]) > *:not(.is-revealed) {
+  html[data-reveal-on] .markdown-content:not([data-no-reveal]) > *:not(ul):not(ol):not(.image-collage):not(.is-revealed) {
     opacity: 0;
     transform: translate3d(0, var(--momo-rise-prose), 0);
+  }
+
+  /* 列表逐行 / 拼图逐行：一「行」是一个顶层 li 或一个 collage-item。
+     同一网格行里的格子顶边相同，会同时进入视口、同时入场，看起来仍是整行一起浮出。
+     ⚠️ 行高只有一行文字，别再套 --momo-rise-prose（120px）那套大行程。 */
+  html[data-reveal-on] .markdown-content:not([data-no-reveal]) > ul > li,
+  html[data-reveal-on] .markdown-content:not([data-no-reveal]) > ol > li,
+  html[data-reveal-on] .markdown-content:not([data-no-reveal]) > .image-collage > .collage-item {
+    /* 父级按 nth-child 给的错峰延迟会继承下来，逐行入场不需要它 */
+    --reveal-delay: 0ms;
+    transition-property: opacity, transform;
+    transition-duration: var(--momo-t-reveal);
+    transition-delay: 0ms;
+    transition-timing-function: var(--momo-ease-out);
+  }
+
+  html[data-reveal-on] .markdown-content:not([data-no-reveal]) > ul > li:not(.is-revealed),
+  html[data-reveal-on] .markdown-content:not([data-no-reveal]) > ol > li:not(.is-revealed),
+  html[data-reveal-on] .markdown-content:not([data-no-reveal]) > .image-collage > .collage-item:not(.is-revealed) {
+    opacity: 0;
+    transform: translate3d(0, var(--momo-rise-card), 0);
   }
 
   /* 每 5 个一组错峰（第一个不等，依次 +50ms），与旧实现一致 */
@@ -139,7 +161,10 @@
 
   [data-reveal],
   [data-reveal].is-revealed,
-  html[data-reveal-on] .markdown-content:not([data-no-reveal]) > * {
+  html[data-reveal-on] .markdown-content:not([data-no-reveal]) > *,
+  html[data-reveal-on] .markdown-content:not([data-no-reveal]) > ul > li,
+  html[data-reveal-on] .markdown-content:not([data-no-reveal]) > ol > li,
+  html[data-reveal-on] .markdown-content:not([data-no-reveal]) > .image-collage > .collage-item {
     transition: none !important;
     opacity: 1 !important;
     transform: none !important;

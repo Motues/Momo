@@ -132,7 +132,7 @@ Tailwind 的 `p-4` / `gap-6` 与这把尺子同源（1 单位 = 4px），可以�
 | `--momo-radius-xl` | 16px | 弹窗、抽屉、大容器 |
 | `--momo-radius-pill` | 999px | 胶囊、头像、GitHub 卡片的语言 / 协议标记 |
 
-规则：同一类元素只允许一种圆角。卡片不再混用 `rounded` / `rounded-xl` / `rounded-2xl`；按钮不再出现 `rounded-md` 与 `rounded-full` 并存。唯一例外是评论区：`CommentItem` / `Comments` 沿用原博客的 4px 圆角（`.rounded`），不跟着换成 `md`，改它会让评论区与旧版不一致。
+规则：同一类元素只允许一种圆角。卡片不再混用 `rounded` / `rounded-xl` / `rounded-2xl`；按钮不再出现 `rounded-md` 与 `rounded-full` 并存。评论区的输入框 / 文本域 / 按钮（含预览框、回复表单与表情面板）统一用 `--momo-radius-sm`（6px），不再沿用原博客的 4px 圆角。
 
 ## 6. 阴影
 
@@ -172,7 +172,7 @@ Tailwind 的 `p-4` / `gap-6` 与这把尺子同源（1 单位 = 4px），可以�
 
 规则：
 
-- 入场动画是自研的（`src/utils/reveal.ts` + `src/styles/global.css`），不依赖第三方库：元素在 HTML 里声明 `data-reveal="pop" | "rise"`，脚本只在合适时机加 `.is-revealed`；正文块的直接子元素由 CSS 结构性隐藏后逐个显现，**不要再往正文里手写 `data-reveal`**（会先闪一下再藏起来）。
+- 入场动画是自研的（`src/utils/reveal.ts` + `src/styles/global.css`），不依赖第三方库：元素在 HTML 里声明 `data-reveal="pop" | "rise"`，脚本只在合适时机加 `.is-revealed`；正文块的直接子元素由 CSS 结构性隐藏后逐个显现，**不要再往正文里手写 `data-reveal`**（会先闪一下再藏起来）。列表与图片拼图按行入场（逐行等自己进入视口），评论区只让顶层评论整串入场、回复跟随根评论一起出现。
 - 换页（swup）后的显现必须等 `html.is-changing` / `is-animating` 消失：在那之前 `scrollTo(0)` 还没执行、整页也还在淡入，动画会播在看不见的地方。
 - 文字颜色只换色，不加回弹。
 - 关心 `backdrop-filter` 的元素，显隐动画不能靠祖先 `opacity`（会让毛玻璃整帧失效），要做在元素自己身上。

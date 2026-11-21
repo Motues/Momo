@@ -20,6 +20,8 @@
  * ⚠️ 正文（.markdown-content 的直接子元素）不打属性：文章内容在首屏 HTML 里就
  * 已经可见，靠 JS 事后打标记会先闪一下再藏起来。改由 CSS 结构性隐藏
  * （.markdown-content:not([data-no-reveal]) > *），脚本只负责加 .is-revealed。
+ * 列表与图片拼图是例外：它们按「行」隐藏 / 入场（顶层 li、.collage-item），
+ * 这样一块长列表 / 多行拼图不会在块顶越过触发线时整块连看不见的部分一起浮完。
  */
 
 import { registerPageInit } from '@utils/pageInit';
@@ -46,7 +48,14 @@ function reveal(el: HTMLElement): void {
   watched.delete(el);
 }
 
-/** 收集这一帧还没入场的元素：带属性的 + 正文块的直接子元素 */
+/**
+ * 正文里需要「逐行入场」的块：列表按顶层 li 拆、图片拼图按 collage-item 拆。
+ * 不拆的话，一个长列表 / 多行拼图只要块顶越过触发线，整块（包括还看不见的后半截）
+ * 会一次全部浮出；拆开后每一行各自等自己进入视口，滚动时才是「一行一行」浮上来。
+ */
+const ITEMIZED_LISTS = new Set(['UL', 'OL']);
+
+/** 收集这一帧还没入场的元素：带属性的 + 正文块的直接子元素（列表 / 拼图拆到行） */
 function pending(): HTMLElement[] {
   const targets = new Set<HTMLElement>(
     document.querySelectorAll<HTMLElement>(`[${REVEAL_ATTR}]`),
@@ -54,7 +63,24 @@ function pending(): HTMLElement[] {
   const prose = document.querySelector(PROSE_SELECTOR);
   if (prose) {
     for (const child of Array.from(prose.children)) {
-      if (child instanceof HTMLElement) targets.add(child);
+      if (!(child instanceof HTMLElement)) continue;
+      if (ITEMIZED_LISTS.has(child.tagName)) {
+        for (const item of Array.from(child.children)) {
+          if (item instanceof HTMLElement && item.tagName === 'LI') {
+            targets.add(item);
+          }
+        }
+        continue;
+      }
+      if (child.classList.contains('image-collage')) {
+        for (const item of Array.from(child.children)) {
+          if (item instanceof HTMLElement && item.classList.contains('collage-item')) {
+            targets.add(item);
+          }
+        }
+        continue;
+      }
+      targets.add(child);
     }
   }
   return [...targets].filter((el) => !el.classList.contains(REVEALED_CLASS));

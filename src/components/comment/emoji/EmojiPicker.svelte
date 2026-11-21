@@ -329,7 +329,7 @@
   <button
     type="button"
     bind:this={buttonEl}
-    class="emoji-trigger rounded p-2 leading-none text-[var(--text-color)]/60 transition-colors hover:text-[var(--link-color)] disabled:cursor-not-allowed"
+    class="emoji-trigger rounded-[var(--momo-radius-sm)] p-2 leading-none text-[var(--text-color)]/60 transition-colors hover:text-[var(--link-color)] disabled:cursor-not-allowed"
     title={t('comments.emoji')}
     aria-label={t('comments.emoji')}
     aria-expanded={open}
@@ -346,7 +346,7 @@
     <div
       bind:this={panelEl}
       use:portal
-      class="emoji-panel fixed flex flex-col overflow-hidden rounded border border-[var(--button-border-color)] shadow-lg"
+      class="emoji-panel fixed flex flex-col overflow-hidden rounded-[var(--momo-radius-sm)] border border-[var(--button-border-color)] shadow-lg"
       style={panelStyle}
       role="dialog"
       aria-label={t('comments.emojiPanel')}
@@ -360,7 +360,7 @@
           {#each emojiSet?.tabs ?? [] as tab}
             <button type="button" role="tab"
               aria-selected={activeTab?.id === tab.id}
-              class="whitespace-nowrap rounded-t px-2.5 py-1.5 text-xs text-[var(--text-color)]/80"
+              class="whitespace-nowrap rounded-t-[var(--momo-radius-sm)] px-2.5 py-1.5 text-xs text-[var(--text-color)]/80"
               class:emoji-tab-active={activeTab?.id === tab.id}
               class:emoji-hoverable={activeTab?.id !== tab.id}
               data-test="emoji-tab"
@@ -371,7 +371,7 @@
         </div>
         <!-- 手动刷新：后台校验间隔（默认 6 小时）内用户想立刻拿最新表情时的出口 -->
         <button type="button"
-          class="emoji-hoverable ml-auto shrink-0 rounded p-1 leading-none text-[var(--text-color)]/60 transition-colors hover:text-[var(--link-color)] disabled:cursor-not-allowed"
+          class="emoji-hoverable ml-auto shrink-0 rounded-[var(--momo-radius-sm)] p-1 leading-none text-[var(--text-color)]/60 transition-colors hover:text-[var(--link-color)] disabled:cursor-not-allowed"
           title={t('comments.emojiRefresh')}
           aria-label={t('comments.emojiRefresh')}
           disabled={loading || refreshing}
@@ -394,7 +394,7 @@
             <div class="flex flex-wrap gap-1">
               {#each activeTab.items as item}
                 <button type="button"
-                  class="emoji-hoverable emoji-text-item flex min-h-[2rem] min-w-[2rem] max-w-full items-center justify-center rounded px-2 py-1 text-sm leading-none text-[var(--text-color)]"
+                  class="emoji-hoverable emoji-text-item flex min-h-[2rem] min-w-[2rem] max-w-full items-center justify-center rounded-[var(--momo-radius-sm)] px-2 py-1 text-sm leading-none text-[var(--text-color)]"
                   title={item.title}
                   data-test="emoji-item"
                   data-insert={item.insert}
@@ -408,7 +408,7 @@
             <div class="grid grid-cols-[repeat(auto-fill,2rem)] justify-between gap-1">
               {#each activeTab.items as item}
                 <button type="button"
-                  class="emoji-hoverable flex h-8 w-8 items-center justify-center rounded"
+                  class="emoji-hoverable flex h-8 w-8 items-center justify-center rounded-[var(--momo-radius-sm)]"
                   title={item.title}
                   data-test="emoji-item"
                   data-insert={item.insert}

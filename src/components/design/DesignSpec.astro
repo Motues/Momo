@@ -124,7 +124,7 @@ const T = {
       comment: {
         title: '评论',
         desc: '评论区没有卡片外壳：头像 + 昵称 + 时间 + 正文，下面是昵称 / 邮箱 / 网址与正文输入框，按钮与正文同字号。评论正文支持 Markdown，表情按 1.25em 行内显示。',
-        note: '示例直接复用线上评论组件（CommentItem / Comments）的工具类：4px 圆角（Tailwind rounded）、text-red-500、min-h-[100px]，均为有意保留。',
+        note: '示例直接复用线上评论组件（CommentItem / Comments）的工具类：输入框 / 文本域与按钮统一用 --momo-radius-sm（6px），text-red-500 与 min-h-[100px] 同样来自线上。',
       },
       state: {
         title: '状态',
@@ -343,7 +343,7 @@ const T = {
       comment: {
         title: 'Comments',
         desc: 'The comment area has no card shell: avatar + name + time + body, then name / email / website fields and the body input, with buttons at body size. Bodies support Markdown; emoji render inline at 1.25em.',
-        note: 'The demo reuses the utility classes of the live comment components (CommentItem / Comments): 4px radius (Tailwind rounded), text-red-500 and min-h-[100px], kept as they are.',
+        note: 'The demo reuses the utility classes of the live comment components (CommentItem / Comments): inputs, textareas and buttons all use --momo-radius-sm (6px), and text-red-500 / min-h-[100px] come from the live components too.',
       },
       state: {
         title: 'States',
@@ -1114,7 +1114,7 @@ const structureRows = t.structure.rows as unknown as string[][];
                     id="ds-comment-name"
                     type="text"
                     placeholder={t.comments.required}
-                    class="rounded w-full text-[var(--text-color)] border border-[var(--button-border-color)] focus:outline-none focus:border-[var(--link-color)] text-sm p-2"
+                    class="rounded-[var(--momo-radius-sm)] w-full text-[var(--text-color)] border border-[var(--button-border-color)] focus:outline-none focus:border-[var(--link-color)] text-sm p-2"
                   />
                 </div>
                 <div>
@@ -1125,7 +1125,7 @@ const structureRows = t.structure.rows as unknown as string[][];
                     id="ds-comment-email"
                     type="email"
                     placeholder={t.comments.required}
-                    class="rounded w-full text-[var(--text-color)] border border-[var(--button-border-color)] focus:outline-none focus:border-[var(--link-color)] text-sm p-2"
+                    class="rounded-[var(--momo-radius-sm)] w-full text-[var(--text-color)] border border-[var(--button-border-color)] focus:outline-none focus:border-[var(--link-color)] text-sm p-2"
                   />
                 </div>
                 <div>
@@ -1134,7 +1134,7 @@ const structureRows = t.structure.rows as unknown as string[][];
                     id="ds-comment-site"
                     type="url"
                     placeholder={t.comments.optional}
-                    class="rounded w-full text-[var(--text-color)] border border-[var(--button-border-color)] focus:outline-none focus:border-[var(--link-color)] text-sm p-2"
+                    class="rounded-[var(--momo-radius-sm)] w-full text-[var(--text-color)] border border-[var(--button-border-color)] focus:outline-none focus:border-[var(--link-color)] text-sm p-2"
                   />
                 </div>
               </div>
@@ -1142,19 +1142,19 @@ const structureRows = t.structure.rows as unknown as string[][];
               <textarea
                 rows="4"
                 placeholder={t.comments.placeholder}
-                class="rounded w-full border text-[var(--text-color)] border-[var(--button-border-color)] focus:outline-none focus:border-[var(--link-color)] text-sm p-3 min-h-[100px]"
+                class="rounded-[var(--momo-radius-sm)] w-full border text-[var(--text-color)] border-[var(--button-border-color)] focus:outline-none focus:border-[var(--link-color)] text-sm p-3 min-h-[100px]"
               ></textarea>
 
               <div class="flex flex-wrap items-center justify-end gap-3">
                 <button
                   type="button"
-                  class="rounded px-4 py-2 text-sm font-medium text-[var(--text-color)] border border-[var(--button-border-color)] hover:bg-[var(--button-hover-bg-color)]"
+                  class="rounded-[var(--momo-radius-sm)] px-4 py-2 text-sm font-medium text-[var(--text-color)] border border-[var(--button-border-color)] hover:bg-[var(--button-hover-bg-color)]"
                 >
                   {t.comments.preview}
                 </button>
                 <button
                   type="button"
-                  class="rounded px-4 py-2 text-sm font-medium text-[var(--text-color)] border border-[var(--button-border-color)] hover:bg-[var(--button-hover-bg-color)]"
+                  class="rounded-[var(--momo-radius-sm)] px-4 py-2 text-sm font-medium text-[var(--text-color)] border border-[var(--button-border-color)] hover:bg-[var(--button-hover-bg-color)]"
                 >
                   {t.comments.submit}
                 </button>

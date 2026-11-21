@@ -266,7 +266,7 @@
 {#if status === 'error'}
   <button
     type="button"
-    class="verify-box relative flex items-center gap-1.5 rounded px-2.5 h-[38px] border text-sm select-none verify-error
+    class="verify-box relative flex items-center gap-1.5 rounded-[var(--momo-radius-sm)] px-2.5 h-[38px] border text-sm select-none verify-error
       {failureKind === 'failed' ? 'cursor-pointer' : 'cursor-default'}"
     class:verify-retryable={failureKind === 'failed'}
     title={errorText}
@@ -286,7 +286,7 @@
   </button>
 {:else}
   <div
-    class="verify-box relative flex items-center gap-1.5 rounded px-2.5 h-[38px] border text-sm select-none
+    class="verify-box relative flex items-center gap-1.5 rounded-[var(--momo-radius-sm)] px-2.5 h-[38px] border text-sm select-none
       {status === 'success'
         ? 'verify-success'
         : 'border-[var(--button-border-color)] text-[var(--text-color)]/70'}"

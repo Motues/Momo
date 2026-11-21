@@ -287,7 +287,10 @@
   $: hasHiddenMobileReplies = hiddenMobileCount > 0;
 </script>
 
-<div id="comment-{c.id}" data-reveal="rise" class="flex gap-2 md:gap-3 w-full max-w-full">
+<!-- 只有顶层评论参与滚动入场：整串评论（含所有回复）作为一个整体浮出。
+     回复不单独打 data-reveal —— 否则根评论先入场、回复等各自滚到触发线才一条条出现，
+     看起来就像「先加载完根评论，子评论再慢慢飘出来」。 -->
+<div id="comment-{c.id}" data-reveal={depth === 0 ? 'rise' : undefined} class="flex gap-2 md:gap-3 w-full max-w-full">
   {#if isDormantUrl}
   <button type="button" class="w-10 h-10 shrink-0" data-test="link-dormant-avatar" data-dormant-trigger
     title={t('comments.linkDormantTip')} aria-label={t('comments.linkDormantTip')} aria-expanded={showDormantTip}
@@ -322,7 +325,7 @@
 
       {#if c.isBlogger && bloggerBadgeEnabled}
         {#if bloggerBadgeText}
-          <span class="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium blogger-badge">{bloggerBadgeText}</span>
+          <span class="inline-flex items-center px-1.5 py-0.5 rounded-[var(--momo-radius-xs)] text-xs font-medium blogger-badge">{bloggerBadgeText}</span>
         {:else}
           <svg class="w-5 h-5 blogger-badge-icon align-middle" viewBox="0 0 24 24" fill="currentColor"><path d="M20.396 11c-.018-.646-.215-1.275-.57-1.816-.354-.54-.852-.972-1.438-1.246.223-.607.27-1.264.14-1.897-.131-.634-.437-1.218-.882-1.687-.47-.445-1.053-.75-1.687-.882-.633-.13-1.29-.083-1.897.14-.273-.587-.704-1.086-1.245-1.44S11.647 1.62 11 1.604c-.646.017-1.273.213-1.813.568s-.969.854-1.24 1.44c-.608-.223-1.267-.272-1.902-.14-.635.13-1.22.436-1.69.882-.445.47-.749 1.055-.878 1.688-.13.633-.08 1.29.144 1.896-.587.274-1.087.705-1.443 1.245-.356.54-.555 1.17-.574 1.817.02.647.218 1.276.574 1.817.356.54.856.972 1.443 1.245-.224.606-.274 1.263-.144 1.896.13.634.433 1.218.877 1.688.47.443 1.054.747 1.687.878.633.132 1.29.084 1.897-.136.274.586.705 1.084 1.246 1.439.54.354 1.17.551 1.816.569.647-.016 1.276-.213 1.817-.567s.972-.854 1.245-1.44c.604.239 1.266.296 1.903.164.636-.132 1.22-.447 1.68-.907.46-.46.776-1.044.908-1.681s.075-1.299-.165-1.903c.586-.274 1.084-.705 1.439-1.246.354-.54.551-1.17.569-1.816zM9.662 14.85l-3.429-3.428 1.293-1.302 2.072 2.072 4.4-4.794 1.347 1.246z"/></svg>
         {/if}
@@ -415,19 +418,19 @@
               <label for="reply-author-{c.id}" class="block text-xs text-[var(--text-color)] mb-1">{t('comments.name')}<span class="text-red-500">*</span></label>
               <input id="reply-author-{c.id}" type="text" placeholder={t('comments.required')} bind:value={replyAuthor}
                 on:input={() => dispatch('userInfoChange', { author: replyAuthor, email: replyEmail, url: replyUrl })}
-                class="rounded w-full text-[var(--text-color)] border border-[var(--button-border-color)] focus:outline-none focus:border-[var(--link-color)] text-sm py-1 px-2" />
+                class="rounded-[var(--momo-radius-sm)] w-full text-[var(--text-color)] border border-[var(--button-border-color)] focus:outline-none focus:border-[var(--link-color)] text-sm py-1 px-2" />
             </div>
             <div>
               <label for="reply-email-{c.id}" class="block text-xs text-[var(--text-color)] mb-1">{t('comments.email')}<span class="text-red-500">*</span></label>
               <input id="reply-email-{c.id}" type="email" placeholder={t('comments.required')} bind:value={replyEmail}
                 on:input={() => dispatch('userInfoChange', { author: replyAuthor, email: replyEmail, url: replyUrl })}
-                class="rounded w-full text-[var(--text-color)] border border-[var(--button-border-color)] focus:outline-none focus:border-[var(--link-color)] text-sm py-1 px-2" />
+                class="rounded-[var(--momo-radius-sm)] w-full text-[var(--text-color)] border border-[var(--button-border-color)] focus:outline-none focus:border-[var(--link-color)] text-sm py-1 px-2" />
             </div>
             <div>
               <label for="reply-url-{c.id}" class="block text-xs text-[var(--text-color)] mb-1">{t('comments.site')}</label>
               <input id="reply-url-{c.id}" type="url" placeholder={t('comments.optional')} bind:value={replyUrl}
                 on:input={() => dispatch('userInfoChange', { author: replyAuthor, email: replyEmail, url: replyUrl })}
-                class="rounded w-full text-[var(--text-color)] border border-[var(--button-border-color)] focus:outline-none focus:border-[var(--link-color)] text-sm py-1 px-2" />
+                class="rounded-[var(--momo-radius-sm)] w-full text-[var(--text-color)] border border-[var(--button-border-color)] focus:outline-none focus:border-[var(--link-color)] text-sm py-1 px-2" />
             </div>
           </div>
 
@@ -435,13 +438,13 @@
             <div>
               <label for="reply-admin-key-{c.id}" class="block text-xs text-[var(--text-color)] mb-1">{t('comments.adminKey')}<span class="text-red-500">*</span></label>
               <input id="reply-admin-key-{c.id}" type="password" placeholder={t('comments.adminKeyPlaceholder')} bind:value={replyAdminKey}
-                class="rounded w-full text-[var(--text-color)] border border-[var(--button-border-color)] focus:outline-none focus:border-[var(--link-color)] text-sm py-1 px-2" />
+                class="rounded-[var(--momo-radius-sm)] w-full text-[var(--text-color)] border border-[var(--button-border-color)] focus:outline-none focus:border-[var(--link-color)] text-sm py-1 px-2" />
             </div>
           {/if}
 
           <div class="mb-2">
             {#if replyShowPreview}
-              <div class="rounded border text-[var(--text-color)] border-[var(--button-border-color)] p-2 min-h-[80px] text-sm leading-relaxed comment-content"
+              <div class="rounded-[var(--momo-radius-sm)] border text-[var(--text-color)] border-[var(--button-border-color)] p-2 min-h-[80px] text-sm leading-relaxed comment-content"
                 use:emojify={{ images: replyEmojiImages, html: replyContent }}>
                 {#if replyContent.trim() === ''}
                   <p>{t('comments.preview') || '预览'}</p>
@@ -458,7 +461,7 @@
               {/if}
             {:else}
               <textarea placeholder={t('comments.replyPlaceholder') || "写下你的回复..."}
-                class="rounded w-full border text-[var(--text-color)] border-[var(--button-border-color)] focus:outline-none focus:border-[var(--link-color)] text-sm p-2 min-h-[80px]"
+                class="rounded-[var(--momo-radius-sm)] w-full border text-[var(--text-color)] border-[var(--button-border-color)] focus:outline-none focus:border-[var(--link-color)] text-sm p-2 min-h-[80px]"
                 bind:this={replyContentEl}
                 bind:value={replyContent}></textarea>
             {/if}
@@ -478,15 +481,15 @@
             <div class="flex flex-wrap justify-end gap-2">
             <button type="button" on:click={toggleReplyPreview}
               disabled={!replyContent.trim()}
-              class="rounded px-3 py-1 text-sm text-[var(--text-color)] border border-[var(--button-border-color)] hover:bg-[var(--button-hover-bg-color)] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-transparent">
+              class="rounded-[var(--momo-radius-sm)] px-3 py-1 text-sm text-[var(--text-color)] border border-[var(--button-border-color)] hover:bg-[var(--button-hover-bg-color)] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-transparent">
               {replyShowPreview ? (t('comments.write') || '撰写') : (t('comments.preview') || '预览')}
             </button>
             <button type="button" on:click={() => {
               dispatch('cancel');
-            }} class="rounded px-3 py-1 text-sm text-[var(--text-color)] border border-[var(--button-border-color)] hover:bg-[var(--button-hover-bg-color)]">
+            }} class="rounded-[var(--momo-radius-sm)] px-3 py-1 text-sm text-[var(--text-color)] border border-[var(--button-border-color)] hover:bg-[var(--button-hover-bg-color)]">
               {t('comments.cancel')}
             </button>
-            <button type="submit" disabled={isReplySubmitting || !isContentWithinLimit(replyContent)} class="rounded px-3 py-1 text-sm font-medium text-[var(--text-color)] border border-[var(--button-border-color)] hover:bg-[var(--button-hover-bg-color)] disabled:opacity-50">
+            <button type="submit" disabled={isReplySubmitting || !isContentWithinLimit(replyContent)} class="rounded-[var(--momo-radius-sm)] px-3 py-1 text-sm font-medium text-[var(--text-color)] border border-[var(--button-border-color)] hover:bg-[var(--button-hover-bg-color)] disabled:opacity-50">
               {isReplySubmitting ? t('comments.sending') : t('comments.reply')}
             </button>
             </div>
@@ -529,7 +532,7 @@
         {#if hasHiddenReplies}
           <div class="flex justify-center mt-3">
             <button on:click={() => showAllReplies = !showAllReplies}
-              class="px-6 py-2.5 w-full text-sm font-medium text-[var(--text-color)] bg-transparent hover:bg-[var(--button-hover-color)] active:bg-[var(--button-hover-color)] transition-colors duration-300 ease-in-out">
+              class="rounded-[var(--momo-radius-sm)] px-6 py-2.5 w-full text-sm font-medium text-[var(--text-color)] bg-transparent hover:bg-[var(--button-hover-color)] active:bg-[var(--button-hover-color)] transition-colors duration-300 ease-in-out">
               {showAllReplies ? t('comments.collapseReplies') : t('comments.showMoreReplies')}
             </button>
           </div>
@@ -570,7 +573,7 @@
         {#if hasHiddenMobileReplies}
           <div class="flex justify-center mt-3">
             <button on:click={() => showAllReplies = !showAllReplies}
-              class="px-6 py-2.5 w-full text-sm font-medium text-[var(--text-color)] bg-transparent hover:bg-[var(--button-hover-color)] active:bg-[var(--button-hover-color)] transition-colors duration-300 ease-in-out">
+              class="rounded-[var(--momo-radius-sm)] px-6 py-2.5 w-full text-sm font-medium text-[var(--text-color)] bg-transparent hover:bg-[var(--button-hover-color)] active:bg-[var(--button-hover-color)] transition-colors duration-300 ease-in-out">
               {showAllReplies ? t('comments.collapseReplies') : t('comments.showMoreReplies')}
             </button>
           </div>
@@ -584,7 +587,7 @@
   <!-- 休眠链接的小浮窗：贴在昵称旁、只说明「暂时无法由本站跳转访问」，没有任何继续访问的入口 -->
   {#if showDormantTip && isDormantUrl}
     <span bind:this={dormantTipEl} role="tooltip" data-test="link-dormant-tip"
-      class="link-dormant-tip fixed z-50 block w-max max-w-[17rem] rounded px-3 py-2 text-xs leading-relaxed text-[var(--text-color)] shadow-lg"
+      class="link-dormant-tip fixed z-50 block w-max max-w-[17rem] rounded-[var(--momo-radius-sm)] px-3 py-2 text-xs leading-relaxed text-[var(--text-color)] shadow-lg"
       style={dormantTipStyle}>
       {t('comments.linkDormantTip')}
     </span>

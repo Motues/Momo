@@ -13,6 +13,9 @@
   export let defaultLocale = "zh-cn";
 
   let selectedCategories = [];
+  // 首次渲染的列表参与入场动画；用户开始筛选后就不再给新行打 data-reveal，
+  // 让 Svelte 自己的 fade / flip 接管（否则「切换分类」也会整页重新浮一遍）。
+  let interacted = false;
   const t = i18nit(currentLang);
 
   // 提取所有分类并去重
@@ -50,6 +53,7 @@
 
     // 处理浏览器前进/后退
     const handlePopState = () => {
+      interacted = true;
       const params = new URLSearchParams(window.location.search);
       selectedCategories = params.get('category')?.split(',') || [];
     };
@@ -102,6 +106,7 @@
 
   // 筛选点击逻辑
   function toggleCategory(cat) {
+    interacted = true;
     if (cat === null) {
       selectedCategories = []; // 点击“全部”则清空
     } else {
@@ -127,7 +132,7 @@
 </script>
 
 <div class="archives mx-auto w-full max-w-[var(--page-width)]">
-    <div class="text-center pt-5 pb-10 max-w-[var(--page-width)] mx-auto md:mt-0 mt-28">
+    <div data-reveal="rise" class="text-center pt-5 pb-10 max-w-[var(--page-width)] mx-auto md:mt-0 mt-28">
         <h1 class="text-[var(--text-color)] text-3xl py-5 font-bold">{t("header.archive")}</h1>
         <p class="text-[var(--text-color-70)] font-bold">{t("cover.subTitle.archive", {count: filteredPosts.length})}</p>
     </div>
@@ -135,13 +140,19 @@
     <div class="py-6 mx-auto text-[var(--text-color)]" id="archive-content">
         {#each years as year (year)}
             <div class="mb-8">
-                <h2 class="text-2xl font-bold my-4 text-[var(--text-color)] flex items-center gap-3">
+                <h2 data-reveal={interacted ? undefined : 'pop'} class="text-2xl font-bold my-4 text-[var(--text-color)] flex items-center gap-3">
                     <span class="w-1 h-6 bg-[var(--link-color)] rounded-full"></span>
                     {year}
                 </h2>
                 <div class="space-y-2">
-                    {#each postsByYear[year] as post (post.id)}
-                        <div animate:flip={{ duration: 380, easing: cubicOut }} in:fade={{ duration: 180, easing: cubicOut }} out:fade={{ duration: 150 }} >
+                    {#each postsByYear[year] as post, index (post.id)}
+                        <div
+                            data-reveal={interacted ? undefined : 'pop'}
+                            data-reveal-delay={interacted ? undefined : String(Math.min(index, 5) * 50)}
+                            animate:flip={{ duration: 380, easing: cubicOut }}
+                            in:fade={{ duration: 180, easing: cubicOut }}
+                            out:fade={{ duration: 150 }}
+                        >
                             <a 
                                 href={getRelativeLocaleUrl(currentLang, `/blog/${post.id}`)} 
                                 class="momo-row group"
