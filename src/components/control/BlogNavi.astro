@@ -2,6 +2,7 @@
 import { i18n } from "astro:config/client";
 import { Icon } from "astro-icon/components";
 import i18nit from '@i18n/translation'
+import { blogPostUrl } from '@utils/urlUtils';
 
 interface Props {
     prev: any;
@@ -13,10 +14,10 @@ const { prev, next } = Astro.props;
 const currentLang = Astro.currentLocale || i18n!.defaultLocale;
 const t = i18nit(currentLang);
 
-// 辅助函数：根据文章 id 和当前语言生成正确的 URL
+// 统一走 blogPostUrl：语言前缀与尾斜杠都由 @utils/urlUtils 决定，
+// 不要再在这里手拼 `/blog/${id}`（线上会 301 到带斜杠的地址）
 function getPostUrl(id: string) {
-  const isDefault = currentLang === i18n?.defaultLocale;
-  return isDefault ? `/blog/${id}` : `/${currentLang}/blog/${id}`;
+  return blogPostUrl(currentLang, id);
 }
 ---
 

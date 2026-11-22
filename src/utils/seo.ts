@@ -94,9 +94,27 @@ export function clampText(text: string, max = 160): string {
     return `${t.slice(0, max - 1).trimEnd()}…`
 }
 
-/** 页面描述：优先使用本页描述，缺省回退到个人信息里的简介 */
-export function pageDescription(description?: string): string {
-    return clampText(description || profileConfig.description || '')
+/**
+ * 站点描述（按语言解析）。
+ * `siteConfig.description` 既可以是单串，也可以是 `{ "zh-cn": "...", en: "..." }`；
+ * 缺当前语言时退回默认语言，再退回个人信息里的简介。
+ */
+export function siteDescription(lang?: string): string {
+    const value = siteConfig.description
+    if (!value) return profileConfig.description || ''
+    if (typeof value === 'string') return value
+
+    const code = lang || i18n.defaultLocale
+    return value[code] || value[i18n.defaultLocale] || Object.values(value)[0] || profileConfig.description || ''
+}
+
+/**
+ * 页面描述：优先使用本页描述，缺省回退站点描述（siteConfig.description），
+ * 再回退个人信息里的简介。首页以前没有 description，会退化成 "Life is colorful!"
+ * 这种没有信息量的一句话。
+ */
+export function pageDescription(description?: string, lang?: string): string {
+    return clampText(description || siteDescription(lang))
 }
 
 /** 日期 -> ISO 8601（结构化数据 / article meta 用） */
@@ -119,10 +137,71 @@ export function websiteJsonLd(lang?: string): Record<string, unknown> {
         name: siteConfig.title,
         ...(siteConfig.subTitle ? { alternateName: siteConfig.subTitle } : {}),
         url: absoluteUrl('/'),
-        description: profileConfig.description || '',
+        description: siteDescription(lang || i18n.defaultLocale),
         inLanguage: bcp47(lang || i18n.defaultLocale),
         author: owner,
         publisher: owner,
+        // 站内搜索：搜索弹窗支持 `?q=` 深链接，所以这个模板是真的可用地址。
+        // 引擎据此可以在站点信息里直接给出搜索框。
+        potentialAction: {
+            '@type': 'SearchAction',
+            target: {
+                '@type': 'EntryPoint',
+                urlTemplate: `${absoluteUrl('/')}?q={search_term_string}`,
+            },
+            'query-input': 'required name=search_term_string',
+        },
+    }
+}
+
+/**
+ * 文章页的面包屑：首页 › 文章标题。
+ * 搜索结果里能显示层级，而不是一串裸链接。
+ */
+export function articleBreadcrumbJsonLd(opts: {
+    title: string
+    url: string
+    lang?: string
+}): Record<string, unknown> {
+    return {
+        '@context': 'https://schema.org',
+        '@type': 'BreadcrumbList',
+        inLanguage: bcp47(opts.lang),
+        itemListElement: [
+            {
+                '@type': 'ListItem',
+                position: 1,
+                name: siteConfig.title,
+                item: absoluteUrl('/'),
+            },
+            {
+                '@type': 'ListItem',
+                position: 2,
+                name: clampText(opts.title, 110),
+                item: opts.url,
+            },
+        ],
+    }
+}
+
+/** 关于页的 ProfilePage：把站点主人明确标注成 Person */
+export function profilePageJsonLd(opts: {
+    url: string
+    lang?: string
+    description?: string
+}): Record<string, unknown> {
+    return {
+        '@context': 'https://schema.org',
+        '@type': 'ProfilePage',
+        url: opts.url,
+        inLanguage: bcp47(opts.lang),
+        ...(opts.description ? { description: clampText(opts.description) } : {}),
+        mainEntity: {
+            '@type': 'Person',
+            name: profileConfig.name,
+            description: profileConfig.description || '',
+            ...(profileConfig.indexPage ? { url: profileConfig.indexPage, sameAs: [profileConfig.indexPage] } : {}),
+        },
     }
 }
 

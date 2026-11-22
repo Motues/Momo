@@ -11,8 +11,10 @@ import { siteConfig } from '@/config';
 import { i18n } from "astro:config/client";
 import type { CollectionEntry } from 'astro:content';
 import type { GetStaticPaths } from 'astro';
-import { getRelativeLocaleUrl } from '@utils/urlUtils';
+import { blogCoverUrl, getRelativeLocaleUrl, withTrailingSlash } from '@utils/urlUtils';
 import { photoCoverEnabled } from '@utils/photoCover';
+import { CONTENT_COVER } from '@utils/coverImage';
+import { coverPreload } from '@utils/imagePreload';
 
 import i18nit from '@i18n/translation'
 
@@ -76,9 +78,28 @@ const shareImage = usePhotoCover && (coverImage.startsWith('/') || /^https?:\/\/
     ? coverImage
     : undefined;
 
+// ---- 分页序列（<link rel="prev/next">）----
+const listUrl = (p: number) =>
+    withTrailingSlash(getRelativeLocaleUrl(locale, p === 1 ? '/' : `/${p}/`));
+const pagination = {
+    prev: page.currentPage > 1 ? listUrl(page.currentPage - 1) : undefined,
+    next: page.currentPage < page.lastPage ? listUrl(page.currentPage + 1) : undefined,
+};
+
+// ---- 首屏 LCP 预加载 ----
+// 第 1 页有照片封面时，LCP 是那张整屏照片（预加载它，别再和第一张卡片抢带宽）；
+// 其它情况预加载第一张卡片的封面。
+const firstEntry = page.data[0] as CollectionEntry<'blog'> | undefined;
+const firstCover = firstEntry ? blogCoverUrl(firstEntry.data.image, firstEntry.id) : '';
+const preloadImage = usePhotoCover
+    ? await coverPreload(coverImage)
+    : firstCover
+        ? await coverPreload(firstCover, CONTENT_COVER)
+        : undefined;
+
 ---
 
-<MainPageLayout title={pageTitle} lang={currentLang} image={shareImage} photoCover={usePhotoCover}>
+<MainPageLayout title={pageTitle} lang={currentLang} image={shareImage} photoCover={usePhotoCover} pagination={pagination} preloadImage={preloadImage}>
     <Cover title={t("cover.title.home")} subTitle={t("cover.subTitle.home")} photo={usePhotoCover} />
     <PostPage page={page} />
     <Navi page={page} />

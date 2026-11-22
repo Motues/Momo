@@ -6,7 +6,7 @@
   import HashtagIcon from './misc/HashtagIcon.svelte';
   import i18nit from '@i18n/translation';
   import { formatMonthDay } from '@/utils/time'
-  import { getRelativeLocaleUrl } from '@utils/urlUtils';
+  import { blogPostUrl } from '@utils/urlUtils';
 
   export let sortedPosts = [];
   export let currentLang = "zh-cn";
@@ -154,7 +154,7 @@
                             out:fade={{ duration: 150 }}
                         >
                             <a 
-                                href={getRelativeLocaleUrl(currentLang, `/blog/${post.id}`)} 
+                                href={blogPostUrl(currentLang, post.id)} 
                                 class="momo-row group"
                             >
                                 <span class="text-[var(--text-color-70)] min-w-[80px] md:min-w-[120px]">
