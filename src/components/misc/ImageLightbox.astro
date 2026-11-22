@@ -8,36 +8,41 @@
  * 切图 / 双击复位 /「默认比例」按钮都回到该基准（见 baseScale / DESKTOP_BASE_SCALE）。
  * 只作用于 .markdown-content 里的正文图片（链接内的图片除外）。
  */
+import { i18n } from 'astro:config/client';
+import i18nit from '@i18n/translation';
+
+const currentLang = Astro.currentLocale || i18n!.defaultLocale;
+const t = i18nit(currentLang);
 ---
 
-<div class="lightbox" id="momo-lightbox" role="dialog" aria-modal="true" aria-label="图片查看器" hidden>
+<div class="lightbox" id="momo-lightbox" role="dialog" aria-modal="true" aria-label={t("a11y.imageViewer")} hidden>
   <div class="lightbox-backdrop" data-act="close"></div>
 
   <div class="lightbox-stage" id="lb-stage">
     <img class="lightbox-img" id="lb-img" alt="" draggable="false" decoding="async" />
   </div>
 
-  <button class="lightbox-nav lightbox-prev" data-act="prev" type="button" aria-label="上一张" title="上一张 (←)">
+  <button class="lightbox-nav lightbox-prev" data-act="prev" type="button" aria-label={t("a11y.previousImage")} title={`${t("a11y.previousImage")} (←)`}>
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="15 18 9 12 15 6"></polyline></svg>
   </button>
-  <button class="lightbox-nav lightbox-next" data-act="next" type="button" aria-label="下一张" title="下一张 (→)">
+  <button class="lightbox-nav lightbox-next" data-act="next" type="button" aria-label={t("a11y.nextImage")} title={`${t("a11y.nextImage")} (→)`}>
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="9 18 15 12 9 6"></polyline></svg>
   </button>
 
   <div class="lightbox-bar">
     <span class="lightbox-counter" id="lb-counter">1 / 1</span>
     <span class="lightbox-spacer"></span>
-    <button class="lightbox-btn" data-act="zoom-out" type="button" aria-label="缩小" title="缩小 (-)">
+    <button class="lightbox-btn" data-act="zoom-out" type="button" aria-label={t("a11y.zoomOut")} title={`${t("a11y.zoomOut")} (-)`}>
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><line x1="20" y1="20" x2="16.2" y2="16.2"></line><line x1="8" y1="11" x2="14" y2="11"></line></svg>
     </button>
     <span class="lightbox-zoom" id="lb-zoom">100%</span>
-    <button class="lightbox-btn" data-act="zoom-in" type="button" aria-label="放大" title="放大 (+)">
+    <button class="lightbox-btn" data-act="zoom-in" type="button" aria-label={t("a11y.zoomIn")} title={`${t("a11y.zoomIn")} (+)`}>
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><line x1="20" y1="20" x2="16.2" y2="16.2"></line><line x1="8" y1="11" x2="14" y2="11"></line><line x1="11" y1="8" x2="11" y2="14"></line></svg>
     </button>
-    <button class="lightbox-btn" data-act="reset" type="button" aria-label="默认比例" title="默认比例 (0)">
+    <button class="lightbox-btn" data-act="reset" type="button" aria-label={t("a11y.resetZoom")} title={`${t("a11y.resetZoom")} (0)`}>
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 9V5a2 2 0 0 1 2-2h4"></path><path d="M21 9V5a2 2 0 0 0-2-2h-4"></path><path d="M3 15v4a2 2 0 0 0 2 2h4"></path><path d="M21 15v4a2 2 0 0 1-2 2h-4"></path></svg>
     </button>
-    <button class="lightbox-btn lightbox-close" data-act="close" type="button" aria-label="关闭" title="关闭 (Esc)">
+    <button class="lightbox-btn lightbox-close" data-act="close" type="button" aria-label={t("a11y.closeImage")} title={`${t("a11y.closeImage")} (Esc)`}>
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
     </button>
   </div>

@@ -1,25 +1,38 @@
 ---
 import MainPageLayout from '@layouts/MainPageLayout.astro';
-import ImageModule from '@components/misc/ImageModule.astro';
-import Cover from '@components/Cover.astro';
-import { getRelativeLocaleUrl } from '@utils/urlUtils';
+import { getRelativeLocaleUrl, blogPostUrl } from '@utils/urlUtils';
+import { getBlogEntrySort } from '@utils/contentUtils';
+import { formatMonthDay } from '@/utils/time';
 
 import { siteConfig } from '@/config'
 
 import { i18n } from "astro:config/client";
 import i18nit from '@i18n/translation'
 
+// 404 是一个静态页面：语言只能取默认语言，实际访问的语言由地址（/en/...）在客户端同步，
+// 所以这里用 currentLang 而不是写死 "zh-CN"（写死会让 /en/ 下的 404 声明成中文页面）。
 const currentLang = Astro.currentLocale || i18n!.defaultLocale;
 const t = i18nit(currentLang);
 
-console.log("404 page loaded with locale:", currentLang);
-
 const pageTitle = "404 - " + siteConfig.title;
 const indexPage = getRelativeLocaleUrl(currentLang, "/");
+
+// 最近的几篇文章 + 一条「随便看一篇」的候选池：别让 404 变成死路。
+const posts = await getBlogEntrySort(currentLang);
+const recentPosts = posts.slice(0, 3).map((post) => ({
+    url: blogPostUrl(currentLang, post.id),
+    title: post.data.title,
+    date: post.data.pubDate,
+    category: post.data.category || t("pagecard.uncategorized"),
+}));
+const randomPool = posts.slice(0, 30).map((post) => blogPostUrl(currentLang, post.id));
+// 初始 href 指向第一篇（禁用 JS 时也能用），脚本会把它换成随机一篇
+const randomHref = randomPool[0] || indexPage;
 ---
-<MainPageLayout title={pageTitle} lang="zh-CN" noindex={true}>
+
+<MainPageLayout title={pageTitle} lang={currentLang} noindex={true}>
     <div class="mx-auto w-full max-w-[var(--page-width)] px-4 text-center py-10">
-        <div class="flex min-h-[65vh] flex-col items-center justify-center">
+        <div class="flex min-h-[60vh] flex-col items-center justify-center">
 
             <!-- 视觉主体：带光晕的渐变 404 -->
             <div class="relative select-none">
@@ -43,29 +56,100 @@ const indexPage = getRelativeLocaleUrl(currentLang, "/");
                 {t("page404.subTitle")}
             </p>
 
-            <!-- 操作按钮 -->
+            <!-- 操作按钮：返回首页 / 返回上一页（真按钮，不用 javascript: 链接）/ 随便看一篇 -->
             <div class="mt-8 flex flex-wrap items-center justify-center gap-3">
                 <a href={indexPage}
                 class="momo-btn momo-btn--primary momo-btn--lg group">
                     <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                        stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                         <path d="M3 10.5 12 3l9 7.5"/>
                         <path d="M5 9.5V20a1 1 0 0 0 1 1h4v-6h4v6h4a1 1 0 0 0 1-1V9.5"/>
                     </svg>
                     {t("page404.backToHome")}
                 </a>
 
-                <a href="javascript:history.back()"
+                <!-- 历史栈可能为空（直接打开的 404）：脚本发现回不去时会把按钮隐藏 -->
+                <button type="button" id="not-found-back" data-history-back
                 class="momo-btn momo-btn--lg group">
                     <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                        stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                         <path d="M19 12H5"/>
                         <path d="m12 19-7-7 7-7"/>
                     </svg>
                     {t("page404.backToPreview")}
+                </button>
+
+                {randomPool.length > 0 && (
+                <a href={randomHref} id="not-found-random" data-random-pool={JSON.stringify(randomPool)}
+                class="momo-btn momo-btn--lg group">
+                    <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                        stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <path d="M16 3h5v5"/>
+                        <path d="M4 20 21 3"/>
+                        <path d="M21 16v5h-5"/>
+                        <path d="M15 15l6 6"/>
+                        <path d="M4 4l5 5"/>
+                    </svg>
+                    {t("page404.randomPost")}
                 </a>
+                )}
             </div>
 
+            <!-- 最近文章：404 的访客多半是想找某篇文章 -->
+            {recentPosts.length > 0 && (
+            <div class="mt-14 w-full max-w-xl text-left">
+                <h3 class="mb-3 text-sm font-semibold uppercase tracking-wider text-[var(--text-color-70)]">
+                    {t("page404.recentPosts")}
+                </h3>
+                <!-- 行自带的左右内边距为悬停底色留白，用负外边距抵掉，
+                     让日期与上面的「最近文章」标题对齐到同一条左边界 -->
+                <ul class="flex flex-col -mx-[var(--momo-space-2)]">
+                    {recentPosts.map((post) => (
+                        <li>
+                            <a href={post.url}
+                            class="momo-row group">
+                                <span class="min-w-[80px] text-[var(--text-color-70)] md:min-w-[120px]">
+                                    {formatMonthDay(post.date, currentLang)}
+                                </span>
+                                <span class="flex-1 text-base transition-[padding-left,color] duration-200 group-hover:pl-2 group-hover:text-[var(--link-color)]">
+                                    {post.title}
+                                </span>
+                                <span class="hidden items-center font-mono text-sm text-[var(--text-color-70)] md:flex">
+                                    {post.category}
+                                </span>
+                            </a>
+                        </li>
+                    ))}
+                </ul>
+            </div>
+            )}
         </div>
     </div>
 </MainPageLayout>
+
+<script>
+    // 404 页只有整页加载（GitHub Pages 直接返回 404.html），所以这里用普通模块脚本即可。
+    const back = document.getElementById('not-found-back');
+    if (back) {
+        // history.length <= 1 说明没有上一页可回（新标签页直接打开），此时不显示按钮而不是给个死键
+        if (window.history.length <= 1) {
+            back.hidden = true;
+        } else {
+            back.addEventListener('click', () => window.history.back());
+        }
+    }
+
+    const random = document.getElementById('not-found-random');
+    if (random) {
+        const raw = random.getAttribute('data-random-pool') || '[]';
+        try {
+            const pool = JSON.parse(raw) as string[];
+            if (pool.length > 0) {
+                // `?` 前缀跳转不产生历史条目：在 404 上连点多次不会堆一长串
+                random.setAttribute('href', pool[Math.floor(Math.random() * pool.length)]);
+            }
+        } catch {
+            // 候选池解析失败就保留初始链接（第一篇）
+        }
+    }
+</script>

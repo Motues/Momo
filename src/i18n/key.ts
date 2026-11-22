@@ -25,6 +25,8 @@ export interface Translation {
         previous: string;
         next: string;
         currentPage: string;
+        label: string;
+        goToPage: string;
     };
     button: {
         switchDarkMode: string;
@@ -46,6 +48,10 @@ export interface Translation {
         tip: string;
         devHint: string;
         page: string;
+        history: string;
+        clearHistory: string;
+        allCategories: string;
+        suggestions: string;
     };
     license: {
         author: string;
@@ -141,7 +147,26 @@ export interface Translation {
         backToPreview: string;
         errorCode: string;
         notice: string;
+        randomPost: string;
+        recentPosts: string;
     },
+    /** 无障碍标签：读屏软件念出来的文案，与可见文字分开维护 */
+    a11y: {
+        skipToContent: string;
+        languageSwitcher: string;
+        mobileMenu: string;
+        closeMenu: string;
+        previousPage: string;
+        nextPage: string;
+        imageViewer: string;
+        previousImage: string;
+        nextImage: string;
+        zoomIn: string;
+        zoomOut: string;
+        resetZoom: string;
+        closeImage: string;
+    },
+
     themeInfo: {
         light: string;
         dark: string;

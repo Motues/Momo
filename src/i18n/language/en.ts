@@ -15,6 +15,8 @@ const translation: Translation = {
         previous: "Prev",
         next: "Next",
         currentPage: "Page {currentPage} of {totalPages}",
+        label: "Pagination",
+        goToPage: "Page {page}",
     },
     button: {
         switchDarkMode: "Switch Dark Mode",
@@ -36,6 +38,10 @@ const translation: Translation = {
         tip: "↑↓ select · Enter open · Esc close",
         devHint: "Search index is not built yet: run pnpm build, then pnpm preview",
         page: "Article",
+        history: "Recent searches",
+        clearHistory: "Clear",
+        allCategories: "All",
+        suggestions: "Try these posts",
     },
     license: {
         author: "Author",
@@ -130,7 +136,24 @@ const translation: Translation = {
         backToHome: "Home",
         backToPreview: "Previous Page",
         errorCode: "Error Code: 404 - Void Realm",
-        notice: "Perhaps you can try:"
+        notice: "Perhaps you can try:",
+        randomPost: "Random post",
+        recentPosts: "Recent posts"
+    },
+    a11y: {
+        skipToContent: "Skip to content",
+        languageSwitcher: "Switch language",
+        mobileMenu: "Open menu",
+        closeMenu: "Close menu",
+        previousPage: "Previous page",
+        nextPage: "Next page",
+        imageViewer: "Image viewer",
+        previousImage: "Previous image",
+        nextImage: "Next image",
+        zoomIn: "Zoom in",
+        zoomOut: "Zoom out",
+        resetZoom: "Reset zoom",
+        closeImage: "Close image viewer"
     },
     themeInfo: {
         light: "Switch to Light Mode",

@@ -51,6 +51,11 @@ const localeCodes: string[] = (i18n?.locales ?? [currentLang]).map((l) =>
 const i18nLabels = (key: string) =>
   Object.fromEntries(localeCodes.map((code) => [code, i18nit(code)(key)]));
 
+// 顶栏按钮的 aria-label 也要跟着语言换：同样把每种语言渲染进 data 属性，
+// 由 syncPersistedHeader 里的 applyAria 在换页后按当前地址挑一份（FIX-03）。
+const i18nAria = (key: string) =>
+  Object.fromEntries(localeCodes.map((code) => [code, i18nit(code)(key)]));
+
 // 当前页判定：桌面端顶栏与移动端侧边栏共用同一套逻辑。
 // 统一去掉末尾斜杠再比较，/archives 与 /archives/ 都能算作当前页。
 const normalizePath = (path: string) => {
@@ -98,7 +103,7 @@ if (profileConfig.indexPage) {
     <!-- tools -->
     <div class="ml-auto flex gap-2 pl-4 py-2 justify-end z-30">
         <!-- Search -->
-        <button id="search-button" class="press momo-btn momo-icon-btn" aria-label="Search">
+        <button id="search-button" class="press momo-btn momo-icon-btn" aria-label={t("search.label")} data-i18n-aria={JSON.stringify(i18nAria("search.label"))}>
             <Icon name="fa6-solid:magnifying-glass" class="w-4 h-4" />
         </button>
         <!-- Dark Mode -->
@@ -109,7 +114,7 @@ if (profileConfig.indexPage) {
         </a> -->
         <!-- Language Switcher -->
         {showLanguageSwitcher && <div class="relative">
-            <button id="language-button" class="press momo-btn momo-icon-btn" aria-label="Language Switcher">
+            <button id="language-button" class="press momo-btn momo-icon-btn" aria-label={t("a11y.languageSwitcher")} data-i18n-aria={JSON.stringify(i18nAria("a11y.languageSwitcher"))}>
                 <Icon name="fa6-solid:globe" class="w-4 h-4" />
             </button>
             
@@ -130,7 +135,7 @@ if (profileConfig.indexPage) {
         </div>}
         <div class="relative md:hidden">
           <!-- Mobile Menu -->
-          <button id="mobile-menu-button" class="press momo-btn momo-icon-btn" aria-label="Mobile Menu">
+          <button id="mobile-menu-button" class="press momo-btn momo-icon-btn" aria-label={t("a11y.mobileMenu")} aria-expanded="false" aria-controls="mobile-menu-drawer" data-i18n-aria={JSON.stringify(i18nAria("a11y.mobileMenu"))}>
               <Icon name="fa6-solid:align-justify" class="w-5 h-5" />
           </button>
               
@@ -167,14 +172,14 @@ if (profileConfig.indexPage) {
 <!-- Mobile Menu -->
 <!-- 层级：与搜索弹层同层（z-[1100]），必须高于右下角 FabMenu（z-[1000]），
      否则抽屉的遮罩盖不住浮动按钮，FAB 会浮在遮罩之上 -->
-<div id="mobile-menu-container" class="fixed inset-0 z-[var(--momo-z-drawer)] hidden">
+<div id="mobile-menu-container" class="fixed inset-0 z-[var(--momo-z-drawer)] hidden" inert aria-hidden="true">
     <div id="mobile-menu-overlay" class="absolute inset-0 bg-black/60 backdrop-blur-sm opacity-0"></div>
     
     <div id="mobile-menu-drawer" class="absolute top-0 left-0 bottom-0 w-[70%] max-w-[300px] bg-[var(--bg-color)] shadow-2xl transform -translate-x-full flex flex-col">
         
         <div class="flex items-center justify-between p-5 border-b border-[var(--button-border-color)]">
             <span class="text-xl font-bold header-logo">{ siteConfig.title }</span>
-            <button id="mobile-menu-close" class="momo-btn momo-btn--ghost momo-icon-btn">
+            <button id="mobile-menu-close" class="momo-btn momo-btn--ghost momo-icon-btn" aria-label={t("a11y.closeMenu")} data-i18n-aria={JSON.stringify(i18nAria("a11y.closeMenu"))}>
                 <Icon name="fa6-solid:xmark" class="w-5 h-5" />
             </button>
         </div>
@@ -424,13 +429,57 @@ function initMobileNav() {
   // 连续点两次会先 clearTimeout 掉待执行的解锁、再补一次加锁，没有这个守卫就会多锁一层、解不开
   let menuScrollLocked = false;
 
+  /** 抽屉里可以 Tab 到的元素（保持 DOM 顺序，首尾循环用） */
+  function focusables() {
+    if (!container) return [];
+    return Array.from(
+      container.querySelectorAll(
+        'a[href], button:not([disabled]), input:not([disabled]), select, textarea, [tabindex]:not([tabindex="-1"])',
+      ),
+    ).filter((el) => el instanceof HTMLElement && el.offsetParent !== null);
+  }
+
+  // 焦点陷阱（FIX-02）：抽屉打开时 Tab 不能跑到背后的页面上去。
+  // Esc 关闭并把焦点还给汉堡按钮，否则键盘用户会停在「已经收起的抽屉」里。
+  const onDrawerKeydown = (event) => {
+    if (!container || container.classList.contains('hidden')) return;
+
+    if (event.key === 'Escape') {
+      event.preventDefault();
+      closeMenu(true);
+      return;
+    }
+    if (event.key !== 'Tab') return;
+
+    const items = focusables();
+    if (items.length === 0) return;
+    const first = items[0];
+    const last = items[items.length - 1];
+    const active = document.activeElement;
+
+    if (event.shiftKey && (active === first || !container.contains(active))) {
+      event.preventDefault();
+      last.focus();
+    } else if (!event.shiftKey && active === last) {
+      event.preventDefault();
+      first.focus();
+    }
+  };
+
   function openMenu() {
     clearTimeout(closeTimer);
     container.classList.remove('hidden');
+    // 抽屉关闭时是 inert + aria-hidden（键盘 / 读屏都进不去），打开时先放开
+    container.removeAttribute('inert');
+    container.setAttribute('aria-hidden', 'false');
+    menuButton?.setAttribute('aria-expanded', 'true');
+
     // 强制重绘以触发动画
     requestAnimationFrame(() => {
       overlay?.classList.add('opacity-100');
       drawer?.classList.remove('-translate-x-full');
+      // 焦点移进抽屉：优先关闭按钮，读屏会接着念抽屉里的内容
+      (closeButton || focusables()[0])?.focus();
     });
     if (!menuScrollLocked) {
       menuScrollLocked = true;
@@ -438,28 +487,34 @@ function initMobileNav() {
     }
   }
 
-  function closeMenu() {
+  function closeMenu(restoreFocus = false) {
     overlay?.classList.remove('opacity-100');
     drawer?.classList.add('-translate-x-full');
-    
+    menuButton?.setAttribute('aria-expanded', 'false');
+
     // 等待动画结束后隐藏容器
     closeTimer = setTimeout(() => {
       container.classList.add('hidden');
+      // 彻底移出无障碍树与 Tab 顺序：抽屉只是收起来了，DOM 还在
+      container.setAttribute('inert', '');
+      container.setAttribute('aria-hidden', 'true');
       if (menuScrollLocked) {
         menuScrollLocked = false;
         unlockPageScroll();
       }
+      if (restoreFocus) menuButton?.focus();
     }, 300);
   }
 
   // 注意：菜单按钮在 swup 容器外的顶栏里、不会被重建，用 onclick 赋值避免重复绑定
   menuButton.onclick = openMenu;
-  if (closeButton) closeButton.onclick = closeMenu;
-  if (overlay) overlay.onclick = closeMenu;
+  if (closeButton) closeButton.onclick = () => closeMenu(true);
+  if (overlay) overlay.onclick = () => closeMenu(true);
+  container.addEventListener('keydown', onDrawerKeydown);
 
   // 监听导航点击（点击后自动关闭）
   drawer?.querySelectorAll('a').forEach(link => {
-    link.onclick = closeMenu;
+    link.onclick = () => closeMenu(false);
   });
 
   // ---- 顶部导航条吸顶：class 直接由滚动位置推导 ----
@@ -499,6 +554,7 @@ function initMobileNav() {
       clearTimeout(closeTimer);
       unsubscribeScroll();
       document.removeEventListener('swup:visit:start', onVisitStart);
+      container.removeEventListener('keydown', onDrawerKeydown);
     },
   };
 }
@@ -770,6 +826,23 @@ function syncPersistedHeader() {
 
   // 4. 只有文案、没有 href 的节点（移动端「分类」折叠按钮、未分类胶囊等）
   document.querySelectorAll('[data-i18n-labels]:not([data-i18n-path])').forEach(applyLabel);
+
+  // 4b. aria-label：顶栏按钮在容器外不重建，读屏文案同样要按当前地址的语言重算（FIX-03）。
+  //     data-i18n-title 是「title 与 aria-label 用同一句话」的标记（主题切换按钮）。
+  document.querySelectorAll('[data-i18n-aria]').forEach((el) => {
+    const raw = el.getAttribute('data-i18n-aria');
+    if (!raw) return;
+    let labels;
+    try {
+      labels = JSON.parse(raw);
+    } catch {
+      return;
+    }
+    const text = labels?.[currentLang];
+    if (typeof text !== 'string') return;
+    el.setAttribute('aria-label', text);
+    if (el.hasAttribute('data-i18n-title')) el.setAttribute('title', text);
+  });
 
   // 5. 移动端分类筛选的选中态与链接（含当前语言前缀）
   syncMobileCategoryFilter();

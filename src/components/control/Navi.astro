@@ -54,25 +54,35 @@ const btnActiveProps = "text-[var(--text-color)] hover:bg-[var(--button-hover-co
 const btnDisabledProps = "text-[var(--text-color-30)] border-[var(--button-border-color)] opacity-40 cursor-not-allowed pointer-events-none";
 ---
 
-<nav data-reveal="rise" class="flex flex-row justify-between items-center gap-1 my-8 max-w-[var(--page-width)] mx-auto text-sm">
+<nav data-reveal="rise" aria-label={t("pageNavigation.label")} class="flex flex-row justify-between items-center gap-1 my-8 max-w-[var(--page-width)] mx-auto text-sm">
   
-  <a 
-    href={showPrevious ? getRelativeLocaleUrl(currentLang, getPageUrl(currentPage - 1)) : "#"} 
-    class={`${btnBaseClass} ${showPrevious ? btnActiveProps : btnDisabledProps}`}
-    aria-label="Previous Page"
-  >
-    <svg class="w-5 h-5 md:mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
-    </svg>
-    <span class="hidden md:inline">{t("pageNavigation.previous")}</span>
-  </a>
+  <!-- 禁用态用 <span> 而不是 href="#": 后者仍然是可聚焦链接，点一下会把地址改成 #（还会写一条历史） -->
+  {showPrevious ? (
+    <a
+      href={getRelativeLocaleUrl(currentLang, getPageUrl(currentPage - 1))}
+      class={`${btnBaseClass} ${btnActiveProps}`}
+      aria-label={t("a11y.previousPage")}
+    >
+      <svg class="w-5 h-5 md:mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+      </svg>
+      <span class="hidden md:inline">{t("pageNavigation.previous")}</span>
+    </a>
+  ) : (
+    <span class={`${btnBaseClass} ${btnDisabledProps}`} aria-disabled="true">
+      <svg class="w-5 h-5 md:mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+      </svg>
+      <span class="hidden md:inline">{t("pageNavigation.previous")}</span>
+    </span>
+  )}
 
   <div class="flex items-center gap-1 md:gap-2 flex-nowrap overflow-x-auto no-scrollbar">
     {visiblePages.map((p) => {
       if (p === '...') {
         return (
           <span class="w-8 h-8 md:w-10 md:h-10 flex items-center justify-center text-[var(--text-color-70)]">
-            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
               <circle cx="5" cy="12" r="1.5"/>
               <circle cx="12" cy="12" r="1.5"/>
               <circle cx="19" cy="12" r="1.5"/>
@@ -82,14 +92,24 @@ const btnDisabledProps = "text-[var(--text-color-30)] border-[var(--button-borde
       }
       
       const isCurrent = p === currentPage;
+      // 当前页不再是「指向自己的链接」：用 span + aria-current="page"，
+      // 读屏软件会念「当前页」，键盘也不会多停一站。
+      if (isCurrent) {
+        return (
+          <span
+            aria-current="page"
+            class="w-8 h-8 md:w-10 md:h-10 flex items-center justify-center rounded-lg border border-[var(--button-border-color)] font-bold text-[var(--text-color)]"
+          >
+            {p}
+          </span>
+        );
+      }
+
       return (
         <a
           href={getRelativeLocaleUrl(currentLang, getPageUrl(p as number))}
-          class={`w-8 h-8 md:w-10 md:h-10 flex items-center justify-center rounded-lg border transition duration-200 
-            ${isCurrent 
-              ? 'border-[var(--button-border-color)] font-bold text-[var(--text-color)] pointer-events-none' 
-              : 'border-transparent text-[var(--text-color-70)] hover:border-[var(--button-border-color)] hover:text-[var(--text-color)] active:bg-[var(--button-hover-color)] active:scale-90'
-            }`}
+          class="w-8 h-8 md:w-10 md:h-10 flex items-center justify-center rounded-lg border border-transparent text-[var(--text-color-70)] transition duration-200 hover:border-[var(--button-border-color)] hover:text-[var(--text-color)] active:bg-[var(--button-hover-color)] active:scale-90"
+          aria-label={t("pageNavigation.goToPage", { page: p })}
         >
           {p}
         </a>
@@ -97,16 +117,25 @@ const btnDisabledProps = "text-[var(--text-color-30)] border-[var(--button-borde
     })}
   </div>
 
-  <a 
-    href={showNext ? getRelativeLocaleUrl(currentLang, getPageUrl(currentPage + 1)) : "#"} 
-    class={`${btnBaseClass} ${showNext ? btnActiveProps : btnDisabledProps}`}
-    aria-label="Next Page"
-  >
-    <span class="hidden md:inline">{t("pageNavigation.next")}</span>
-    <svg class="w-5 h-5 md:ml-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
-    </svg>
-  </a>
+  {showNext ? (
+    <a
+      href={getRelativeLocaleUrl(currentLang, getPageUrl(currentPage + 1))}
+      class={`${btnBaseClass} ${btnActiveProps}`}
+      aria-label={t("a11y.nextPage")}
+    >
+      <span class="hidden md:inline">{t("pageNavigation.next")}</span>
+      <svg class="w-5 h-5 md:ml-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+      </svg>
+    </a>
+  ) : (
+    <span class={`${btnBaseClass} ${btnDisabledProps}`} aria-disabled="true">
+      <span class="hidden md:inline">{t("pageNavigation.next")}</span>
+      <svg class="w-5 h-5 md:ml-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+      </svg>
+    </span>
+  )}
 </nav>
 
 <style>

@@ -33,7 +33,7 @@ Momo 的视觉说明书。站内版本在 [`/design`](https://momo.motues.top/de
 | --- | --- | --- | --- |
 | `--text-color` | `#000000` | `#ffffff` | 标题、正文 |
 | `--text-color-70` | `#4c4c4c` | `#b5b5b5` | 次要文字、元信息、说明 |
-| `--text-color-30` | `#7a7a7a` | `#8a8a8a` | 占位符、禁用、图标弱化 |
+| `--text-color-30` | `#6e6e6e` | `#8a8a8a` | 占位符、禁用、图标弱化 |
 
 ### 2.3 描边与品牌色
 
@@ -78,7 +78,7 @@ Momo 的视觉说明书。站内版本在 [`/design`](https://momo.motues.top/de
 | `--momo-font-sans` | `"LXGW Bright Medium", … , sans-serif`（霞鹜文楷） | 少量界面短文案（可选） |
 | `--momo-font-mono` | `"JetBrains Mono Variable", ...` | 代码、数字、token 名 |
 
-Noto Serif SC 由 `@fontsource/noto-serif-sc` 自托管（400 / 700 两份，非阻塞加载）；引用块与界面短文案用 `LXGW Bright Medium`（霞鹜文楷 Bright），只在渲染正文的页面加载。
+Noto Serif SC 由 `@fontsource/noto-serif-sc` 自托管（400 / 700 两份，非阻塞加载）。**不要换成可变字重版本**：那会让正文里所有 `font-weight: 600` 的标题 / 卡片标题从「浏览器回退到 700」变成真正的 semibold，与 h2(700) 的粗细不再一致。引用块与界面短文案用 `LXGW Bright Medium`（霞鹜文楷 Bright），只在渲染正文的页面加载；KaTeX 样式表也只在真的含公式的页面挂载。
 
 ### 3.2 字号标尺
 

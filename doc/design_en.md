@@ -33,7 +33,7 @@ Four groups: surfaces, text, borders & brand, semantic. The live palette is at `
 | --- | --- | --- | --- |
 | `--text-color` | `#000000` | `#ffffff` | Headings, body |
 | `--text-color-70` | `#4c4c4c` | `#b5b5b5` | Secondary text, meta, captions |
-| `--text-color-30` | `#7a7a7a` | `#8a8a8a` | Placeholder, disabled, faint icons |
+| `--text-color-30` | `#6e6e6e` | `#8a8a8a` | Placeholder, disabled, faint icons |
 
 ### 2.3 Borders & brand
 
@@ -78,7 +78,7 @@ Selection and scrollbars: `--selection-bg-color` / `--selection-text-color`, `--
 | `--momo-font-sans` | `"LXGW Bright Medium", … , sans-serif` (WenKai) | A few short UI labels (optional) |
 | `--momo-font-mono` | `"JetBrains Mono Variable", ...` | Code, numerals, token names |
 
-Noto Serif SC is self-hosted via `@fontsource/noto-serif-sc` (400 / 700, non-blocking). Blockquotes and short UI labels use `LXGW Bright Medium` (WenKai Bright), loaded only on pages that render prose.
+Noto Serif SC is self-hosted via `@fontsource/noto-serif-sc` (400 / 700, non-blocking). **Do not switch to the variable-weight build**: it makes every `font-weight: 600` heading and card title render as a true semibold instead of falling back to 700, so h3 no longer matches the weight of h2. Blockquotes and short UI labels use `LXGW Bright Medium` (WenKai Bright), loaded only on pages that render prose; the KaTeX stylesheet is loaded only on pages that actually contain formulas.
 
 ### 3.2 Type scale
 

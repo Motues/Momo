@@ -15,6 +15,8 @@ const translation: Translation = {
         previous: "上一页",
         next: "下一页",
         currentPage: "第 {currentPage} 页，共 {totalPages} 页",
+        label: "分页导航",
+        goToPage: "第 {page} 页",
     },
     button: {
         switchDarkMode: "切换明暗模式",
@@ -36,6 +38,10 @@ const translation: Translation = {
         tip: "↑↓ 选择 · Enter 打开 · Esc 关闭",
         devHint: "搜索索引尚未生成：请先运行 pnpm build，再用 pnpm preview 查看",
         page: "文章",
+        history: "最近搜索",
+        clearHistory: "清空",
+        allCategories: "全部",
+        suggestions: "试试这些文章",
     },
     license: {
         author: "作者",
@@ -130,7 +136,24 @@ const translation: Translation = {
         backToHome: "返回首页",
         backToPreview: "返回上一页",
         errorCode: "错误代码：404 - 虚无之境",
-        notice: "或许你可以尝试："
+        notice: "或许你可以尝试：",
+        randomPost: "随便看一篇",
+        recentPosts: "最近文章"
+    },
+    a11y: {
+        skipToContent: "跳到正文",
+        languageSwitcher: "切换语言",
+        mobileMenu: "打开菜单",
+        closeMenu: "关闭菜单",
+        previousPage: "上一页",
+        nextPage: "下一页",
+        imageViewer: "图片查看器",
+        previousImage: "上一张图片",
+        nextImage: "下一张图片",
+        zoomIn: "放大",
+        zoomOut: "缩小",
+        resetZoom: "恢复默认比例",
+        closeImage: "关闭图片查看器"
     },
     themeInfo: {
         light: "切换到 浅色 模式",

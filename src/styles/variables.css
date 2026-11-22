@@ -38,10 +38,13 @@
   --button-hover-color: var(--surface-color-hover);
   --button-border-color: var(--border-color);
 
-  /* 文字：正文 / 次要 / 弱化（禁用、占位） */
+  /* 文字：正文 / 次要 / 弱化（禁用、占位）
+     --text-color-30 用 #6e6e6e：它常出现在 11-12px 的小字上（搜索结果的标题路径、
+     页脚、占位符），原来的 #7a7a7a 在 --bg-color #fbfbfb 上只有约 4.2:1，低于 AA 的 4.5:1。
+     #6e6e6e 约 4.9:1；深色模式的 #8a8a8a 在 #0a0a0a 上约 5.7:1，本来就够。 */
   --text-color: #000000;
   --text-color-70: #4c4c4c;
-  --text-color-30: #7a7a7a;
+  --text-color-30: #6e6e6e;
 
   /* 边框：默认分隔 → 强调描边 */
   --border-color: #d6d6d6;
@@ -96,7 +99,8 @@
   --scrollbar-track: #e1e1e1;
 
   /* ---------- 字体 ---------- */
-  /* 正文：思源宋体（Noto Serif SC 自托管；Source Han Serif 是 Adobe 家的同名字体） */
+  /* 正文：思源宋体（Noto Serif SC 自托管；Source Han Serif 是 Adobe 家的同名字体）。
+     自托管的是静态 400 / 700 两份，保持原本的粗细观感（见 Layout.astro 的说明）。 */
   --momo-font-serif: "Noto Serif SC", "Source Han Serif SC", "Source Han Serif CN",
     "Times New Roman", serif;
   /* 展示字：站名、页脚等拉丁文场景 */

@@ -12,11 +12,23 @@ const translations = {
   system: t("themeInfo.system")
 };
 
+// 顶栏在 swup 容器外、换页不重建：aria-label / title 也要按当前地址的语言重算，
+// 所以在这里把每种语言的文案一起渲染进 data 属性（由 Header 的 syncPersistedHeader 换掉）。
+const localeCodes: string[] = (i18n?.locales ?? [currentLang]).map((l) =>
+  typeof l === 'string' ? l : l.path,
+);
+const ariaLabels = Object.fromEntries(
+  localeCodes.map((code) => [code, i18nit(code)("button.switchDarkMode")]),
+);
+
 const className = Astro.props.class;
 ---
 
 <button 
   id="themeToggle" title={t("button.switchDarkMode")} class={className}
+  aria-label={t("button.switchDarkMode")}
+  data-i18n-aria={JSON.stringify(ariaLabels)}
+  data-i18n-title
   data-t-light={translations.light}
   data-t-dark={translations.dark}
   data-t-system={translations.system}
