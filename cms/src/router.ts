@@ -2,6 +2,7 @@ export type Route =
   | { name: 'overview' }
   | { name: 'list' }
   | { name: 'config' }
+  | { name: 'media' }
   | { name: 'edit'; path: string }
 
 export function parseRoute(hash: string): Route {
@@ -12,6 +13,7 @@ export function parseRoute(hash: string): Route {
   }
   if (parts[0] === 'list') return { name: 'list' }
   if (parts[0] === 'config') return { name: 'config' }
+  if (parts[0] === 'media') return { name: 'media' }
   return { name: 'overview' }
 }
 

@@ -1,9 +1,13 @@
 import type {
   ArticleDetail,
   ArticleSummary,
+  BatchUpdateResult,
   ConfigDoc,
   ConfigValues,
   FrontmatterData,
+  MediaList,
+  MediaScope,
+  MediaUploadResult,
   MetaInfo,
   Stats,
 } from './types'
@@ -95,5 +99,44 @@ export const api = {
       method: 'POST',
       body: JSON.stringify({ path }),
     })
+  },
+
+  // ---- 媒体库 ----
+  mediaList(params: { scope: MediaScope; q?: string }) {
+    const sp = new URLSearchParams({ scope: params.scope })
+    if (params.q) sp.set('q', params.q)
+    return req<MediaList>(`/api/media?${sp.toString()}`)
+  },
+
+  mediaUpload(file: File, scope: MediaScope, dir: string) {
+    const fd = new FormData()
+    fd.append('file', file)
+    fd.append('scope', scope)
+    fd.append('dir', dir)
+    return req<MediaUploadResult>('/api/media/upload', { method: 'POST', body: fd })
+  },
+
+  mediaRemove(scope: MediaScope, path: string) {
+    const sp = new URLSearchParams({ scope, path })
+    return req<{ ok: boolean; path: string }>(`/api/media?${sp.toString()}`, { method: 'DELETE' })
+  },
+
+  mediaRename(scope: MediaScope, path: string, name: string) {
+    return req<MediaUploadResult>('/api/media', {
+      method: 'PATCH',
+      body: JSON.stringify({ scope, path, name }),
+    })
+  },
+
+  // ---- 批量操作 ----
+  batchUpdate(paths: string[], action: string, value?: string) {
+    return req<BatchUpdateResult>('/api/batch/update', {
+      method: 'POST',
+      body: JSON.stringify({ paths, action, value }),
+    })
+  },
+
+  batchExportUrl(paths: string[]) {
+    return `/api/batch/export?paths=${paths.map(encodeURIComponent).join(',')}`
   },
 }

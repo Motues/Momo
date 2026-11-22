@@ -21,6 +21,8 @@ pnpm cms
 - **概览页**（`#/`）：文章总数 / 已发布 / 草稿 / 置顶 / 分类数 / 正文总字数统计，分类分布条形图，语言版本覆盖（中英双语），最近文章列表
 - **网站配置页**（`#/config`）：`src/config.ts` 的可视化编辑器（站点信息、阅读与目录、评论、主题、个人信息、许可协议、国际化、各语言 Cover 文案、友链列表；支持增删与上下移动友链），可展开查看文件源码；右侧**悬浮目录栏**（贴住表单右边缘，只列分区，点击平滑滚动到位、滚动时自动高亮当前分区，可收起，窄窗口默认收起）；「主题与动效」按语义分组、组间用浅色横线分隔；保存时**只改写真正改动过的字段**，文件里的注释与排版保持不变
 - **文章列表**（`#/list`）：搜索、分类筛选、草稿/已发布筛选、语言徽章；支持**卡片 / 表格**两种视图模式（localStorage 记忆选择）与**多种排序**（默认置顶+日期 / 发布日期升降序 / 标题 / 路径 / 分类，中文按拼音排序）；表格**列宽按内容自动分配**（宽裕时按内容比例铺满整行，狭窄时压缩标题/路径并保底最小宽度，窗口变化自动重算），表格右侧**行内操作**（置顶/取消置顶、草稿/发布切换、删除）
+- **批量操作**（列表页）：卡片 / 表格视图都支持多选，表头「全选」按当前筛选结果；选中后出现批量操作条，可批量改分类（含「未分类」）、置顶 / 取消置顶、设为草稿 / 发布、批量删除（二次确认并显示数量）与**导出 Markdown**（ZIP，包含每篇文章的全部语言版本）。操作成功后局部刷新列表，失败项逐条列出并保持选中以便重试；切换筛选 / 视图后选中集合只保留当前可见项
+- **媒体库**（`#/media`）：统一浏览 `src/content/blog/**` 与 `public/**` 下的图片，按文章目录（blog）或目录（public）分组，显示相对路径、宽高、大小与修改时间；支持搜索、按钮上传与拖拽上传（长边 > 2400px 自动等比缩小，JPEG / WebP 质量 82，PNG 压缩，SVG / GIF 原样保存），按内容 sha256 跨同 scope 去重，可复制 Markdown 片段（blog `./xxx`、public `/xxx`）/ alt 建议、重命名与删除（二次确认）
 - **Markdown 编辑器**：frontmatter 表单 + 正文源码，左侧编辑右侧**实时预览**（防抖 500ms，重绘后保持原滚动位置）；编辑区上方**快速插入工具栏**（加粗/斜体/行内代码/链接/图片/引用（`> `）/自定义引用（`:::quote`）、代码块/Typst、行内/块公式、提示块（note/tip/important/caution/warning）、GitHub/音乐卡片、注音/折叠/彩虹/下划线），支持选中文本包裹与光标定位
 - **自动保存**：编辑页每 60 秒自动写盘一次（`EditorPage.ts` 的 `AUTOSAVE_INTERVAL`），只在「有改动且没有保存在进行」时保存；提示做在顶栏（`已自动保存 HH:MM`），不弹 toast，也**不重建界面**（`navigate` 会重建编辑器、丢掉光标与撤销栈），只有 slugId 改名真的移动了文件夹时才静默对齐地址栏
 - **完整自定义语法预览**：与博客渲染管线一致（见下方语法表）
@@ -35,7 +37,7 @@ pnpm cms
 
 ```
 cms/
-├── package.json          # 独立 workspace 包（依赖：hono、@hono/vite-dev-server、unified 插件链…）
+├── package.json          # 独立 workspace 包（依赖：hono、@hono/vite-dev-server、sharp、unified 插件链…）
 ├── vite.config.ts        # devServer 插件：Hono 应用作为 SSR 入口，单端口一体运行
 ├── index.html            # SPA 外壳
 ├── server/               # Hono 服务端（Node ESM，由 Vite SSR 加载）
@@ -49,12 +51,15 @@ cms/
 │   ├── upload.mjs        # POST /api/upload：封面图上传（multipart）
 │   ├── meta.mjs          # GET /api/meta：分类统计
 │   ├── stats.mjs         # GET /api/stats：概览页统计（字数 / 语言覆盖 / 最近文章）
+│   ├── media.mjs         # /api/media：图片列表（sharp 读宽高）/ 上传压缩去重 / 删除 / 重命名
+│   ├── batch.mjs         # /api/batch：批量改 frontmatter + 零依赖 ZIP 导出 Markdown
 │   ├── blog-content.mjs  # GET /blog-content/*：文章文件夹静态资源（预览图片）
 │   └── prose.css         # 预览正文样式（与博客 markdown.css 一致的精简版）
 └── src/                  # 前端（纯 TypeScript SPA，hash 路由，无框架）
     ├── main.ts / router.ts / api.ts / types.ts / styles.css
     ├── dom.ts / ui.ts（toast）/ select.ts（自研下拉组件）
-    └── pages/ OverviewPage.ts（概览）、ListPage.ts（列表：卡片/表格）、EditorPage.ts、
+    └── pages/ OverviewPage.ts（概览）、ListPage.ts（列表：卡片/表格 + 批量操作）、
+              MediaPage.ts（媒体库：网格 / 上传 / 复制引用）、EditorPage.ts、
               ConfigPage.ts（网站配置）、config-toc.ts（配置页悬浮目录栏）、header.ts（顶栏导航）、
               new-article.ts（新建文章弹窗）
 ```
@@ -79,6 +84,13 @@ cms/
 | GET | `/api/stats` | 概览统计（总数/发布/草稿/置顶/分类/字数/语言/最近文章） |
 | GET | `/api/config` | 读取 `src/config.ts`：`{ path, source, values }` |
 | PUT | `/api/config` | 保存配置 `{ values }` -> `{ path, source, values, changed }`；只写回改动过的字段 |
+| GET | `/api/media?scope=blog\|public&q=` | 媒体库列表，按目录分组，含相对路径 / 宽高 / 大小 / 修改时间 / alt 建议与上传目录候选；最多 2000 个文件 |
+| GET | `/api/media/file?scope=&path=` | 读取媒体库图片（缩略图 / 原图，只允许两个根目录内的图片） |
+| POST | `/api/media/upload` | 上传图片（multipart: file + scope + dir）：压缩后按 sha256 去重，重复时返回 `{ duplicate }` |
+| DELETE | `/api/media?scope=&path=` | 删除单张图片（路径经 safeRel 校验，禁止 `..`） |
+| PATCH | `/api/media` | 重命名图片 `{ scope, path, name }`（同目录内，不会自动改文章引用） |
+| POST | `/api/batch/update` | 批量改 frontmatter `{ paths, action, value? }`；action 为 category / pin / unpin / draft / publish，返回 `{ ok, failed }` |
+| GET | `/api/batch/export?paths=a,b,c` | 导出所选文章的 Markdown（含全部语言版本）为 `momo-export-YYYYMMDD-HHmm.zip` |
 
 ## 站点配置写回（`server/config-file.mjs`）
 
@@ -119,14 +131,16 @@ cms/
 - **编辑页自动保存**在 `src/pages/EditorPage.ts`：定时器跟界面一起建、在 `__cleanup` 里 `clearInterval`（换路由不残留）。`doSave` 三处要点：① 请求前先固化 `payload` 并按它算快照，请求期间的新输入才不会被误标成已保存（手动保存同样受益）；② 成功后同步 `state.detail.files[lang]`，否则切到另一种语言再切回来会读到打开页面时的旧内容，并被自动保存写回磁盘；③ 自动保存不调 `navigate`——那会重建编辑器 DOM、丢掉光标与撤销栈，slugId 改名真的移动文件夹时才用 `history.replaceState` 静默对齐地址栏。
 - **编辑页滚动同步**在 `src/pages/EditorPage.ts` 的 `setupScrollSync()` 与 `server/preview.mjs` 的 `PREVIEW_SYNC_SCRIPT`：跨源 iframe 只能 postMessage，发送走 rAF 节流、每帧最多一条；用两侧「最近一次主动滚动」的时间戳识别回声，**不把预览回传的位置再写回 textarea**（以前用 80ms 抑制回环，预览每回传一次就重置一次抑制窗口，左侧滚动被压成一段一段的，右侧预览看起来一顿一顿）。实时预览每次输入都会重建 iframe 文档，所以预览脚本就绪后先发 `cms-preview-ready`，父窗口再按重建前的滚动比例发 `cms-scroll-to` 恢复位置——否则每次输入预览都会跳回顶部。
 - 博客根目录相对路径图片（`/images/xxx.png`）在预览中不会加载（仅本地文件相对路径可用）。
+- **媒体库**（`server/media.mjs` + `pages/MediaPage.ts`）：blog 图片按「最近的含 `.md` 的目录」归到所属文章，复制 Markdown 时用相对文章目录的 `./...`，public 图片用 `/...`。上传先压缩再按内容 sha256 与同 scope 已有图片比对，命中重复不写盘并返回 `duplicate`（前端给一键复用）；重名自动加 `-1` / `-2`。宽高优先用 `sharp`，加载失败时退化为内置文件头解析并在响应里标注 `compressed: false`。目录扫描最多 2000 个文件，忽略 `node_modules` / `dist` / `.astro` 等目录；重命名不会自动更新文章里的引用。
+- **批量操作**（`server/batch.mjs` + `pages/ListPage.ts`）：`/api/batch/update` 复用 `store.mjs` 的 `readArticle` / `saveArticle` 逐语言写 frontmatter，分类 / 置顶变化不会移动文件夹；批量删除由前端逐篇调 `DELETE /api/articles/:path` 并收集失败项。导出 ZIP 用 STORE（不压缩）+ 手写 CRC32 表，文件名 UTF-8 并置通用标志位 `0x0800`，因此体积等于所有 Markdown 原文之和（未做 deflate）。列表页的选中集合在每次刷新 / 切换筛选 / 切换视图后都与当前可见列表求交集。
 
 ## 测试
 
 `smoke.mjs` 是基于 jsdom 的端到端冒烟测试（真实点击「新建文章」→ 创建 → 编辑 → 实时预览 → 保存 → 删除）。需先启动服务再运行：
 
 ```bash
-pnpm cms        # 终端 1：启动服务
-pnpm smoke      # 终端 2：运行冒烟测试
+pnpm cms                  # 终端 1：启动服务
+pnpm --filter cms smoke   # 终端 2：运行冒烟测试
 ```
 
 自动保存要等满 60 秒才有动作，没有进冒烟测试（会拖慢整个套件），需要验证时可临时把 `EditorPage.ts` 的 `AUTOSAVE_INTERVAL` 改小。

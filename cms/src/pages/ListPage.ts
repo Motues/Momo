@@ -23,6 +23,16 @@ interface ListState {
   view: ViewMode
   sort: string
   articles: ArticleSummary[]
+  /** 批量操作选中的文章路径（只保留当前筛选结果里仍然可见的） */
+  selected: Set<string>
+}
+
+interface ListUi {
+  isSelected(path: string): boolean
+  toggle(path: string, checked: boolean): void
+  allSelected(): boolean
+  someSelected(): boolean
+  toggleAll(checked: boolean): void
 }
 
 function loadView(): ViewMode {
@@ -42,7 +52,73 @@ export async function renderList(root: HTMLElement) {
     view: loadView(),
     sort: 'default',
     articles: [],
+    selected: new Set(),
   }
+
+  const selectAllBox = el('input', {
+    type: 'checkbox',
+    id: 'select-all',
+    'aria-label': '全选当前筛选结果',
+  })
+
+  // 批量分类用哨兵值：选完一次后会复位到它，才能再次选择「未分类」（值为空串）
+  const CATEGORY_NONE = '__none__'
+  const batchCategory: SelectControl = createSelect({
+    id: 'batch-category',
+    title: '批量修改分类',
+    options: [{ value: CATEGORY_NONE, label: '批量设置分类…' }],
+    value: CATEGORY_NONE,
+    onChange: (value: string) => {
+      if (value === CATEGORY_NONE) return
+      void runBatch('category', value)
+    },
+  })
+
+  const batchCount = el('span', { class: 'batch-count', id: 'batch-count' })
+  const batchErrors = el('div', { class: 'batch-errors', id: 'batch-errors', hidden: true })
+  const batchBar = el('div', { class: 'batch-bar', id: 'batch-bar', hidden: true }, [
+    el('span', { class: 'batch-title' }, ['批量操作']),
+    batchCount,
+    el('button', {
+      class: 'btn btn-sm',
+      id: 'batch-clear',
+      type: 'button',
+      onclick: () => clearSelection(),
+    }, ['清空']),
+    el('span', { class: 'batch-sep' }),
+    batchCategory,
+    el('button', {
+      class: 'btn btn-sm',
+      type: 'button',
+      onclick: () => void runBatch('pin'),
+    }, ['置顶']),
+    el('button', {
+      class: 'btn btn-sm',
+      type: 'button',
+      onclick: () => void runBatch('unpin'),
+    }, ['取消置顶']),
+    el('button', {
+      class: 'btn btn-sm',
+      type: 'button',
+      onclick: () => void runBatch('draft'),
+    }, ['设为草稿']),
+    el('button', {
+      class: 'btn btn-sm',
+      type: 'button',
+      onclick: () => void runBatch('publish'),
+    }, ['发布']),
+    el('span', { class: 'batch-sep' }),
+    el('button', {
+      class: 'btn btn-sm',
+      type: 'button',
+      onclick: () => void runBatch('export'),
+    }, ['导出 Markdown']),
+    el('button', {
+      class: 'btn btn-sm btn-danger',
+      type: 'button',
+      onclick: () => void runBatch('delete'),
+    }, ['批量删除']),
+  ])
 
   root.append(
     pageHeader(
@@ -113,8 +189,14 @@ export async function renderList(root: HTMLElement) {
             onclick: () => setView('table'),
           }, ['表格']),
         ]),
+        el('label', { class: 'select-all', title: '全选当前筛选结果' }, [
+          selectAllBox,
+          el('span', {}, ['全选']),
+        ]),
         el('span', { class: 'cms-count', id: 'count' }),
       ]),
+      batchBar,
+      batchErrors,
       el('div', { class: 'article-list' + (state.view === 'table' ? ' is-table' : ''), id: 'article-list' }),
       el('div', { class: 'cms-empty', id: 'empty', hidden: true }, [
         '暂无文章，点击右上角「新建文章」开始创作',
@@ -158,19 +240,209 @@ export async function renderList(root: HTMLElement) {
     }
   }
 
+  // ---------------- 多选 ----------------
+
+  function visiblePaths() {
+    return state.articles.map((a) => a.path)
+  }
+
+  // 切换筛选 / 刷新后只保留当前列表里仍可见的选中项，避免批量操作误伤不可见文章
+  function pruneSelection() {
+    const visible = new Set(visiblePaths())
+    for (const path of [...state.selected]) {
+      if (!visible.has(path)) state.selected.delete(path)
+    }
+  }
+
+  function syncRowSelection(path: string) {
+    const nodes = root.querySelectorAll<HTMLElement>('[data-path]')
+    nodes.forEach((node) => {
+      if (node.dataset.path !== path) return
+      const selected = state.selected.has(path)
+      node.classList.toggle('is-selected', selected)
+      const box = node.querySelector<HTMLInputElement>('input[type="checkbox"]')
+      if (box) box.checked = selected
+    })
+  }
+
+  // 全选 / 清空时一次性刷新所有行，避免按行逐个 querySelectorAll
+  function syncAllRows() {
+    const nodes = root.querySelectorAll<HTMLElement>('[data-path]')
+    nodes.forEach((node) => {
+      const selected = state.selected.has(node.dataset.path || '')
+      node.classList.toggle('is-selected', selected)
+      const box = node.querySelector<HTMLInputElement>('input[type="checkbox"]')
+      if (box) box.checked = selected
+    })
+  }
+
+  function updateBatchUi() {
+    const count = state.selected.size
+    batchCount.textContent = `已选 ${count} 篇`
+    batchBar.hidden = count === 0
+    if (count === 0) batchErrors.hidden = true
+
+    const paths = visiblePaths()
+    const selectedVisible = paths.filter((p) => state.selected.has(p)).length
+    const all = paths.length > 0 && selectedVisible === paths.length
+    const some = selectedVisible > 0 && selectedVisible < paths.length
+    for (const box of [selectAllBox, root.querySelector<HTMLInputElement>('#table-select-all')]) {
+      if (!box) continue
+      box.checked = all
+      box.indeterminate = some
+    }
+  }
+
+  function toggleSelect(path: string, checked: boolean) {
+    if (checked) state.selected.add(path)
+    else state.selected.delete(path)
+    syncRowSelection(path)
+    updateBatchUi()
+  }
+
+  function toggleSelectAll(checked: boolean) {
+    const paths = visiblePaths()
+    if (checked) for (const path of paths) state.selected.add(path)
+    else state.selected.clear()
+    syncAllRows()
+    updateBatchUi()
+  }
+
+  function clearSelection() {
+    state.selected.clear()
+    syncAllRows()
+    batchCategory.value = CATEGORY_NONE
+    batchErrors.hidden = true
+    updateBatchUi()
+  }
+
+  function showBatchErrors(failed: { path: string; error: string }[]) {
+    batchErrors.textContent = ''
+    batchErrors.append(
+      el('div', { class: 'batch-errors-title' }, [`${failed.length} 项操作失败（失败项保持选中，可重试）：`]),
+    )
+    for (const item of failed) {
+      batchErrors.append(el('div', { class: 'batch-error-row' }, [`${item.path}：${item.error}`]))
+    }
+    batchErrors.hidden = false
+  }
+
+  function setBatchBusy(busy: boolean) {
+    for (const btn of batchBar.querySelectorAll<HTMLButtonElement>('button')) {
+      if (btn.id === 'batch-clear') continue
+      btn.disabled = busy
+    }
+  }
+
+  // ---------------- 批量动作 ----------------
+
+  let batchBusy = false
+
+  async function runBatch(action: string, value?: string) {
+    if (batchBusy) return
+    const paths = [...state.selected]
+    if (!paths.length) return
+
+    if (action === 'export') {
+      const a = el('a', { href: api.batchExportUrl(paths), download: '' })
+      document.body.append(a)
+      a.click()
+      a.remove()
+      toast(`正在导出 ${paths.length} 篇文章…`)
+      return
+    }
+
+    if (action === 'delete') {
+      if (
+        !window.confirm(
+          `确定删除选中的 ${paths.length} 篇文章？\n将删除各自的整个文件夹及所有语言版本，不可恢复。`,
+        )
+      ) {
+        return
+      }
+      batchBusy = true
+      setBatchBusy(true)
+      const failed: { path: string; error: string }[] = []
+      let ok = 0
+      for (const path of paths) {
+        try {
+          await api.remove(path)
+          ok++
+        } catch (e) {
+          failed.push({ path, error: (e as Error).message })
+        }
+      }
+      state.selected = new Set(failed.map((f) => f.path))
+      batchBusy = false
+      setBatchBusy(false)
+      if (failed.length) {
+        showBatchErrors(failed)
+        toast(`成功 ${ok} 篇，失败 ${failed.length} 篇`, 'error')
+      } else {
+        toast(`已删除 ${ok} 篇`)
+      }
+      await reload()
+      updateBatchUi()
+      return
+    }
+
+    batchBusy = true
+    setBatchBusy(true)
+    try {
+      const res = await api.batchUpdate(paths, action, value)
+      const failed = res.failed || []
+      if (failed.length) {
+        showBatchErrors(failed)
+        toast(`成功 ${res.ok} 篇，失败 ${failed.length} 篇`, 'error')
+        // 成功的路径移出选中集合，失败项保持选中方便重试
+        const failedPaths = new Set(failed.map((f) => f.path))
+        state.selected = new Set(paths.filter((p) => failedPaths.has(p)))
+      } else {
+        const label =
+          action === 'category'
+            ? value
+              ? `已把 ${res.ok} 篇改为「${value}」`
+              : `已把 ${res.ok} 篇设为未分类`
+            : `已更新 ${res.ok} 篇`
+        toast(label)
+        state.selected.clear()
+        batchErrors.hidden = true
+      }
+      batchCategory.value = CATEGORY_NONE
+      await reload()
+      updateBatchUi()
+    } catch (e) {
+      toast((e as Error).message, 'error')
+    } finally {
+      batchBusy = false
+      setBatchBusy(false)
+    }
+  }
+
   function renderListItems(articles: ArticleSummary[]) {
     const sorted = sortArticles(articles, state.sort)
     const listEl = root.querySelector('#article-list') as HTMLElement
     const emptyEl = root.querySelector('#empty') as HTMLElement
     const countEl = root.querySelector('#count') as HTMLElement
+    pruneSelection()
     listEl.innerHTML = ''
     emptyEl.hidden = sorted.length > 0
     countEl.textContent = `共 ${sorted.length} 篇`
+
+    const ui: ListUi = {
+      isSelected: (path) => state.selected.has(path),
+      toggle: toggleSelect,
+      allSelected: () => sorted.length > 0 && sorted.every((a) => state.selected.has(a.path)),
+      someSelected: () => sorted.some((a) => state.selected.has(a.path)),
+      toggleAll: toggleSelectAll,
+    }
+
     if (state.view === 'table') {
-      const wrap = articleTable(sorted, () => reload())
+      const wrap = articleTable(sorted, () => reload(), ui)
       listEl.append(wrap)
       fitTableColumns(wrap)
-    } else for (const a of sorted) listEl.append(articleCard(a))
+    } else for (const a of sorted) listEl.append(articleCard(a, ui))
+    updateBatchUi()
   }
 
   async function loadMeta() {
@@ -182,10 +454,20 @@ export async function renderList(root: HTMLElement) {
         { value: '', label: '全部分类' },
         ...meta.categories.map((c) => ({ value: c.name, label: `${c.name} (${c.count})` })),
       ])
+      batchCategory.setOptions(
+        [
+          { value: CATEGORY_NONE, label: '批量设置分类…' },
+          { value: '', label: '未分类' },
+          ...meta.categories.map((c) => ({ value: c.name, label: c.name })),
+        ],
+        CATEGORY_NONE,
+      )
     } catch {
       /* meta 加载失败不影响列表 */
     }
   }
+
+  selectAllBox.addEventListener('change', () => toggleSelectAll(selectAllBox.checked))
 
   await Promise.all([loadMeta(), reload()])
 
@@ -201,6 +483,7 @@ export async function renderList(root: HTMLElement) {
   window.addEventListener('resize', onWindowResize)
   ;(root as AppRoot).__cleanup = () => {
     window.removeEventListener('resize', onWindowResize)
+    clearTimeout(timer)
     cancelAnimationFrame(fitRaf)
   }
 }
@@ -255,30 +538,50 @@ function sortArticles(articles: ArticleSummary[], sort: string): ArticleSummary[
 
 // ---------------- 卡片视图 ----------------
 
-function articleCard(a: ArticleSummary) {
+function articleCard(a: ArticleSummary, ui: ListUi) {
   const badges: (HTMLElement | string)[] = []
   if (a.draft) badges.push(el('span', { class: 'badge badge-draft' }, ['草稿']))
   if (a.pinTop) badges.push(el('span', { class: 'badge badge-pin' }, ['置顶']))
   for (const lang of a.langs) badges.push(el('span', { class: 'badge badge-lang' }, [lang]))
 
-  return el('a', { class: 'article-card', href: `#/edit/${encodePath(a.path)}` }, [
-    el('div', { class: 'article-card-head' }, [
-      el('span', { class: 'article-card-title' }, [a.title || a.path]),
-      el('div', { class: 'article-card-badges' }, badges),
-    ]),
-    el('div', { class: 'article-card-meta' }, [
-      a.category ? el('span', { class: 'tag' }, [a.category]) : null,
-      el('span', {}, [a.pubDate || '—']),
-      el('span', { class: 'article-card-path' }, [a.path]),
-    ]),
-    a.description ? el('p', { class: 'article-card-desc' }, [a.description]) : null,
-  ])
+  const check = el('input', {
+    type: 'checkbox',
+    class: 'card-check',
+    checked: ui.isSelected(a.path),
+    'aria-label': `选择 ${a.title || a.path}`,
+    onclick: (e: Event) => e.stopPropagation(),
+    onchange: (e: Event) => ui.toggle(a.path, (e.target as HTMLInputElement).checked),
+  })
+
+  return el(
+    'div',
+    {
+      class: 'article-card-wrap' + (ui.isSelected(a.path) ? ' is-selected' : ''),
+      'data-path': a.path,
+    },
+    [
+      check,
+      el('a', { class: 'article-card', href: `#/edit/${encodePath(a.path)}` }, [
+        el('div', { class: 'article-card-head' }, [
+          el('span', { class: 'article-card-title' }, [a.title || a.path]),
+          el('div', { class: 'article-card-badges' }, badges),
+        ]),
+        el('div', { class: 'article-card-meta' }, [
+          a.category ? el('span', { class: 'tag' }, [a.category]) : null,
+          el('span', {}, [a.pubDate || '—']),
+          el('span', { class: 'article-card-path' }, [a.path]),
+        ]),
+        a.description ? el('p', { class: 'article-card-desc' }, [a.description]) : null,
+      ]),
+    ],
+  )
 }
 
 // ---------------- 表格视图 ----------------
 
 // 列定义：min/max 为列宽自适应时的下限与上限（px），列宽由 fitTableColumns 按内容分配
 const TABLE_COLUMNS: { key: string; label: string; min: number; max: number }[] = [
+  { key: 'select', label: '', min: 44, max: 44 },
   { key: 'title', label: '标题', min: 200, max: 520 },
   { key: 'category', label: '分类', min: 88, max: 160 },
   { key: 'status', label: '状态', min: 104, max: 132 },
@@ -288,17 +591,26 @@ const TABLE_COLUMNS: { key: string; label: string; min: number; max: number }[] 
   { key: 'actions', label: '操作', min: 110, max: 118 },
 ]
 
-function articleTable(articles: ArticleSummary[], onChanged: () => void) {
+function articleTable(articles: ArticleSummary[], onChanged: () => void, ui: ListUi) {
+  const selectAll = el('input', {
+    type: 'checkbox',
+    id: 'table-select-all',
+    'aria-label': '全选当前筛选结果',
+    checked: ui.allSelected(),
+    indeterminate: ui.someSelected() && !ui.allSelected(),
+    onchange: (e: Event) => ui.toggleAll((e.target as HTMLInputElement).checked),
+  })
   const tbody = el('tbody')
-  for (const a of articles) tbody.append(articleRow(a, onChanged))
+  for (const a of articles) tbody.append(articleRow(a, onChanged, ui))
   const table = el('table', { class: 'article-table' }, [
     el('colgroup', {}, TABLE_COLUMNS.map((c) => el('col', { class: `col-${c.key}` }))),
     el('thead', {}, [
-      el('tr', {}, TABLE_COLUMNS.map((c) =>
-        c.key === 'actions'
+      el('tr', {}, TABLE_COLUMNS.map((c) => {
+        if (c.key === 'select') return el('th', { class: 'select-col' }, [selectAll])
+        return c.key === 'actions'
           ? el('th', { class: 'actions' }, [c.label])
-          : el('th', {}, [c.label]),
-      )),
+          : el('th', {}, [c.label])
+      })),
     ]),
     tbody,
   ])
@@ -357,25 +669,36 @@ function fitTableColumns(wrap: HTMLElement) {
   })
 }
 
-function articleRow(a: ArticleSummary, onChanged: () => void) {
+function articleRow(a: ArticleSummary, onChanged: () => void, ui: ListUi) {
   const badges: (HTMLElement | string)[] = []
   if (a.draft) badges.push(el('span', { class: 'badge badge-draft' }, ['草稿']))
   if (a.pinTop) badges.push(el('span', { class: 'badge badge-pin' }, ['置顶']))
   const langs = a.langs.map((l) => el('span', { class: 'badge badge-lang' }, [l]))
 
+  const check = el('input', {
+    type: 'checkbox',
+    class: 'row-check',
+    checked: ui.isSelected(a.path),
+    'aria-label': `选择 ${a.title || a.path}`,
+    onclick: (e: Event) => e.stopPropagation(),
+    onchange: (e: Event) => ui.toggle(a.path, (e.target as HTMLInputElement).checked),
+  })
+
   return el('tr', {
-    class: 'article-table-row',
+    class: 'article-table-row' + (ui.isSelected(a.path) ? ' is-selected' : ''),
     role: 'link',
     tabindex: '0',
     title: `编辑 ${a.path}`,
+    'data-path': a.path,
     onclick: () => navigate(`#/edit/${encodePath(a.path)}`),
     onkeydown: (e: KeyboardEvent) => {
-      // 焦点在操作按钮上时 Enter 触发按钮而非跳转
-      if (e.key === 'Enter' && !(e.target as HTMLElement).closest('button')) {
+      // 焦点在复选框 / 操作按钮上时 Enter 不跳转
+      if (e.key === 'Enter' && !(e.target as HTMLElement).closest('button, input, label')) {
         navigate(`#/edit/${encodePath(a.path)}`)
       }
     },
   }, [
+    el('td', { class: 'select-col', onclick: (e: Event) => e.stopPropagation() }, [check]),
     el('td', {}, [
       el('div', { class: 'article-table-title' }, [a.title || a.path]),
       a.description ? el('div', { class: 'article-table-desc' }, [a.description]) : null,

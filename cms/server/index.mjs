@@ -12,6 +12,8 @@ import { stats } from './stats.mjs'
 import { blogContent } from './blog-content.mjs'
 import { config as configRouter } from './config.mjs'
 import { reveal } from './reveal.mjs'
+import { media } from './media.mjs'
+import { batch } from './batch.mjs'
 
 const __dirname = fileURLToPath(new URL('.', import.meta.url))
 const indexHtml = await readFile(join(__dirname, '..', 'index.html'), 'utf-8')
@@ -25,6 +27,8 @@ app.route('/api/meta', metaRouter)
 app.route('/api/stats', stats)
 app.route('/api/config', configRouter)
 app.route('/api/reveal', reveal)
+app.route('/api/media', media)
+app.route('/api/batch', batch)
 app.route('/blog-content', blogContent)
 app.route('/katex-fonts', katexFonts)
 
