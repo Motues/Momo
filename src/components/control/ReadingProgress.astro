@@ -1,0 +1,107 @@
+---
+/**
+ * 文章页顶部的阅读进度条（2px 细线）。
+ *
+ * 与右下角 FAB 的进度环是两件事：FAB 要滚过一段距离才出现、且只在有目录/回到顶部按钮时才有；
+ * 顶条从文章页第一屏就存在，滚到底整条填满。
+ *
+ * 只在 article 页渲染，由 `siteConfig.theme.readingProgress` 控制开关（见博客页）。
+ * 它是 fixed 元素，所以挂在页面的 overlay 插槽里（不能待在淡入淡出容器内）。
+ */
+---
+
+<div
+  id="reading-progress"
+  class="reading-progress"
+  aria-hidden="true"
+>
+  <div class="reading-progress-bar"></div>
+</div>
+
+<script>
+  import { registerPageInit } from '@utils/pageInit';
+  import { subscribeScroll } from '@utils/scrollBus';
+
+  /**
+   * 进度 = 已滚动距离 / 可滚动距离。
+   * 每帧只写一次 transform 的 scaleX（合成层，不触发布局）。
+   */
+  function initReadingProgress() {
+    const scope = window as Window & {
+      __momoReadingProgress?: { cleanup?: () => void };
+    };
+    scope.__momoReadingProgress?.cleanup?.();
+
+    const root = document.getElementById('reading-progress');
+    if (!root) return;
+
+    const bar = root.querySelector('.reading-progress-bar');
+
+    let maxScroll = 0;
+    let lastPercent = -1;
+
+    function measure() {
+      maxScroll = Math.max(0, document.documentElement.scrollHeight - document.documentElement.clientHeight);
+    }
+
+    function update(y) {
+      const percent = maxScroll > 0 ? Math.min(1, Math.max(0, y / maxScroll)) : 0;
+      // 变化小于 0.2% 不写样式：滚动到底部时每帧都会回来一次，没必要反复触碰 DOM
+      if (Math.abs(percent - lastPercent) >= 0.002 || (percent === 1 && lastPercent !== 1)) {
+        lastPercent = percent;
+        // scaleX 而不是 width：宽度变化会让该层逐帧重排，scale 只在合成阶段生效
+        if (bar) bar.style.transform = `scaleX(${percent.toFixed(4)})`;
+      }
+    }
+
+    const unsubscribe = subscribeScroll(update);
+
+    const onResize = () => {
+      measure();
+      update(window.scrollY);
+    };
+    window.addEventListener('resize', onResize, { passive: true });
+
+    measure();
+    update(window.scrollY);
+
+    scope.__momoReadingProgress = {
+      cleanup() {
+        unsubscribe();
+        window.removeEventListener('resize', onResize);
+      },
+    };
+  }
+
+  registerPageInit(initReadingProgress);
+</script>
+
+<style>
+  .reading-progress {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    /* 高于顶栏（z-50）与导航胶囊（z-100），低于 FAB（z-1000）与弹窗 */
+    z-index: var(--momo-z-sticky);
+    height: 2px;
+    pointer-events: none;
+  }
+
+  .reading-progress-bar {
+    height: 100%;
+    width: 100%;
+    background-color: var(--link-color);
+    transform: scaleX(0);
+    transform-origin: left center;
+    /* 进度跟滚动 1:1，没有过渡；这里只是让「换页回来」时不会整条闪一下 */
+    will-change: transform;
+  }
+
+  /* 系统要求减弱动画：进度条不再跟手（仍会更新，只是不做过渡） */
+  @media (prefers-reduced-motion: reduce) {
+    .reading-progress-bar {
+      will-change: auto;
+    }
+  }
+</style>

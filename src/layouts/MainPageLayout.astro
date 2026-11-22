@@ -20,6 +20,12 @@ interface Props {
   structuredData?: Record<string, unknown> | Record<string, unknown>[];
   /** 页面是否渲染 Markdown 正文（透传给 Layout，用于异步加载引用块字体） */
   markdownFont?: boolean;
+  /** 正文是否含数学公式（透传给 Layout，用于按需加载 KaTeX 样式） */
+  mathStyles?: boolean;
+  /** 首屏 LCP 图片预加载信息（透传给 Layout） */
+  preloadImage?: { href: string; srcset?: string; sizes?: string; type?: string };
+  /** 分页序列（透传给 Layout，输出 rel=prev/next） */
+  pagination?: { prev?: string; next?: string };
   /** 首页 hero 模式的照片封面；不传就是内页那种淡淡的背景（见 @components/PhotoCover） */
   photoCover?: boolean;
 }
@@ -36,6 +42,9 @@ const {
   noindex,
   structuredData,
   markdownFont,
+  mathStyles,
+  preloadImage,
+  pagination,
   photoCover = false,
 } = Astro.props;
 
@@ -54,6 +63,9 @@ const {
   noindex={noindex}
   structuredData={structuredData}
   markdownFont={markdownFont}
+  mathStyles={mathStyles}
+  preloadImage={preloadImage}
+  pagination={pagination}
 >
   <!-- isolate：给固定的照片层一个层叠上下文。
        它用 z-index:-1 落在正文之下，而负 z-index 的绘制早于 body 的背景色，
@@ -79,7 +91,7 @@ const {
          一旦被包住，过渡的那 200ms 里它们会整体跳位。
          所以这两块走 overlay 插槽：仍在容器内（每页重建、内容跟着换），
          但在淡入淡出元素之外（包含块仍是视口）。 -->
-    <main id="swup-container" class="flex-grow">
+    <main id="swup-container" class="flex-grow" tabindex="-1">
       <div class="transition-swup-fade">
         <slot />
       </div>

@@ -15,6 +15,7 @@
 
 * `title`: Site title
 * `subTitle`: Site subtitle; **when left empty, the browser tab title (and the RSS title) shows `title` only**, without a dangling ` - ` separator
+* `description`: Site description used as the fallback meta description / og:description. It can be a single string (shared by all languages) or a per-language map (`{ "zh-cn": "...", en: "..." }`) — the map is recommended, otherwise English pages inherit the Chinese sentence
 * `rootSiteUrl`: Root URL of the site, used to generate absolute links for SEO and social sharing; `astro.config.mjs` uses it as `site`
 * `favicon`: Site icon
 * `pageSize`: Number of articles per page
@@ -31,6 +32,7 @@
     * `AOS`: Enable entrance animations (scroll reveal, built in)
     * `LQIP`: Enable LQIP (low-quality image placeholder)
     * `PhotoSwipe`: Enable PhotoSwipe
+    * `readingProgress`: Show the 2px reading progress bar at the top of article pages (updates with the scroll position; no transition under `prefers-reduced-motion`)
     * `imageCollage.enable`: Enable automatic image collage (consecutive images in the content are arranged into a grid)
     * `imageCollage.maxColumns`: Max images per row in a collage (2 - 6, default 4); the actual number per row is chosen automatically from the image count, and the images of the last row always fill the whole row
     * `postCard.imageMode`: Cover style of the article cards on the home page, `top` puts the image above the content, `background` uses it as the card background

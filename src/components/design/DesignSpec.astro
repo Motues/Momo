@@ -48,14 +48,23 @@ const sampleEntry = posts.find((post) => post.id === 'markdown') ?? posts[0];
 
 /* 正文排版示例：真实 Markdown 渲染（含代码块、表格、图注） */
 const sampleSpec = await getSpec(currentLang, 'design');
-const { Content: ProseSample } = sampleSpec ? await render(sampleSpec) : { Content: null };
+const sampleRender = sampleSpec ? await render(sampleSpec) : null;
+const ProseSample = sampleRender?.Content ?? null;
 
 /* 自定义语法示例：直接渲染真实指令，卡片里的数据由插件内置脚本实时请求，
    与文章页完全一致。换仓库 / 换歌曲只改 src/content/spec/design/{github,music}/。 */
 const githubCardSpec = await getSpec(currentLang, 'design/github');
-const { Content: GithubCardSample } = githubCardSpec ? await render(githubCardSpec) : { Content: null };
+const githubRender = githubCardSpec ? await render(githubCardSpec) : null;
+const GithubCardSample = githubRender?.Content ?? null;
+
 const musicCardSpec = await getSpec(currentLang, 'design/music');
-const { Content: MusicCardSample } = musicCardSpec ? await render(musicCardSpec) : { Content: null };
+const musicRender = musicCardSpec ? await render(musicCardSpec) : null;
+const MusicCardSample = musicRender?.Content ?? null;
+
+/* 三条示例里任何一条含数学公式，就给这一页挂 KaTeX 样式（remark-has-math 写的标记） */
+const mathStyles = [sampleRender, githubRender, musicRender].some(
+  (result) => result?.remarkPluginFrontmatter?.hasMath === true,
+);
 
 const T = {
   zh: {
@@ -626,6 +635,7 @@ const structureRows = t.structure.rows as unknown as string[][];
   description={t.description}
   noindex={true}
   markdownFont={true}
+  mathStyles={mathStyles}
 >
   <div class="ds-page" data-search-ignore>
     <header class="ds-hero">

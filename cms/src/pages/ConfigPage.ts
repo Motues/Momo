@@ -65,6 +65,18 @@ function buildSections(values: ConfigValues): SectionDef[] {
       fields: [
         { path: ['siteConfig', 'title'], label: '站点标题 title', hint: '浏览器标签栏与 SEO 使用' },
         { path: ['siteConfig', 'subTitle'], label: '副标题 subTitle', hint: '留空时标签栏只显示站点标题' },
+        {
+          path: ['siteConfig', 'description', 'zh-cn'],
+          label: '站点描述（中文）',
+          wide: true,
+          hint: '页面没有自己的描述时作为 meta description / og:description 的兜底（建议 80-160 字）',
+        },
+        {
+          path: ['siteConfig', 'description', 'en'],
+          label: '站点描述（英文）',
+          wide: true,
+          hint: '英文页面使用；description 也可以写成单个字符串（所有语言共用），此时这里留空即可',
+        },
         { path: ['siteConfig', 'rootSiteUrl'], label: '站点根地址 rootSiteUrl', mono: true, wide: true, hint: '生成 SEO 与分享用的绝对链接' },
         { path: ['siteConfig', 'favicon'], label: 'favicon 路径', mono: true, hint: '相对 /public 目录，如 /favicon/favicon.ico' },
         { path: ['siteConfig', 'pageSize'], label: '每页文章数 pageSize', type: 'number' },
@@ -97,6 +109,13 @@ function buildSections(values: ConfigValues): SectionDef[] {
         { path: ['siteConfig', 'theme', 'AOS'], label: '入场动画（滚动显现）', type: 'bool', group: '动效基础' },
         { path: ['siteConfig', 'theme', 'LQIP'], label: '图片占位 LQIP', type: 'bool', group: '动效基础' },
         { path: ['siteConfig', 'theme', 'PhotoSwipe'], label: '图片查看器 PhotoSwipe', type: 'bool', group: '动效基础' },
+        {
+          path: ['siteConfig', 'theme', 'readingProgress'],
+          label: '顶部阅读进度条 readingProgress',
+          type: 'bool',
+          group: '动效基础',
+          hint: '文章页顶部 2px 阅读进度条（需重新构建博客）',
+        },
         {
           path: ['siteConfig', 'theme', 'imageCollage', 'enable'],
           label: '连续图片自动拼图 imageCollage',

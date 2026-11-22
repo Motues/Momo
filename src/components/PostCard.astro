@@ -5,10 +5,11 @@ import ImageModule from "./misc/ImageModule.astro";
 import type { CollectionEntry } from 'astro:content';
 import { render } from 'astro:content'
 
-import { getRelativeLocaleUrl } from '@utils/urlUtils';
+import { blogPostUrl, getRelativeLocaleUrl } from '@utils/urlUtils';
 import { formatFullDate } from '@/utils/time'
 
 import { siteConfig } from '@/config';
+import { CONTENT_COVER } from '@utils/coverImage';
 import { i18n } from "astro:config/client";
 import i18nit from '@i18n/translation'
 import { Icon } from "astro-icon/components";
@@ -30,7 +31,8 @@ const { entry, title, description, image, pubDate, url, fallback, priority = fal
 const currentLang = Astro.currentLocale || i18n!.defaultLocale;
 const t = i18nit(currentLang);
 
-const pageUrl = getRelativeLocaleUrl(currentLang, "/blog/" + url);
+// 统一带尾斜杠：canonical 是目录形式，少了斜杠线上会多一次 301
+const pageUrl = blogPostUrl(currentLang, url);
 
 const { remarkPluginFrontmatter } = await render(entry);
 
@@ -51,11 +53,11 @@ const revealAttrs = siteConfig.theme.AOS
         {isBgMode ? (
             <div class="bg-image">
                 {/* width 与 widths 最大档一致：不传的话 Astro 会按原图尺寸再生成一张全尺寸 src 兜底，有 srcset 的浏览器不会用它。档位与文章页封面共用，避免两套 widths 取并集。 */}
-                <ImageModule src={image} alt={title} class="w-full h-full" priority={priority} width={1080} widths={[480, 1080]} sizes="(max-width: 862px) 90vw, 776px" quality={65} />
+                <ImageModule src={image} alt={title} class="w-full h-full" priority={priority} width={1080} widths={CONTENT_COVER.widths} sizes={CONTENT_COVER.sizes} quality={CONTENT_COVER.quality} formats={['avif', 'webp']} />
             </div>
         ) : (
             <a href={pageUrl} class="cover h-60 overflow-hidden hover-scale block">
-                <ImageModule src={image} alt={title} class="w-full h-full object-cover" priority={priority} width={1080} widths={[480, 1080]} sizes="(max-width: 862px) 90vw, 776px" quality={65} />
+                <ImageModule src={image} alt={title} class="w-full h-full object-cover" priority={priority} width={1080} widths={CONTENT_COVER.widths} sizes={CONTENT_COVER.sizes} quality={CONTENT_COVER.quality} formats={['avif', 'webp']} />
             </a>
         )}
         </>

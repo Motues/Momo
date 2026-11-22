@@ -3,7 +3,8 @@
 
 import { siteConfig } from '@/config';
 import { Image } from "astro:assets";
-import path from "path"
+import { getLocalImage } from "@utils/localImages";
+import { buildPicture } from "@utils/responsiveImage";
 import { getLqipGradient } from "@utils/getLqipColors";
 
 interface Props {
@@ -24,9 +25,14 @@ interface Props {
     sizes?: string;
     /** 输出质量，默认交给 Astro/sharp */
     quality?: number;
+    /**
+     * 多格式输出（如 ['avif', 'webp']）：会渲染成 <picture>，浏览器按顺序挑第一个支持的格式。
+     * 只对 src/ 下的本地图片生效（public / 远程图片不经过构建期转换）。
+     */
+    formats?: ('avif' | 'webp')[];
 }
 
-const { src, alt, id, width, height, priority = false, widths, sizes, quality } = Astro.props;
+const { src, alt, id, width, height, priority = false, widths, sizes, quality, formats } = Astro.props;
 const className = Astro.props.class;
 
 // 非首屏图片保持 lazy（Astro 的 <Image> 默认就是 lazy）
@@ -38,45 +44,42 @@ const isLocal = !(
     src.startsWith("/") ||
     src.startsWith("http")
 );
-const isPublic = src.startsWith("/");
 
 let imageLoad;
 let lqipGradient = "";
 const enableLQIP = siteConfig.theme.LQIP;
 
 if (isLocal) {
-  // 只收集图片文件！早先这里的 pattern 是 "../../**/*"，会把 src 下的所有文件
-  // （包括 Markdown.astro、markdown.css 等）都变成动态 import，
-  // 结果任何用到 ImageModule 的页面（例如首页）都会被拖上几百 KB 的正文样式。
-  //
+  // 统一的 glob 与解析在 @utils/localImages（预加载也要用同一份，键写法不能各写一套）。
   // caseSensitive: false 只影响 glob 的“发现”阶段：Vite 默认大小写敏感，
   // 相机导出的 .JPG / .PNG 这类大写后缀会整个漏掉，封面直接变成 undefined。
-  const images = import.meta.glob<ImageMetadata>(
-    "../../**/*.{jpg,jpeg,jfif,png,apng,webp,avif,gif,svg,tiff,tif,bmp,ico,heic}",
-    { import: "default", caseSensitive: false }
-  );
+  // 查找仍然严格区分大小写：写错大小写会走下面的「找不到文件」分支，不会静默换成另一个文件。
+  imageLoad = await getLocalImage(src);
 
-  // 查找仍然严格区分大小写：glob 的 key 用的是磁盘上的真实文件名，
-  // 所以 cover.jpg 与 COVER.JPG 是两个不同文件，frontmatter 写哪个就取哪个，
-  // 大小写写错依旧会报「Image file not found」，不会静默拿到另一个文件。
-  const imagePath = path.normalize(path.join("../../", "/", src)).replace(/\\/g, "/");
-  const imageGetter = images[imagePath];
-
-  if (!imageGetter) {
-    console.error(`\n[ERROR] Image file not found: ${imagePath}`);
-  } else {
-    imageLoad = await imageGetter();
+  if (!imageLoad) {
+    console.error(`\n[ERROR] Image file not found: ${src}`);
+  } else if (enableLQIP) {
     // 使用封装好的函数
-    if(enableLQIP) lqipGradient = await getLqipGradient(imageLoad.fsPath);
+    lqipGradient = await getLqipGradient(imageLoad.fsPath);
   }
 }
 
 // 响应式档位：超过原图宽度的档位要去掉（sharp 的 withoutEnlargement 不会放大，
 // 留着只会生成一个「标称 1080w、实际 811px」的错误描述符）；
-// 过滤后一个不剩（原图本来就很小）就退回单张，不要传空数组给 <Image>
+// 过滤后一个不剩（原图本来就很小）就退回单张，不要传空数组
 const filteredWidths =
   widths && imageLoad ? widths.filter((w) => w <= imageLoad.width) : widths;
 const safeWidths = filteredWidths && filteredWidths.length > 0 ? filteredWidths : undefined;
+
+// 多格式：手工拼 <picture>（AVIF 单独用 AVIF_QUALITY，见 @utils/responsiveImage 的说明——
+// Astro 的 <Picture> 会把同一个 quality 传给所有格式，AVIF 反而比 WebP 大）。
+// 预加载用的是同一个函数，srcset 因此逐字一致。
+const picture = formats && formats.length > 0 && imageLoad
+  ? await buildPicture(imageLoad, { widths: safeWidths, quality })
+  : null;
+const pictureSources = picture
+  ? picture.sources.filter((source) => formats!.includes(source.type.replace('image/', '') as 'avif' | 'webp'))
+  : [];
 ---
 <div 
   class:list={["image-wrapper", className]} 
@@ -86,19 +89,36 @@ const safeWidths = filteredWidths && filteredWidths.length > 0 ? filteredWidths 
     <div class="lqip-bg"></div>
     {
         isLocal && imageLoad && (
-        <Image 
-            src={imageLoad} 
-            alt={alt || ""} 
-            id={id} 
-            width={width} 
-            height={height}
-            widths={safeWidths}
-            sizes={sizes}
-            quality={quality}
-            class=""
-            {...loadingAttrs}
-            onload="this.parentElement.dataset.loaded = 'true'" 
-        />
+            picture ? (
+                <picture>
+                    {pictureSources.map((source) => (
+                        <source type={source.type} srcset={source.srcset} sizes={sizes} />
+                    ))}
+                    <img
+                        src={picture.src}
+                        alt={alt || ""}
+                        id={id}
+                        width={picture.width ?? width}
+                        height={picture.height ?? height}
+                        {...loadingAttrs}
+                        onload="this.closest('.image-wrapper').dataset.loaded = 'true'"
+                    />
+                </picture>
+            ) : (
+                <Image
+                    src={imageLoad}
+                    alt={alt || ""}
+                    id={id}
+                    width={width}
+                    height={height}
+                    widths={safeWidths}
+                    sizes={sizes}
+                    quality={quality}
+                    class=""
+                    {...loadingAttrs}
+                    onload="this.parentElement.dataset.loaded = 'true'"
+                />
+            )
         )
     }
   
@@ -124,6 +144,14 @@ const safeWidths = filteredWidths && filteredWidths.length > 0 ? filteredWidths 
     overflow: hidden;
     background-color: transparent;
     display: block;
+}
+
+/* <picture> 是行内元素：不显式撑满的话，里面的 img 用 100% 高会失去参照，
+   卡片封面会从「固定高度裁切」退化成按原图比例撑开。 */
+.image-wrapper picture {
+    display: block;
+    width: 100%;
+    height: 100%;
 }
 
 .lqip-bg {

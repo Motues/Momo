@@ -15,6 +15,7 @@
 
 * `title`: 网站的标题
 * `subTitle`: 网站的副标题；**留空时浏览器标签栏（以及 RSS 标题）只显示 `title`**，不会出现多余的 ` - ` 分隔符
+* `description`: 站点描述，作为 meta description / og:description 的兜底文案。可以写成一个字符串（所有语言共用），也可以按语言写成对象（`{ "zh-cn": "...", en: "..." }`），推荐后者，否则英文页会沿用中文描述
 * `rootSiteUrl`: 网站的根地址，用于生成 SEO 与社交分享的绝对链接；`astro.config.mjs` 的 `site` 默认取该值
 * `favicon`: 网站的图标
 * `pageSize`: 每页显示的文章数量
@@ -31,6 +32,7 @@
     * `AOS`: 是否启用入场动画（滚动显现，自研实现）
     * `LQIP`: 是否启用 LQIP 低质量图片占位
     * `PhotoSwipe`: 是否启用图片灯箱模式
+    * `readingProgress`: 是否在文章页顶部显示 2px 阅读进度条（跟手更新，`prefers-reduced-motion` 下不做过渡）
     * `imageCollage.enable`: 是否启用连续图片自动拼图（正文里连续放置的多张图片自动排成网格）
     * `imageCollage.maxColumns`: 拼图每行最多放几张图片（2 - 6，默认 4）；实际每行张数会按图片数量自动选择，最后一行的图片自动补满整行
     * `postCard.imageMode`: 首页文章卡片封面样式，`top` 为图片在内容上方，`background` 为图片作为卡片背景

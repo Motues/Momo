@@ -1,9 +1,10 @@
 ---
 import '@styles/global.css'
-import { siteConfig, licenseConfig, profileConfig } from '@/config'
+import { siteConfig, licenseConfig } from '@/config'
 import MainPageLayout from '@layouts/MainPageLayout.astro'
 import Markdown from '@components/misc/Markdown.astro'
 import ImageModule from '@components/misc/ImageModule.astro'
+import ReadingProgress from '@components/control/ReadingProgress.astro'
 import FabMenu from '@components/control/FabMenu.astro'
 import TOC from '@components/TOC.svelte'
 import LicenseCard from '@components/misc/LicenseCard.astro'
@@ -11,16 +12,17 @@ import Comments from '@components/comment/Comments.svelte'
 import Twikoo from '@components/comment/thirdparty/twikoo.astro'
 import BlogNavi from '@components/control/BlogNavi.astro'
 
-import { getCollection, render } from 'astro:content'
+import { render } from 'astro:content'
 import { i18n } from "astro:config/client";
 import i18nit from '@i18n/translation'
 import { Icon } from "astro-icon/components";
 
-import { blogCoverUrl } from '@utils/urlUtils'
+import { blogCoverUrl, getRelativeLocaleUrl } from '@utils/urlUtils'
 import { formatFullDate } from '@/utils/time'
 import { getBlogEntrySort } from '@utils/contentUtils'
-import { getRelativeLocaleUrl } from '@utils/urlUtils';
-import { absoluteUrl, articleJsonLd, coverShareImage, normalizePath } from '@utils/seo';
+import { CONTENT_COVER } from '@utils/coverImage'
+import { coverPreload } from '@utils/imagePreload'
+import { absoluteUrl, articleBreadcrumbJsonLd, articleJsonLd, coverShareImage, normalizePath } from '@utils/seo';
 
 
 const currentLang = Astro.currentLocale || i18n!.defaultLocale;
@@ -59,27 +61,36 @@ export async function getStaticPaths() {
     return paths;
 }
 const { entry, prev, next } = Astro.props;
-const { Content, headings } = await render(entry); // 获取渲染后的正文内容
+// 只渲染一次：同一篇的正文 / 标题锚点 / reading-time 都在这一次里拿到
+// （以前这里第二次 render(entry) 只是为了取 remarkPluginFrontmatter，白白多跑一遍）。
+const { Content, headings, remarkPluginFrontmatter } = await render(entry);
 
 const pageTitle = entry.data.title + ' - ' + siteConfig.title;
 const image = blogCoverUrl(entry.data.image, entry.id);
 
-const { remarkPluginFrontmatter } = await render(entry);
-
 // ---- SEO：分享图（构建期转成 jpg）与文章结构化数据 ----
 const shareImage = await coverShareImage(entry.data.image, entry.id);
 const pageUrl = absoluteUrl(normalizePath(Astro.url.pathname));
-const postJsonLd = articleJsonLd({
-    title: entry.data.title,
-    description: entry.data.description,
-    url: pageUrl,
-    image: shareImage,
-    lang: currentLang,
-    pubDate: entry.data.pubDate,
-    category: entry.data.category,
-    words: remarkPluginFrontmatter.words,
-    minutes: remarkPluginFrontmatter.minutes,
-});
+const postJsonLd = [
+    articleJsonLd({
+        title: entry.data.title,
+        description: entry.data.description,
+        url: pageUrl,
+        image: shareImage,
+        lang: currentLang,
+        pubDate: entry.data.pubDate,
+        category: entry.data.category,
+        words: remarkPluginFrontmatter.words,
+        minutes: remarkPluginFrontmatter.minutes,
+    }),
+    // 面包屑：首页 › 文章标题，搜索结果里能显示层级而不是一串裸链接
+    articleBreadcrumbJsonLd({ title: entry.data.title, url: pageUrl, lang: currentLang }),
+];
+
+// 首屏 LCP 预加载：封面存在时按与 <Picture> 完全相同的档位生成 imagesrcset
+const preloadImage = image ? await coverPreload(image, CONTENT_COVER) : undefined;
+// KaTeX 样式表只在真的含公式的文章加载（remark-has-math 写的 frontmatter 标记）
+const mathStyles = remarkPluginFrontmatter.hasMath === true;
 ---
 <MainPageLayout
     title={pageTitle}
@@ -93,6 +104,8 @@ const postJsonLd = articleJsonLd({
     noindex={entry.data.draft}
     structuredData={postJsonLd}
     markdownFont={true}
+    mathStyles={mathStyles}
+    preloadImage={preloadImage}
 >
     <div class="mx-auto w-full max-w-[var(--page-width)] py-8 md:mt-0 mt-18">
         <div class="mb-18 text-center">
@@ -121,7 +134,7 @@ const postJsonLd = articleJsonLd({
         {image && (
             <div class="cover overflow-hidden">
                 {/* 文章封面通常就是本页的 LCP 元素：优先加载 */}
-                <ImageModule src={image} alt={entry.data.title} class="w-full h-full object-cover" priority width={1080} widths={[480, 1080]} sizes="(max-width: 862px) 90vw, 776px" quality={65} />
+                <ImageModule src={image} alt={entry.data.title} class="w-full h-full object-cover" priority width={1080} widths={CONTENT_COVER.widths} sizes={CONTENT_COVER.sizes} quality={CONTENT_COVER.quality} formats={['avif', 'webp']} />
             </div>
         )}
         {/* 页面级状态条（不是正文提示块）：圆角 8px 比提示块的 6px 大一档，属规范里的有意例外 */}
@@ -177,6 +190,9 @@ const postJsonLd = articleJsonLd({
     <!-- fixed 浮层：留在 swup 容器内，但在淡入淡出元素之外（见 MainPageLayout 的说明）。
          这里不能用 <Fragment slot="overlay">：包一层普通 div 不会影响 fixed 定位。 -->
     <div slot="overlay">
+        {/* 进度条是 fixed 元素，必须待在淡入淡出元素之外（.transition-swup-fade 的
+            opacity < 1 会成为它的包含块，换页那 200ms 里会跳位）——与 TOC / FAB 同一个道理。 */}
+        {siteConfig.theme.readingProgress && <ReadingProgress />}
         {
             siteConfig.toc.enable &&
             <TOC headings={headings} language={currentLang} client:idle/>

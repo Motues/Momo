@@ -9,6 +9,13 @@ import type { I18nConfig } from "./types/i18n"
 export const siteConfig: SiteConfig = {
     title: "Momo", // Title of the site, used in the tab in the browser and in SEO
     subTitle: "Blog", // Subtitle of the site
+    // Site description: the fallback meta description / og:description for pages without their own.
+    // It can be a single string or a per-language map (shown here), so the English pages
+    // don't inherit a Chinese sentence.
+    description: {
+        "zh-cn": "Momo 是一个极简风格的 Astro 博客模板：中英双语、深色模式、站内搜索，支持 KaTeX / Typst 等丰富的 Markdown 语法。",
+        en: "Momo is a minimalist Astro blog template with bilingual content, dark mode, built-in search and rich Markdown support such as KaTeX and Typst.",
+    },
     rootSiteUrl: "https://momo.motues.top", // Root URL of the site, used for generating absolute URLs for SEO and social sharing
 
     favicon: "/favicon/favicon.ico", // Path of the favicon, relative to the /public directory
@@ -30,6 +37,7 @@ export const siteConfig: SiteConfig = {
         AOS: true, // Whether to enable entrance animations (scroll/pop-in reveal, built in; the key name is kept for compatibility)
         LQIP: true, // Whether to enable LQIP (Low-Quality Image Placeholder) for image placeholders
         PhotoSwipe: true, // Whether to enable PhotoSwipe for image viewer
+        readingProgress: true, // Whether to show the reading progress bar (2px line) at the top of article pages
         imageCollage: {
             enable: true, // Whether to automatically arrange consecutive images into a grid (collage)
             maxColumns: 4 // Max images per row in a collage (2 - 6); the actual number is chosen automatically

@@ -1,8 +1,9 @@
 ---
 import { siteConfig } from '@/config'
 import ImageLightbox from './ImageLightbox.astro'
-// KaTeX 只用在正文公式上，放在这里可以避免每个页面都为它付出约 23 KB 的阻塞 CSS
-import 'katex/dist/katex.min.css'
+// KaTeX 样式不在这里静态 import：它只在含公式的页面由 Layout.astro 按需挂载
+// （检测在 src/plugins/remark-has-math.ts，页面通过 MainPageLayout 的 mathStyles 传入）。
+// 静态 import 会让每个正文页都背上一份 23 KB 的阻塞 CSS。
 import '@fontsource-variable/jetbrains-mono'
 import '@fontsource-variable/jetbrains-mono/wght-italic.css'
 import '@styles/markdown.css'

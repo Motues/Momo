@@ -9,9 +9,12 @@ import notoSerifSc700 from '@fontsource/noto-serif-sc/700.css?url';
 import lxgwBrightCss from '@chinese-fonts/lxgwwenkaibright/dist/LXGWBright-Medium/result.css?url';
 import osCss from 'overlayscrollbars/styles/overlayscrollbars.scriptingenabled.css?url';
 import photoCoverCss from '@styles/photo-cover.css?url';
+import katexCss from 'katex/dist/katex.min.css?url';
 import { i18n } from "astro:config/client";
 import { getSiteTitle } from '@utils/siteTitle';
 import { photoCoverEnabled } from '@utils/photoCover';
+import { getRelativeLocaleUrl, withTrailingSlash } from '@utils/urlUtils';
+import i18nit from '@i18n/translation';
 import {
   absoluteUrl,
   bcp47,
@@ -42,6 +45,20 @@ interface Props {
   structuredData?: Record<string, unknown> | Record<string, unknown>[];
   /** 页面是否渲染 Markdown 正文：决定要不要异步加载引用块专用的 LXGW 字体 */
   markdownFont?: boolean;
+  /** 页面正文是否含数学公式：决定要不要挂 KaTeX 样式表（由 remark-has-math 写入 frontmatter） */
+  mathStyles?: boolean;
+  /**
+   * 首屏 LCP 图片的预加载信息（由 @utils/imagePreload 生成）。
+   * 传了就在 <head> 里输出一条 imagesrcset 预加载，让浏览器在解析正文前就开始下载。
+   */
+  preloadImage?: {
+    href: string;
+    srcset?: string;
+    sizes?: string;
+    type?: string;
+  };
+  /** 分页序列：输出 <link rel="prev/next">，让爬虫知道这是系列页 */
+  pagination?: { prev?: string; next?: string };
 }
 const {
   title,
@@ -56,15 +73,21 @@ const {
   noindex = false,
   structuredData,
   markdownFont = false,
+  mathStyles = false,
+  preloadImage,
+  pagination,
 } = Astro.props;
 
 const pageTitle = title;
 const pageLang = bcp47(lang || i18n?.defaultLocale || 'zh-cn');
+/** 当前页面语言的界面文案（skip-link 等极少量的布局级文案用） */
+const t = i18nit(lang || i18n?.defaultLocale || 'zh-cn');
 
 // ---- SEO 元信息 ----
 const canonical = absoluteUrl(normalizePath(Astro.url.pathname));
 const alternates = localeAlternates(Astro.url.pathname);
-const descriptionText = pageDescription(description);
+const descriptionText = pageDescription(description, lang || i18n?.defaultLocale);
+// 只有本页真的带了封面才输出 og:image（社交平台拿不到图时会退化成一行小字卡片）
 const shareImage = image ? absoluteUrl(image) : '';
 const ogLocale = pageLang.replace('-', '_');
 const alternateLocales = alternates
@@ -194,9 +217,14 @@ const photoCoverOn = photoCoverEnabled();
     <meta name="twitter:description" content={descriptionText}>
     {shareImage && <meta name="twitter:image" content={shareImage}>}
 
+    <!-- 分页序列：上一页 / 下一页，帮助爬虫理解系列页的先后关系 -->
+    {pagination?.prev && <link rel="prev" href={pagination.prev}>}
+    {pagination?.next && <link rel="next" href={pagination.next}>}
+
     <meta name="theme-color" media="(prefers-color-scheme: light)" content="#fbfbfb">
     <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#0a0a0a">
-    <link rel="alternate" type="application/rss+xml" title={getSiteTitle()} href={new URL("rss.xml", Astro.site)} >
+    <!-- 订阅源按语言分开：/rss.xml 是默认语言，/en/rss.xml 是其它语言（SEO-01） -->
+    <link rel="alternate" type="application/rss+xml" title={getSiteTitle()} href={absoluteUrl(withTrailingSlash(getRelativeLocaleUrl(lang || i18n?.defaultLocale || 'zh-cn', '/rss.xml')))} >
     <link rel="icon" href={siteConfig.favicon} type="image/x-icon">
 
     <!-- OverlayScrollbars 的样式表：必须阻塞（桥接属性要在首屏前把原生滚动条藏掉） -->
@@ -205,6 +233,11 @@ const photoCoverOn = photoCoverEnabled();
     <!-- 照片封面：同样是阻塞样式，首屏的居中标题、蒙版与淡出都靠它，不能等 -->
     {photoCoverOn && <link rel="stylesheet" href={photoCoverCss}>}
 
+    <!-- 正文字体（Noto Serif SC 400 / 700）：两份 CSS 都非阻塞加载。
+         前面的 as="style" preload 不阻塞渲染，但能让请求在解析 <head> 时就以高优先级发出。
+         data-swup-theme 见下方说明（换页时 head 插件不能删也不能重加它）。 -->
+    <link rel="preload" as="style" href={notoSerifSc400}>
+    <link rel="preload" as="style" href={notoSerifSc700}>
     <link rel="stylesheet" data-swup-theme href={notoSerifSc400} media="print" onload="this.media='all'">
     <noscript><link rel="stylesheet" href={notoSerifSc400}></noscript>
     <link rel="stylesheet" data-swup-theme href={notoSerifSc700} media="print" onload="this.media='all'">
@@ -213,6 +246,23 @@ const photoCoverOn = photoCoverEnabled();
     <!-- 引用块字体（LXGW Bright Medium）：只有渲染正文的页面才需要，同样非阻塞 -->
     {markdownFont && <link rel="stylesheet" href={lxgwBrightCss} media="print" onload="this.media='all'">}
     {markdownFont && <noscript><link rel="stylesheet" href={lxgwBrightCss}></noscript>}
+
+    <!-- KaTeX：只给真的含公式的页面（remark-has-math 的 frontmatter 标记）。
+         它必须是阻塞样式——公式在正文里可能就在首屏，晚到会先闪一下裸 HTML。 -->
+    {mathStyles && <link rel="stylesheet" href={katexCss}>}
+
+    <!-- 首屏 LCP 图片预加载：imagesrcset + imagesizes 与 <Picture> 的 srcset 完全一致，
+         浏览器会按同一套规则挑档位，不会多下一份。type 写在 preload 上，
+         不支持 AVIF 的浏览器会忽略这条预加载、照常走 <picture> 的回退链。 -->
+    {preloadImage && <link
+        rel="preload"
+        as="image"
+        href={preloadImage.href}
+        imagesrcset={preloadImage.srcset}
+        imagesizes={preloadImage.sizes}
+        type={preloadImage.type}
+        fetchpriority="high"
+    >}
 
     <!-- 第三方域名连接预热：统计域名随时可能用到，评论后端只在文章页预热 -->
     <link rel="dns-prefetch" href={originOf(umamiScript)}>
@@ -581,6 +631,11 @@ const photoCoverOn = photoCoverEnabled();
 </head>
 <body class="h-full bg-[var(--bg-color)]" {...osAttrs}>
     
+    <!-- 键盘用户的第一个可聚焦元素：直接跳到正文，不用逐项 Tab 过顶栏与导航。
+         目标 main#swup-container 是 tabindex="-1"（见 MainPageLayout），
+         浏览器才会把焦点一起移过去，而不是只滚动页面。 -->
+    <a href="#swup-container" class="skip-link">{t("a11y.skipToContent")}</a>
+
     {osEnabled && <OverlayScrollbars />}
 
     <div id="loading-overlay" aria-hidden="true">
@@ -593,6 +648,30 @@ const photoCoverOn = photoCoverEnabled();
 </html>
 
 <style is:global>
+  /* 跳到正文：平时完全移出视口，键盘聚焦时从左上角滑下来。
+     它是 body 的第一个子元素，Tab 的第一站就是它（见 body 开头）。 */
+  .skip-link {
+    position: fixed;
+    top: var(--momo-space-2);
+    left: var(--momo-space-2);
+    z-index: var(--momo-z-toast);
+    padding: var(--momo-space-2) var(--momo-space-4);
+    border-radius: var(--momo-radius-md);
+    border: 1px solid var(--border-color-strong);
+    background-color: var(--surface-color);
+    color: var(--text-color);
+    font-size: var(--momo-font-size-sm);
+    box-shadow: var(--momo-shadow-md);
+    transform: translateY(calc(-100% - var(--momo-space-4)));
+    transition: transform var(--momo-t-fast) var(--momo-ease-out);
+  }
+
+  .skip-link:focus-visible {
+    transform: translateY(0);
+    outline: 2px solid var(--link-color);
+    outline-offset: 2px;
+  }
+
   #loading-overlay {
     position: fixed;
     inset: 0;

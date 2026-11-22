@@ -33,8 +33,8 @@ importers:
         specifier: ^5.2.7
         version: 5.2.7
       '@fontsource/noto-serif-sc':
-        specifier: ^5.2.9
-        version: 5.2.9
+        specifier: ^5.3.1
+        version: 5.3.1
       '@iconify/svelte':
         specifier: ^5.2.1
         version: 5.2.1(svelte@5.55.5)
@@ -192,6 +192,9 @@ importers:
       remark-rehype:
         specifier: ^11.1.1
         version: 11.1.2
+      sharp:
+        specifier: ^0.34.3
+        version: 0.34.5
       unified:
         specifier: ^11.0.5
         version: 11.0.5
@@ -1213,8 +1216,8 @@ packages:
   '@fontsource/eb-garamond@5.2.7':
     resolution: {integrity: sha512-V42tTlHDbnDo0+lENnXKWMx63Llq6Gfl2l7ozkoeRQN60S0jm6hEgCLlOT/5YyKAN9QZ0e2ofpy0rGKlz9jBrw==}
 
-  '@fontsource/noto-serif-sc@5.2.9':
-    resolution: {integrity: sha512-+wosdNmyrtRjnqJ/4A6i99jApm6ye34n8Nh7jUO3P/+6Hd1ZBY1gB9yGaI5jVxb56RS1lM2kTc0DzX1ifRO2MA==}
+  '@fontsource/noto-serif-sc@5.3.1':
+    resolution: {integrity: sha512-nIK2HyNGcUi2TGwIfrk2MItkh0O3Y5+TI8iPfPSzoNY6uyXYfQ9qqch8czk3aa1VhV4EU52uwCYCe1UDKJELpg==}
 
   '@hono/node-server@1.19.17':
     resolution: {integrity: sha512-dSneS5qhiauZWGDCeK4o695Xd9nUNjviSZCMQrj10eetr8Uln1ucn6bbphOM6UynAMMtNIzZNSpL9vnASJwrPQ==}
@@ -6055,7 +6058,7 @@ snapshots:
 
   '@fontsource/eb-garamond@5.2.7': {}
 
-  '@fontsource/noto-serif-sc@5.2.9': {}
+  '@fontsource/noto-serif-sc@5.3.1': {}
 
   '@hono/node-server@1.19.17(hono@4.13.2)':
     dependencies:

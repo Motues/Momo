@@ -35,7 +35,8 @@ Below are general modification suggestions.
 * **One visual language across the site**: colors, type, spacing, radii, shadows and motion timings now come from a single set of design tokens shared by cards, buttons, category chips, callouts and the search dialog, with contrast recalibrated in both light and dark mode
 * **More reliable entrance animations**: cards and prose now rise with a built-in animation instead of AOS; it keeps working after in-site navigation (no more "only after a refresh"), and content is visible immediately when the animation switch is off or JavaScript is disabled
 * **Color and breakpoint tune-up**: the link blue and its dark-mode counterpart were re-picked, the four callout colors are unified, the mobile breakpoint is consistently 776px, and the CMS live preview now follows the site palette
-* No config file needs manual merging this time (`src/config.ts` can stay as yours); just run `pnpm install` after overwriting — AOS has been removed from the dependencies
+* **Leaner site config**: a few options that never earned their keep are gone (`faviconSvg`, `appleTouchIcon`, `manifest`, `defaultOgImage`, `twitterSite`); the site keeps using the original `favicon`, and pages without a cover no longer emit a default share image
+* This update modifies `src/config.ts` (those options were removed — delete the lines if you had set them); keep your own version of everything else, run `pnpm install` after overwriting, and AOS is gone from the dependencies
 
 ### 26.11.19
 

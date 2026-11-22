@@ -1,6 +1,12 @@
 export type SiteConfig = {
     title: string;
     subTitle: string;
+    /**
+     * 站点描述：meta description / og:description 的兜底文案。
+     * 可以是单个字符串（所有语言共用），也可以按语言给（`{ "zh-cn": "...", en: "..." }`）。
+     * 不填则回退个人信息里的简介。
+     */
+    description?: string | Record<string, string>;
     rootSiteUrl?: string;
 
     favicon: string;
@@ -22,6 +28,8 @@ export type SiteConfig = {
         AOS: boolean;
         LQIP: boolean;
         PhotoSwipe: boolean;
+        /** 文章页顶部的阅读进度条（2px 细线 + 剩余时间） */
+        readingProgress: boolean;
         imageCollage: {
             enable: boolean;
             maxColumns: number;

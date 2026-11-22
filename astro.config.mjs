@@ -22,6 +22,7 @@ import { remarkTypst } from './src/plugins/remark-typst.ts';
 import { remarkReadingTime } from './src/plugins/remark-reading-time.ts';
 import { remarkLqip } from './src/plugins/remark-lqip.ts';
 import { rehypeSearchAnchor } from './src/plugins/rehype-search-anchor.ts';
+import { remarkHasMath } from './src/plugins/remark-has-math.ts';
 
 import svelte from "@astrojs/svelte";
 import swupIntegration from '@swup/astro';
@@ -101,6 +102,7 @@ export default defineConfig({
     processor: unified({
       remarkPlugins: [
         remarkMath,
+        remarkHasMath,
         remarkReadingTime,
         remarkDirective,
         remarkTypst,
