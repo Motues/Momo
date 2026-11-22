@@ -21,13 +21,17 @@ const TOTAL_LIMIT = 20;
 /** 摘要高亮最多切多少段（超出部分不再标，防止超长查询把摘要切碎） */
 const MAX_MARKS = 24;
 
-interface PreparedPage {
+export interface PreparedPage {
     url: string;
     title: string;
     titleNorm: string;
     titleCompact: string;
     description: string;
     descNorm: string;
+    /** 分类（只有文章页有） */
+    category: string;
+    /** 发布日期 YYYY-MM-DD（只有文章页有） */
+    published: string;
 }
 
 interface PreparedDoc {
@@ -66,6 +70,8 @@ export function prepareIndex(file: SearchIndexFile): PreparedIndex {
             titleCompact: titleNorm.replace(/\s+/g, ''),
             description: page.d || '',
             descNorm,
+            category: page.c || '',
+            published: page.p || '',
         };
     });
 
@@ -183,21 +189,51 @@ interface ScoredDoc {
 /**
  * 搜索。先按严格条件（英文全部命中 + 中文至少命中 60% 的二元词）筛，
  * 一条都没有时自动放宽，避免长查询直接空手而归。
+ *
+ * `categories` 非空时只在这些分类的页面里搜（搜索弹窗的分类胶囊）。
  */
-export function search(index: PreparedIndex, rawQuery: string, options: { prefix?: boolean } = {}): SearchHit[] {
+export function search(
+    index: PreparedIndex,
+    rawQuery: string,
+    options: { prefix?: boolean; categories?: string[] } = {},
+): SearchHit[] {
     const analysis = analyzeQuery(rawQuery);
     if (!analysis) return [];
 
-    let hits = run(index, analysis, options.prefix === true);
+    const categories = options.categories?.length ? options.categories : undefined;
+    let hits = run(index, analysis, options.prefix === true, categories);
     // 英文词打了一半（比如 sear → search）：严格匹配没有结果时再按词首匹配一次
     if (hits.length === 0 && !options.prefix && analysis.latin.some((term) => term.length >= 3)) {
-        hits = run(index, analysis, true);
+        hits = run(index, analysis, true, categories);
     }
     return hits;
 }
 
-function run(index: PreparedIndex, analysis: QueryAnalysis, prefix: boolean): SearchHit[] {
-    const { docs, pages } = index;
+/** 索引里出现过的分类（按名称排序，去掉空值） */
+export function indexCategories(index: PreparedIndex): string[] {
+    return [...new Set(index.pages.map((page) => page.category).filter(Boolean))].sort();
+}
+
+/** 最近发布的文章页（没有日期的页面排最后），用于「没有结果时」的推荐 */
+export function recentPages(index: PreparedIndex, limit = 4): PreparedPage[] {
+    return [...index.pages]
+        .filter((page) => page.title)
+        .sort((a, b) => (b.published || '').localeCompare(a.published || ''))
+        .slice(0, limit);
+}
+
+function run(
+    index: PreparedIndex,
+    analysis: QueryAnalysis,
+    prefix: boolean,
+    categories?: string[],
+): SearchHit[] {
+    const { pages } = index;
+    // 分类筛选在建索引时就定好页面集合，后面逐文档扫的时候直接跳过别的页面
+    const allowedPages = categories
+        ? new Set(pages.map((page, i) => (categories.includes(page.category) ? i : -1)).filter((i) => i >= 0))
+        : null;
+    const docs = allowedPages ? index.docs.filter((doc) => allowedPages.has(doc.page)) : index.docs;
     if (docs.length === 0) return [];
 
     // 第一遍：文档频率（IDF）
@@ -296,6 +332,8 @@ function run(index: PreparedIndex, analysis: QueryAnalysis, prefix: boolean): Se
         const page = pages[doc.page];
         hits.push({
             url: page.url + (doc.anchor ? `#${doc.anchor}` : ''),
+            page: doc.page,
+            pageUrl: page.url,
             title: page.title,
             trail: doc.trail,
             parts: buildSnippet(doc, analysis.terms),

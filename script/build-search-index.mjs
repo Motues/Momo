@@ -129,6 +129,18 @@ function pageMeta(doc, filePath) {
     );
     const description = clean(attr(descNode || { attrs: [] }, 'content') || '');
 
+    // 分类与发布日期来自文章页的 article:* meta（非文章页没有，留空）：
+    // 搜索弹窗用它们做「按分类筛选」与「没有结果时推荐最近文章」。
+    const metaContent = (property) => {
+        const node = findFirst(
+            doc,
+            (item) => item.tagName === 'meta' && (attr(item, 'property') || '').toLowerCase() === property,
+        );
+        return clean(attr(node || { attrs: [] }, 'content') || '');
+    };
+    const category = metaContent('article:section');
+    const published = metaContent('article:published_time').slice(0, 10);
+
     const canonicalNode = findFirst(
         doc,
         (node) => node.tagName === 'link' && (attr(node, 'rel') || '').toLowerCase() === 'canonical',
@@ -151,7 +163,7 @@ function pageMeta(doc, filePath) {
     if (url.endsWith('/index.html')) url = url.slice(0, -'index.html'.length);
     if (!url.endsWith('/')) url += '/';
 
-    return { lang, title, description, url };
+    return { lang, title, description, url, category, published };
 }
 
 /** 长块切分：优先在空格处切；中文没有空格就按固定长度硬切 */
@@ -254,6 +266,8 @@ async function main() {
             u: meta.url,
             t: meta.title,
             d: meta.description,
+            c: meta.category,
+            p: meta.published,
             blocks,
         });
     }
@@ -274,7 +288,14 @@ async function main() {
         const outputBlocks = [];
 
         pages.forEach((page, index) => {
-            outputPages.push({ u: page.u, t: page.t, d: page.d });
+            // c / p 只有文章页才有（分类与发布日期），别的页面省略字段以省体积
+            outputPages.push({
+                u: page.u,
+                t: page.t,
+                d: page.d,
+                ...(page.c ? { c: page.c } : {}),
+                ...(page.p ? { p: page.p } : {}),
+            });
             for (const block of page.blocks) {
                 outputBlocks.push({ p: index, a: block.a, h: block.h, x: block.x });
             }

@@ -13,6 +13,10 @@ export interface SearchIndexPage {
     t: string
     /** meta description，可能为空 */
     d?: string
+    /** 分类（仅文章页，来自 article:section） */
+    c?: string
+    /** 发布日期 YYYY-MM-DD（仅文章页），用于「最近文章」推荐 */
+    p?: string
 }
 
 /** 索引里的一个正文块（段落 / 列表项 / 提示块 / 标题……） */
@@ -46,6 +50,10 @@ export interface SnippetPart {
 export interface SearchHit {
     /** 带 #锚点 的站内路径 */
     url: string
+    /** 所属页面在索引 pages 里的下标（UI 按文章聚合结果用） */
+    page: number
+    /** 页面级路径（不含锚点），聚合时的分组键 */
+    pageUrl: string
     /** 页面标题 */
     title: string
     /** 标题路径（页面级结果为真实标题本身时为空） */

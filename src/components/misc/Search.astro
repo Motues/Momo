@@ -28,15 +28,23 @@ const translationsByLocale = Object.fromEntries(
         tip: tr("search.tip"),
         devHint: tr("search.devHint"),
         page: tr("search.page"),
+        history: tr("search.history"),
+        clearHistory: tr("search.clearHistory"),
+        allCategories: tr("search.allCategories"),
+        suggestions: tr("search.suggestions"),
       },
     ];
   }),
 );
 ---
+
 <!--
   层级：z-[var(--momo-z-modal)] 必须高于右下角 FabMenu（#fabMenu 为 z-[1000]，其目录面板 z-[1001]
   是在 FAB 自己的层叠上下文里，所以盖过 1000 即可），否则遮罩与弹窗会压在 FAB 下面，
   浮动按钮会浮在遮罩之上；同时保持在图片灯箱（z-2000）之下。
+
+  关闭态带 inert：只是 opacity-0 + pointer-events-none 时，键盘 Tab 仍然能进到隐藏的输入框里
+  （FIX-02）。inert 同时把整棵子树移出无障碍树，打开时由 openModal 摘掉。
 -->
 <div
   id="search-modal"
@@ -45,13 +53,14 @@ const translationsByLocale = Object.fromEntries(
   aria-label={t("search.label")}
   data-i18n-search={JSON.stringify(translationsByLocale)}
   class="fixed inset-0 z-[var(--momo-z-modal)] opacity-0 pointer-events-none"
+  inert
 >
   <div class="absolute inset-0 modal-backdrop opacity-0" aria-hidden="true"></div>
 
   <div class="fixed inset-0 flex items-start justify-center p-4 pt-[25vh]">
     <div class="search-modal-content momo-panel w-full max-w-2xl overflow-hidden scale-90 opacity-0 flex flex-col max-h-[60vh]">
       <div class="flex items-center p-4 border-b border-[var(--button-border-color)]">
-        <svg class="w-5 h-5 text-[var(--text-color-70)] mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+        <svg class="w-5 h-5 text-[var(--text-color-70)] mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
         </svg>
         <input
@@ -66,12 +75,17 @@ const translationsByLocale = Object.fromEntries(
           placeholder={t("search.placeholder")+"..."}
           class="w-full bg-transparent border-0 focus:ring-0 focus:outline-none text-[var(--text-color)]"
         />
-        <button id="close-search" class="ml-2 momo-btn momo-btn--ghost momo-icon-btn" aria-label="Close Search">
-          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+        <button id="close-search" class="ml-2 momo-btn momo-btn--ghost momo-icon-btn" aria-label={t("search.label")}>
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
           </svg>
         </button>
       </div>
+
+      <!-- 分类筛选：分类来自搜索索引（文章页的 article:section），点一下只在该分类里搜。
+           没有分类时整行隐藏。按钮由脚本生成，样式走全局。 -->
+      <div id="search-filters" class="search-filters" role="group" aria-label={t("search.allCategories")} hidden></div>
+
       <!-- #search-results 是滚动容器（由 OverlayScrollbars 接管），
            #search-results-list 才是真正被重写的目标。
            ⚠️ 两者必须分开：OS 会在容器里插入自己的包装层
@@ -98,8 +112,8 @@ import { registerPageInit } from '@utils/pageInit';
 import { currentLangFromUrl } from '@utils/locale';
 import { lockPageScroll, unlockPageScroll } from '@utils/scrollLock';
 import { loadSearchIndex, SearchIndexError } from '@utils/search/load';
-import { search } from '@utils/search/rank';
-import type { PreparedIndex } from '@utils/search/rank';
+import { indexCategories, recentPages, search } from '@utils/search/rank';
+import type { PreparedIndex, PreparedPage } from '@utils/search/rank';
 import type { SearchHit } from '@/types/search';
 
 interface SearchTranslations {
@@ -113,6 +127,10 @@ interface SearchTranslations {
   tip: string;
   devHint: string;
   page: string;
+  history: string;
+  clearHistory: string;
+  allCategories: string;
+  suggestions: string;
 }
 
 const FALLBACK_TRANSLATIONS: SearchTranslations = {
@@ -126,7 +144,15 @@ const FALLBACK_TRANSLATIONS: SearchTranslations = {
   tip: '↑↓ select · Enter open · Esc close',
   devHint: 'Search index is not built yet: run pnpm build, then pnpm preview',
   page: 'Article',
+  history: 'Recent searches',
+  clearHistory: 'Clear',
+  allCategories: 'All',
+  suggestions: 'Try these posts',
 };
+
+/** 搜索历史的 localStorage 键；只存查询串（最多 HISTORY_LIMIT 条） */
+const HISTORY_KEY = 'momo-search-history';
+const HISTORY_LIMIT = 8;
 
 let translations: SearchTranslations = FALLBACK_TRANSLATIONS;
 // 当前弹窗文案 / 查询对应的语言；换语言后清掉旧输入与旧结果
@@ -137,11 +163,17 @@ let prepared: PreparedIndex | null = null;
 let preparedLang = '';
 let hits: SearchHit[] = [];
 let activeIndex = -1;
+// 分类筛选：空串 = 全部分类（单选，比多选更符合「先缩小范围」的使用习惯）
+let activeCategory = '';
 // 每次输入 / 清空都 +1：索引加载是异步的，回来时如果已经换了查询就丢掉旧结果
 let searchSeq = 0;
 let debounceTimer: ReturnType<typeof setTimeout> | undefined;
 // 中文输入法拼写过程中 input 里是拼音，先不触发搜索，等 compositionend 再查
 let composing = false;
+// 关闭后把焦点还给打开弹窗的那个元素（搜索按钮 / 键盘快捷键前的位置）
+let returnFocus: HTMLElement | null = null;
+// 已经处理过的 ?q= 深链接，避免每次 page-load 都重新打开弹窗
+let handledDeepLink = '';
 
 function el<T extends Element>(id: string): T | null {
   return document.getElementById(id) as T | null;
@@ -150,6 +182,14 @@ function el<T extends Element>(id: string): T | null {
 function isOpen(): boolean {
   const modal = el<HTMLElement>('search-modal');
   return Boolean(modal && !modal.classList.contains('opacity-0'));
+}
+
+/** 弹窗开关时同步 inert：关闭态里键盘与读屏都进不去（FIX-02） */
+function setModalInert(inert: boolean) {
+  const modal = el<HTMLElement>('search-modal');
+  if (!modal) return;
+  if (inert) modal.setAttribute('inert', '');
+  else modal.removeAttribute('inert');
 }
 
 function readTranslations(): SearchTranslations | null {
@@ -165,6 +205,40 @@ function readTranslations(): SearchTranslations | null {
   if (!byLocale) return null;
 
   return byLocale[currentLangFromUrl()] || Object.values(byLocale)[0] || null;
+}
+
+/* ------------------------------------------------------------------
+ * 本地搜索历史（FEAT-12）
+ * localStorage 在隐私模式下会抛错，所以全部读写都包在 try 里：
+ * 历史只是锦上添花，不能因为存不了就让搜索本身失败。
+ * ------------------------------------------------------------------ */
+function readHistory(): string[] {
+  try {
+    const raw = localStorage.getItem(HISTORY_KEY);
+    const parsed = raw ? JSON.parse(raw) : [];
+    return Array.isArray(parsed) ? parsed.filter((item) => typeof item === 'string').slice(0, HISTORY_LIMIT) : [];
+  } catch {
+    return [];
+  }
+}
+
+function rememberQuery(query: string) {
+  const value = query.trim();
+  if (!value) return;
+  const next = [value, ...readHistory().filter((item) => item !== value)].slice(0, HISTORY_LIMIT);
+  try {
+    localStorage.setItem(HISTORY_KEY, JSON.stringify(next));
+  } catch {
+    // 存不了就算了
+  }
+}
+
+function clearHistory() {
+  try {
+    localStorage.removeItem(HISTORY_KEY);
+  } catch {
+    // 同上
+  }
 }
 
 /**
@@ -185,25 +259,30 @@ function syncSearchLocale() {
     preparedLang = '';
     hits = [];
     activeIndex = -1;
+    activeCategory = '';
+    renderFilters();
     const input = el<HTMLInputElement>('search-input');
     if (input) input.value = '';
-    // 弹窗虽然已经关了，但结果 DOM 还留在容器里；先把列表恢复成提示态，
+    // 弹窗虽然已经关了，但结果 DOM 还留在容器里；先把列表恢复成空闲态，
     // 否则下一次打开会短暂闪出上一门语言的旧结果。
-    showHint();
+    showIdle();
   }
 
   const modal = el<HTMLElement>('search-modal');
   modal?.setAttribute('aria-label', translations.label);
   el<HTMLElement>('search-results-list')?.setAttribute('aria-label', translations.label);
+  el<HTMLElement>('search-filters')?.setAttribute('aria-label', translations.allCategories);
 
   const input = el<HTMLInputElement>('search-input');
   if (input) input.placeholder = `${translations.placeholder}...`;
 
-  const hint = document.querySelector('[data-search-hint] p');
-  if (hint) hint.textContent = translations.hint;
-
   const tip = document.querySelector('[data-search-tip]');
   if (tip) tip.textContent = translations.tip;
+
+  // 空闲态（提示 / 历史）的文案也要换语言
+  const current = input?.value.trim() ?? '';
+  if (!current) showIdle();
+  else renderFilters();
 }
 
 function setPageScrollLocked(locked: boolean) {
@@ -219,6 +298,17 @@ function setPageScrollLocked(locked: boolean) {
   else unlockPageScroll();
 }
 
+/** 弹窗内可聚焦的元素（焦点陷阱用，首尾循环） */
+function modalFocusables(): HTMLElement[] {
+  const content = el<HTMLElement>('search-modal')?.querySelector('.search-modal-content');
+  if (!content) return [];
+  return Array.from(
+    content.querySelectorAll<HTMLElement>(
+      'button:not([disabled]), a[href], input:not([disabled]), [tabindex]:not([tabindex="-1"])',
+    ),
+  ).filter((node) => node.offsetParent !== null);
+}
+
 function openModal() {
   const modal = el<HTMLElement>('search-modal');
   if (!modal) return;
@@ -229,14 +319,21 @@ function openModal() {
     preparedLang = '';
     hits = [];
     activeIndex = -1;
+    activeCategory = '';
     const input = el<HTMLInputElement>('search-input');
     if (input) input.value = '';
-    showHint();
+    showIdle();
   }
 
   const modalEl = modal as HTMLElement & { __closeTimer?: ReturnType<typeof setTimeout> };
   clearTimeout(modalEl.__closeTimer);
 
+  // 记住是谁打开的：关闭后把焦点还回去
+  if (document.activeElement instanceof HTMLElement && !modal.contains(document.activeElement)) {
+    returnFocus = document.activeElement;
+  }
+
+  setModalInert(false);
   modal.classList.remove('opacity-0', 'pointer-events-none');
   modal.offsetHeight;
   requestAnimationFrame(() => {
@@ -253,7 +350,9 @@ function openModal() {
   setPageScrollLocked(true);
 
   // 打开时就加载索引：首次会等一会儿，但输入框可以立刻打字
-  void ensureIndex(false);
+  void ensureIndex(false).then((index) => {
+    if (index) renderFilters();
+  });
 }
 
 function closeModal() {
@@ -275,8 +374,14 @@ function closeModal() {
   clearTimeout(modalEl.__closeTimer);
   modalEl.__closeTimer = setTimeout(() => {
     modal.classList.add('opacity-0', 'pointer-events-none');
+    // inert 要等淡出结束再加，否则关闭动画期间焦点会先掉回 body
+    setModalInert(true);
     // 等淡出结束再解锁：解锁早了，淡出的这几百毫秒里滚轮又能滚到后面的页面
     setPageScrollLocked(false);
+    if (returnFocus && document.contains(returnFocus)) {
+      returnFocus.focus();
+    }
+    returnFocus = null;
   }, 240);
 }
 
@@ -299,14 +404,92 @@ function updateCount(count: number | null) {
   target.textContent = count === null ? '' : translations.results.replace('{count}', String(count));
 }
 
-function showHint() {
+/** 分类胶囊：分类来自索引，点一下在当前分类里搜（再点一次回到全部） */
+function renderFilters() {
+  const filters = el<HTMLElement>('search-filters');
+  if (!filters) return;
+
+  const categories = prepared ? indexCategories(prepared) : [];
+  if (categories.length === 0) {
+    filters.hidden = true;
+    filters.replaceChildren();
+    return;
+  }
+
+  // 语言切换 / 索引重载后当前分类可能已经不存在了
+  if (activeCategory && !categories.includes(activeCategory)) activeCategory = '';
+
+  const fragment = document.createDocumentFragment();
+  const options = [{ value: '', label: translations.allCategories }, ...categories.map((c) => ({ value: c, label: c }))];
+
+  for (const option of options) {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'search-chip';
+    button.dataset.searchCategory = option.value;
+    button.setAttribute('aria-pressed', option.value === activeCategory ? 'true' : 'false');
+    button.textContent = option.label;
+    fragment.append(button);
+  }
+
+  filters.replaceChildren(fragment);
+  filters.hidden = false;
+}
+
+function historyItem(query: string): HTMLLIElement {
+  const item = document.createElement('li');
+  const button = document.createElement('button');
+  button.type = 'button';
+  button.className = 'search-history-item';
+  button.dataset.historyQuery = query;
+  button.textContent = query;
+  item.append(button);
+  return item;
+}
+
+/**
+ * 空闲态：没有输入时显示「最近搜索」（有历史）或一句提示。
+ * 以前这里永远是提示，历史就没地方放了。
+ */
+function showIdle() {
   searchSeq++;
   clearTimeout(debounceTimer);
   hits = [];
   activeIndex = -1;
-  setMessage(translations.hint, true);
-  updateCount(null);
   el<HTMLInputElement>('search-input')?.removeAttribute('aria-activedescendant');
+
+  const list = el<HTMLElement>('search-results-list');
+  if (!list) return;
+
+  const history = readHistory();
+  if (history.length === 0) {
+    setMessage(translations.hint, true);
+    updateCount(null);
+    return;
+  }
+
+  const wrap = document.createElement('div');
+  wrap.className = 'search-history';
+
+  const header = document.createElement('div');
+  header.className = 'search-section-head';
+  const title = document.createElement('span');
+  title.className = 'search-section-title';
+  title.textContent = translations.history;
+  const clear = document.createElement('button');
+  clear.type = 'button';
+  clear.className = 'search-history-clear';
+  clear.dataset.historyClear = '1';
+  clear.textContent = translations.clearHistory;
+  header.append(title, clear);
+
+  const items = document.createElement('ul');
+  items.className = 'search-history-list';
+  for (const query of history) items.append(historyItem(query));
+
+  wrap.append(header, items);
+  list.replaceChildren(wrap);
+  updateCount(null);
 }
 
 function showIndexError(error: unknown) {
@@ -348,14 +531,126 @@ async function runSearch(query: string) {
     setMessage(translations.searching);
     const index = await ensureIndex(false);
     if (!index || seq !== searchSeq) return;
+    renderFilters();
   }
 
   const current = el<HTMLInputElement>('search-input')?.value.trim() || '';
   if (current !== query || currentLangFromUrl() !== lang || !prepared) return;
 
-  hits = search(prepared, query);
+  hits = search(prepared, query, {
+    categories: activeCategory ? [activeCategory] : undefined,
+  });
   activeIndex = hits.length > 0 ? 0 : -1;
   renderResults();
+
+  // 只在真的搜出东西时记历史：手滑打错的串不该留在「最近搜索」里
+  if (hits.length > 0) rememberQuery(query);
+}
+
+/* ------------------------------------------------------------------
+ * 结果渲染：按文章聚合（FEAT-12）
+ * 同一篇文章的多个段落结果收在一个分组里，组头是文章标题（链接到文章顶部），
+ * 下面才是各段落的命中行；只有「文章标题命中、正文没有」时只渲染一行，不重复两遍标题。
+ * ------------------------------------------------------------------ */
+interface HitGroup {
+  page: number;
+  title: string;
+  url: string;
+  hits: SearchHit[];
+}
+
+function groupHits(): HitGroup[] {
+  const groups: HitGroup[] = [];
+  const byPage = new Map<number, HitGroup>();
+  for (const hit of hits) {
+    let group = byPage.get(hit.page);
+    if (!group) {
+      group = { page: hit.page, title: hit.title, url: hit.pageUrl, hits: [] };
+      byPage.set(hit.page, group);
+      groups.push(group);
+    }
+    group.hits.push(hit);
+  }
+  return groups;
+}
+
+function snippetNode(hit: SearchHit): HTMLElement | null {
+  if (hit.parts.length === 0) return null;
+  const snippet = document.createElement('p');
+  snippet.className = 'search-hit-snippet';
+  for (const part of hit.parts) {
+    if (part.hit) {
+      const mark = document.createElement('mark');
+      mark.textContent = part.text;
+      snippet.append(mark);
+    } else {
+      snippet.append(document.createTextNode(part.text));
+    }
+  }
+  return snippet;
+}
+
+/** 一条可聚焦的结果行（role=option，参与 ↑↓ 选择） */
+function hitLink(hit: SearchHit, index: number, variant: 'head' | 'child'): HTMLAnchorElement {
+  const link = document.createElement('a');
+  link.className = variant === 'head' ? 'search-hit search-hit--head' : 'search-hit search-hit--child';
+  link.href = hit.url;
+  link.id = `search-hit-${index}`;
+  link.dataset.searchHit = '1';
+  link.setAttribute('role', 'option');
+  link.setAttribute('aria-selected', 'false');
+
+  if (variant === 'head') {
+    const head = document.createElement('div');
+    head.className = 'search-hit-head';
+    const title = document.createElement('span');
+    title.className = 'search-hit-title';
+    title.textContent = hit.title;
+    head.append(title);
+    if (!hit.anchor) {
+      const trail = document.createElement('span');
+      trail.className = 'search-hit-trail';
+      trail.textContent = translations.page;
+      head.append(trail);
+    }
+    link.append(head);
+  } else {
+    const head = document.createElement('div');
+    head.className = 'search-hit-head';
+    const trail = document.createElement('span');
+    trail.className = 'search-hit-trail search-hit-trail--path';
+    trail.textContent = hit.trail || translations.page;
+    head.append(trail);
+    link.append(head);
+  }
+
+  const snippet = snippetNode(hit);
+  if (snippet) link.append(snippet);
+  return link;
+}
+
+/** 分组头：文章标题 + 命中条数（只统计命中段落数） */
+function groupHead(group: HitGroup, index: number): HTMLAnchorElement {
+  const link = document.createElement('a');
+  link.className = 'search-hit search-hit--head search-hit--group';
+  link.href = group.url;
+  link.id = `search-hit-${index}`;
+  link.dataset.searchHit = '1';
+  link.setAttribute('role', 'option');
+  link.setAttribute('aria-selected', 'false');
+
+  const head = document.createElement('div');
+  head.className = 'search-hit-head';
+  const title = document.createElement('span');
+  title.className = 'search-hit-title';
+  title.textContent = group.title;
+  head.append(title);
+  const count = document.createElement('span');
+  count.className = 'search-group-count';
+  count.textContent = String(group.hits.length);
+  head.append(count);
+  link.append(head);
+  return link;
 }
 
 function renderResults() {
@@ -363,66 +658,66 @@ function renderResults() {
   if (!list) return;
 
   if (hits.length === 0) {
-    setMessage(translations.noresult);
-    updateCount(0);
-    el<HTMLInputElement>('search-input')?.removeAttribute('aria-activedescendant');
+    renderEmpty();
     return;
   }
 
   const fragment = document.createDocumentFragment();
-  hits.forEach((hit, index) => {
-    const link = document.createElement('a');
-    link.className = 'search-hit';
-    link.href = hit.url;
-    link.id = `search-hit-${index}`;
-    link.dataset.searchHit = '1';
-    link.setAttribute('role', 'option');
-    link.setAttribute('aria-selected', 'false');
+  let index = 0;
 
-    const head = document.createElement('div');
-    head.className = 'search-hit-head';
-
-    const title = document.createElement('span');
-    title.className = 'search-hit-title';
-    title.textContent = hit.title;
-    head.append(title);
-
-    if (hit.trail) {
-      const trail = document.createElement('span');
-      trail.className = 'search-hit-trail';
-      trail.textContent = hit.trail;
-      head.append(trail);
-    } else if (!hit.anchor) {
-      // 页面级结果没有锚点，用「文章」标一下，避免只显示一行标题
-      const trail = document.createElement('span');
-      trail.className = 'search-hit-trail';
-      trail.textContent = translations.page;
-      head.append(trail);
+  for (const group of groupHits()) {
+    // 只有页面级命中（标题 / 描述命中，正文没有）时，一行说明白就够了
+    if (group.hits.length === 1 && !group.hits[0].anchor) {
+      fragment.append(hitLink(group.hits[0], index++, 'head'));
+      continue;
     }
-
-    link.append(head);
-
-    if (hit.parts.length > 0) {
-      const snippet = document.createElement('p');
-      snippet.className = 'search-hit-snippet';
-      for (const part of hit.parts) {
-        if (part.hit) {
-          const mark = document.createElement('mark');
-          mark.textContent = part.text;
-          snippet.append(mark);
-        } else {
-          snippet.append(document.createTextNode(part.text));
-        }
-      }
-      link.append(snippet);
+    fragment.append(groupHead(group, index++));
+    for (const hit of group.hits) {
+      fragment.append(hitLink(hit, index++, 'child'));
     }
-
-    fragment.append(link);
-  });
+  }
 
   list.replaceChildren(fragment);
   updateCount(hits.length);
   setActive(0);
+}
+
+/** 没有结果：给出「试试这些文章」（索引里最新的几篇），而不是一片空白 */
+function renderEmpty() {
+  const list = el<HTMLElement>('search-results-list');
+  if (!list) return;
+
+  const wrap = document.createElement('div');
+  wrap.className = 'search-empty';
+
+  const message = document.createElement('p');
+  message.className = 'search-empty-title';
+  message.textContent = translations.noresult;
+  wrap.append(message);
+
+  const suggestions: PreparedPage[] = prepared ? recentPages(prepared, 4) : [];
+  if (suggestions.length > 0) {
+    const title = document.createElement('p');
+    title.className = 'search-section-title';
+    title.textContent = translations.suggestions;
+
+    const items = document.createElement('ul');
+    items.className = 'search-suggestions';
+    for (const page of suggestions) {
+      const item = document.createElement('li');
+      const link = document.createElement('a');
+      link.className = 'search-suggestion';
+      link.href = page.url;
+      link.textContent = page.title;
+      item.append(link);
+      items.append(item);
+    }
+    wrap.append(title, items);
+  }
+
+  list.replaceChildren(wrap);
+  updateCount(0);
+  el<HTMLInputElement>('search-input')?.removeAttribute('aria-activedescendant');
 }
 
 function hitElements(): HTMLAnchorElement[] {
@@ -462,7 +757,7 @@ function handleInput() {
   clearTimeout(debounceTimer);
 
   if (!query) {
-    showHint();
+    showIdle();
     return;
   }
 
@@ -509,14 +804,50 @@ function bindResultClicks() {
   if (!list || list.dataset.bound === 'true') return;
   list.dataset.bound = 'true';
 
-  // 同页 #锚点 点击不会派发 swup:visit:start，必须在这里主动收起弹窗；
-  // 中键 / Ctrl 点击是新标签页，窗口保持打开。
+  // 历史项 / 清空按钮 / 结果链接都走事件委托（结果是自己创建的节点）
   list.addEventListener('click', (event) => {
     const target = event.target instanceof Element ? event.target : null;
-    const link = target?.closest('a[data-search-hit]');
+    if (!target) return;
+
+    const historyButton = target.closest<HTMLElement>('[data-history-query]');
+    if (historyButton) {
+      const query = historyButton.dataset.historyQuery || '';
+      const input = el<HTMLInputElement>('search-input');
+      if (input) input.value = query;
+      void runSearch(query);
+      return;
+    }
+
+    if (target.closest('[data-history-clear]')) {
+      clearHistory();
+      showIdle();
+      return;
+    }
+
+    // 同页 #锚点 点击不会派发 swup:visit:start，必须在这里主动收起弹窗；
+    // 中键 / Ctrl 点击是新标签页，窗口保持打开。
+    const link = target.closest('a[data-search-hit]');
     if (!link) return;
     if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey || event.button !== 0) return;
     closeModal();
+  });
+}
+
+function bindFilterClicks() {
+  const filters = el<HTMLElement>('search-filters');
+  if (!filters || filters.dataset.bound === 'true') return;
+  filters.dataset.bound = 'true';
+
+  filters.addEventListener('click', (event) => {
+    const target = event.target instanceof Element ? event.target.closest<HTMLElement>('[data-search-category]') : null;
+    if (!target) return;
+    const value = target.dataset.searchCategory || '';
+    activeCategory = activeCategory === value ? '' : value;
+    renderFilters();
+
+    const query = el<HTMLInputElement>('search-input')?.value.trim() || '';
+    if (query) void runSearch(query);
+    else showIdle();
   });
 }
 
@@ -536,9 +867,14 @@ function prefetchIndex() {
   scope[flag] = true;
 
   const run = () => {
-    loadSearchIndex(lang).catch(() => {
-      // 预取失败不打扰用户：打开搜索时还会再试一次并给出提示
-    });
+    loadSearchIndex(lang)
+      .then(() => {
+        // 索引到手后把分类胶囊画出来（打开弹窗时还会再对一次）
+        if (isOpen()) void ensureIndex(false).then((index) => index && renderFilters());
+      })
+      .catch(() => {
+        // 预取失败不打扰用户：打开搜索时还会再试一次并给出提示
+      });
   };
 
   if (typeof window.requestIdleCallback === 'function') {
@@ -546,6 +882,19 @@ function prefetchIndex() {
   } else {
     setTimeout(run, 1200);
   }
+}
+
+/** 打开带 `?q=` 的地址时直接进入搜索（也是 SearchAction 结构化数据指向的地址） */
+function openFromDeepLink() {
+  const query = new URLSearchParams(window.location.search).get('q')?.trim() || '';
+  if (!query) return;
+  if (`${window.location.pathname}?q=${query}` === handledDeepLink) return;
+  handledDeepLink = `${window.location.pathname}?q=${query}`;
+
+  openModal();
+  const input = el<HTMLInputElement>('search-input');
+  if (input) input.value = query;
+  void runSearch(query);
 }
 
 function initSearchModal() {
@@ -568,8 +917,39 @@ function initSearchModal() {
       return;
     }
 
-    // 全站快捷键：Ctrl/Cmd + K 打开搜索
+    // 焦点陷阱：Tab 在弹窗内循环，不跑到背后的页面上（FIX-02）
+    if (event.key === 'Tab' && open) {
+      const items = modalFocusables();
+      if (items.length > 0) {
+        const first = items[0];
+        const last = items[items.length - 1];
+        const active = document.activeElement;
+        if (event.shiftKey && (active === first || !searchModal.contains(active))) {
+          event.preventDefault();
+          last.focus();
+        } else if (!event.shiftKey && active === last) {
+          event.preventDefault();
+          first.focus();
+        }
+      }
+      return;
+    }
+
+    // 全站快捷键：Ctrl/Cmd + K 或 `/` 打开搜索（`/` 是搜索引擎惯用键，FEAT-12）
     if (!open && (event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'k') {
+      event.preventDefault();
+      openModal();
+      return;
+    }
+    if (!open && event.key === '/' && !event.metaKey && !event.ctrlKey && !event.altKey) {
+      const target = event.target;
+      const typing =
+        target instanceof HTMLElement &&
+        (target.tagName === 'INPUT' ||
+          target.tagName === 'TEXTAREA' ||
+          target.tagName === 'SELECT' ||
+          target.isContentEditable);
+      if (typing) return;
       event.preventDefault();
       openModal();
     }
@@ -589,8 +969,9 @@ function initSearchModal() {
 
   bindSearchInput();
   bindResultClicks();
+  bindFilterClicks();
 
-  // 悬停 / 聚焦搜索按钮时提前拉索引，首次打开少等一会儿
+  // 悬停 / 聚焦搜索按钮时提前拉索引（PERF-07：不再在首屏 idle 时无条件预取）
   if (searchButton.dataset.prefetchBound !== '1') {
     searchButton.dataset.prefetchBound = '1';
     searchButton.addEventListener('pointerenter', prefetchIndex, { passive: true });
@@ -607,13 +988,15 @@ function initSearchModal() {
   // 首屏 / 换页都确保输入框已绑定（元素常驻，dataset 保证只绑一次）
   bindSearchInput();
   if (searchInput) searchInput.placeholder = `${translations.placeholder}...`;
-  prefetchIndex();
+  renderFilters();
+  openFromDeepLink();
 }
 
 // 首屏 + 每次换页（swup 下首屏不会有 astro:page-load，见 @utils/pageInit）
 registerPageInit(syncSearchLocale);
 registerPageInit(initSearchModal);
-registerPageInit(prefetchIndex);
+// PERF-07：原来这里还有一条 registerPageInit(prefetchIndex)，让每个访客首屏 idle 后
+// 都下载整份索引（约 22 KB gzip），即使从不搜索。现在只在悬停 / 聚焦搜索按钮时预取。
 </script>
 
 <style>
@@ -698,6 +1081,23 @@ registerPageInit(prefetchIndex);
     box-shadow: inset 0 0 0 2px var(--link-color);
   }
 
+  /* 分组头：同一篇文章的第一条，字号略大、底部没有分隔线（下面的段落行才分隔） */
+  .search-hit--group {
+    padding-bottom: var(--momo-space-1);
+    border-bottom: 0;
+  }
+
+  /* 段落行：缩进一档，视觉上从属于上面的文章标题 */
+  .search-hit--child {
+    padding-top: var(--momo-space-1);
+    padding-left: calc(var(--momo-space-4) + var(--momo-space-4));
+    border-bottom: 1px solid color-mix(in srgb, var(--button-border-color) 55%, transparent);
+  }
+
+  .search-hit--child:last-child {
+    border-bottom: 0;
+  }
+
   .search-hit-head {
     display: flex;
     align-items: baseline;
@@ -726,6 +1126,22 @@ registerPageInit(prefetchIndex);
     color: var(--text-color-30);
   }
 
+  /* 段落行的标题路径：整行都是路径，可以占满宽度 */
+  .search-hit-trail--path {
+    flex: 1;
+    max-width: 100%;
+  }
+
+  .search-group-count {
+    flex-shrink: 0;
+    padding: 0 var(--momo-space-2);
+    border-radius: var(--momo-radius-pill);
+    background-color: var(--button-hover-color);
+    color: var(--text-color-70);
+    font-size: var(--momo-font-size-2xs);
+    font-variant-numeric: tabular-nums;
+  }
+
   .search-hit-snippet {
     display: -webkit-box;
     -webkit-box-orient: vertical;
@@ -735,6 +1151,146 @@ registerPageInit(prefetchIndex);
     font-size: var(--momo-font-size-sm);
     line-height: var(--momo-leading-normal);
     color: var(--text-color-70);
+  }
+
+  /* ---- 分类胶囊 ---- */
+  .search-filters {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--momo-space-2);
+    padding: var(--momo-space-2) var(--momo-space-4);
+    border-bottom: 1px solid var(--button-border-color);
+    overflow-x: auto;
+  }
+
+  .search-filters[hidden] {
+    display: none;
+  }
+
+  .search-chip {
+    flex-shrink: 0;
+    padding: 2px var(--momo-space-3);
+    border-radius: var(--momo-radius-pill);
+    border: 1px solid var(--button-border-color);
+    background-color: transparent;
+    color: var(--text-color-70);
+    font-size: var(--momo-font-size-xs);
+    line-height: 1.6;
+    cursor: pointer;
+    transition:
+      background-color var(--momo-t-fast) var(--momo-ease-out),
+      color var(--momo-t-fast) var(--momo-ease-out),
+      border-color var(--momo-t-fast) var(--momo-ease-out);
+  }
+
+  .search-chip:hover {
+    color: var(--text-color);
+    border-color: var(--border-color-strong);
+  }
+
+  /* 选中态用 --accent-bg + --accent-fg（深色下亮蓝压白字不够对比，见 variables.css） */
+  .search-chip[aria-pressed='true'] {
+    background-color: var(--accent-bg);
+    border-color: var(--accent-bg);
+    color: var(--accent-fg);
+  }
+
+  /* ---- 最近搜索 ---- */
+  .search-history,
+  .search-empty {
+    padding: var(--momo-space-3) var(--momo-space-4) var(--momo-space-4);
+  }
+
+  .search-section-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--momo-space-3);
+    margin-bottom: var(--momo-space-2);
+  }
+
+  .search-section-title {
+    font-size: var(--momo-font-size-xs);
+    font-weight: var(--momo-font-weight-semibold);
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--text-color-30);
+    margin-bottom: var(--momo-space-2);
+  }
+
+  .search-section-head .search-section-title {
+    margin-bottom: 0;
+  }
+
+  .search-history-clear {
+    border: 0;
+    background: transparent;
+    color: var(--link-color);
+    font-size: var(--momo-font-size-xs);
+    cursor: pointer;
+    padding: 2px var(--momo-space-1);
+    border-radius: var(--momo-radius-xs);
+  }
+
+  .search-history-clear:hover {
+    background-color: var(--button-hover-color);
+  }
+
+  .search-history-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--momo-space-2);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .search-history-item {
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    padding: 2px var(--momo-space-3);
+    border-radius: var(--momo-radius-pill);
+    border: 1px solid var(--button-border-color);
+    background-color: transparent;
+    color: var(--text-color-70);
+    font-size: var(--momo-font-size-xs);
+    cursor: pointer;
+    transition: color var(--momo-t-fast) var(--momo-ease-out), border-color var(--momo-t-fast) var(--momo-ease-out);
+  }
+
+  .search-history-item:hover {
+    color: var(--text-color);
+    border-color: var(--border-color-strong);
+  }
+
+  /* ---- 没有结果时的推荐 ---- */
+  .search-empty-title {
+    margin-bottom: var(--momo-space-4);
+    text-align: center;
+    color: var(--text-color-70);
+  }
+
+  .search-suggestions {
+    display: flex;
+    flex-direction: column;
+    gap: var(--momo-space-1);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .search-suggestion {
+    display: block;
+    padding: var(--momo-space-1) 0;
+    color: var(--link-color);
+    font-size: var(--momo-font-size-sm);
+    text-decoration: none;
+  }
+
+  .search-suggestion:hover {
+    text-decoration: underline;
   }
 
   .search-footer {
