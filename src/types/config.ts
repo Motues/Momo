@@ -1,7 +1,6 @@
 export type SiteConfig = {
     title: string;
     subTitle: string;
-    /** 站点描述：meta description / og:description 的兜底文案，可单串或按语言给 */
     description?: string | Record<string, string>;
     rootSiteUrl?: string;
 
@@ -24,7 +23,6 @@ export type SiteConfig = {
         AOS: boolean;
         LQIP: boolean;
         PhotoSwipe: boolean;
-        /** 文章页顶部的阅读进度条（2px 细线 + 剩余时间） */
         readingProgress: boolean;
         imageCollage: {
             enable: boolean;
