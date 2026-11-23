@@ -26,7 +26,7 @@ Momo originates from Xiaohongshu📕, serving as the default nickname for every 
 * **RSS**: per-language feeds at `/rss.xml` and `/en/rss.xml` with full-text entries whose internal links and images are rewritten to absolute URLs
 * **Local CMS**: Start it with `pnpm cms` to edit posts with live preview (sharing the same Markdown pipeline as the blog) and to edit the site config, with autosave every 60 seconds while editing — no Markdown by hand; it also ships a media library (upload compression, duplicate detection, copy Markdown snippet) and list batch actions (category / pin / draft / delete / export)
 * **Command line tool**: `pnpm momo` provides config backup/restore, one-command updates, new post creation and environment checks
-* Other core features: Article categories, directory, RSS subscription, text statistics, reading time
+* Other core features: Article categories, directory, RSS subscription, text statistics, reading time, a reading progress bar on articles
 
 ## 🚀 Quick Start
 

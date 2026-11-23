@@ -38,6 +38,20 @@ Below are general modification suggestions.
 
 > Version numbers follow the `YY.MM.DD` format
 
+### 26.11.23
+
+* **Site search rebuilt**: no more Pagefind — the index is generated per language at build time, matches Chinese by word, and still finds mixed-language or long queries; results group by article and jump straight to the matched paragraph, with category filters, search history and recent-post suggestions when nothing matches, plus `/` or `?q=` to open it directly
+* **Lighter pages**: card and article covers are now responsive images sized to the screen, the first-screen cover is preloaded, and images nothing references are no longer emitted; the KaTeX stylesheet only loads on pages that contain math instead of adding 23 KB of blocking CSS to every article
+* **Reading progress**: article pages show a 2px progress bar at the top, switchable via `siteConfig.theme.readingProgress`
+* **Full-text RSS**: one feed per language (`/rss.xml` and `/en/rss.xml`) with full-text entries whose internal links and images are absolute
+* **More accurate sharing and indexing**: the site description can be given per language (`siteConfig.description`), pages without a cover no longer output a default share image, structured data now covers breadcrumbs, the about page and site search, and internal links consistently carry a trailing slash so production no longer adds a redirect
+* **Accessibility**: screen-reader labels for the header buttons, lightbox, mobile drawer and pagination follow the page language; opening the drawer or the lightbox traps focus inside and returns it on close; the 404 page offers recent posts and a random one
+* **Smoother motion**: lists and image grids reveal row by row with a slight stagger, the trigger line sits lower so short viewports no longer cut the text off early
+* **Collapsible code blocks can be collapsed again**: an entry point stays after expanding instead of disappearing for good
+* **A friendlier CMS**: a new media library (browse images in post folders and `public`, upload with automatic downscaling and duplicate detection, copy Markdown snippets, rename and delete) and batch actions in the post list (category, pin, draft, delete, export as ZIP)
+* **Fixes**: card hover transitions on borders and shadows, and smooth scrolling for footnotes and in-page anchors
+* This release touches the config files `src/config.ts` (new `description` and `theme.readingProgress`) and `src/i18n/` (new screen-reader, search, pagination and 404 strings) — merge them as prompted after overwriting; Pagefind has been removed from the dependencies, so just run `pnpm install`
+
 ### 26.11.21
 
 * **New design reference page**: the site now has a design system page (`/design`, English `/en/design`) that gathers the colors, type sizes, spacing, radii, motion and components of the whole site in one place, reachable from the footer icon; the values are read straight from the stylesheets, so the docs cannot drift from the UI
