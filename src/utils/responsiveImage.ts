@@ -1,19 +1,11 @@
 /**
- * 手工拼 `<picture>`：AVIF + WebP，两种格式各用各自的编码质量。
- *
- * 为什么不直接用 Astro 的 `<Picture>`：它把同一个 `quality` 传给所有格式，而
- * sharp 的 AVIF 质量刻度比 WebP「高」得多 —— 同一张封面 quality 65 编码出来，
- * AVIF 比 WebP 还大 40%（实测 45.9 KB vs 32.5 KB）。`<picture>` 又是「谁支持就挑谁」，
- * 结果反而让支持 AVIF 的现代浏览器下载更多。
- *
- * 这里给 AVIF 单独用 AVIF_QUALITY（45，实测同图约 24 KB，比 WebP 小 25% 左右），
- * WebP 仍用调用方给的 quality。预加载（@utils/imagePreload）也走同一个函数，
- * 保证 `imagesrcset` 与 `<source>` 的 srcset 逐字一致。
+ * 手工拼 `<picture>`：AVIF + WebP 各用自己的编码质量。
+ * 预加载（@utils/imagePreload）走同一个函数，保证 imagesrcset 与 <source> 逐字一致。
  */
 import { getImage } from 'astro:assets';
 import type { ImageMetadata } from 'astro';
 
-/** AVIF 的编码质量：与 WebP 的 65 在体积上大致对齐（sharp 的两种编解码器刻度不同） */
+/** AVIF 的编码质量：与 WebP 的 65 在体积上大致对齐（sharp 两种编解码器刻度不同） */
 export const AVIF_QUALITY = 45;
 
 export interface PictureSource {

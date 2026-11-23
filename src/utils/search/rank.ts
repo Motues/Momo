@@ -1,12 +1,6 @@
 /**
- * 站内搜索的打分与摘要。
- *
- * 索引很小（个人博客量级），所以不做倒排表：加载后把每段正文归一化一次，
- * 查询时线性扫一遍。这样代码简单、中文二元词匹配直观，也方便单独调权重。
- *
- * 打分大致是 BM25 的简化版：tf 饱和 + IDF，字段权重为
- *   页面级结果：标题 ×3、描述 ×1
- *   正文块：标题路径 ×2、正文 ×1（页面标题只由页面级结果负责，避免每个块都因标题命中）
+ * 站内搜索的打分与摘要：简化 BM25（tf 饱和 + IDF），不做倒排表，查询时线性扫一遍。
+ * 字段权重：页面级 标题 ×3 / 描述 ×1；正文块 标题路径 ×2 / 正文 ×1。
  */
 
 import type { SearchHit, SearchIndexFile, SnippetPart } from '@/types/search';
@@ -14,11 +8,11 @@ import { analyzeQuery, isCjkChar, normalizeText, type QueryAnalysis } from './no
 
 /** tf 饱和系数：出现 1 次约得 0.45，3 次约得 0.71 */
 const K1 = 1.2;
-/** 单篇最多展示几条，避免一篇文章刷屏 */
+/** 单篇最多展示几条 */
 const PER_PAGE_LIMIT = 3;
 /** 单次搜索最多展示几条 */
 const TOTAL_LIMIT = 20;
-/** 摘要高亮最多切多少段（超出部分不再标，防止超长查询把摘要切碎） */
+/** 摘要最多高亮多少段，超出部分不再标 */
 const MAX_MARKS = 24;
 
 export interface PreparedPage {
@@ -48,7 +42,7 @@ interface PreparedDoc {
     titleCompact: string;
     /** 标题 + 路径 + 正文，用于整串短语加成 */
     allNorm: string;
-    /** 去掉空白的 allNorm：多词查询（code block / 评论 系统）用它做整串匹配 */
+    /** 去掉空白的 allNorm，用于多词整串匹配 */
     compactNorm: string;
 }
 
@@ -77,7 +71,7 @@ export function prepareIndex(file: SearchIndexFile): PreparedIndex {
 
     const docs: PreparedDoc[] = [];
 
-    // 页面级结果：用于「搜文章标题 / 描述」；锚点为空，落到文章顶部
+    // 页面级结果：搜文章标题 / 描述；锚点为空，落到文章顶部
     pages.forEach((page, index) => {
         const allNorm = `${page.titleNorm} ${page.descNorm}`.trim();
         docs.push({
@@ -141,11 +135,8 @@ function countAll(haystack: string, needle: string): number {
 }
 
 /**
- * 英文计数：按词边界。
- * prefix 为真时只要求词首一致（搜索词打了一半也能命中）。
- * 普通模式带一层很轻的英文后缀匹配（s / es / ed / ing / ly），
- * 让 block 能命中 blocks、search 能命中 searching；4 个字母以下的词不做后缀，
- * 避免 not → noting 这类误命中。
+ * 英文计数：按词边界；prefix 为真时只要求词首一致（搜索词打了一半也能命中）。
+ * 普通模式带一层很轻的后缀匹配（s / es / ed / d / ing / ly），4 个字母以下不做。
  */
 function countWord(haystack: string, word: string, prefix: boolean): number {
     if (!haystack || !word) return 0;
@@ -187,9 +178,7 @@ interface ScoredDoc {
 }
 
 /**
- * 搜索。先按严格条件（英文全部命中 + 中文至少命中 60% 的二元词）筛，
- * 一条都没有时自动放宽，避免长查询直接空手而归。
- *
+ * 搜索：先按严格条件（英文全中 + 中文至少 60% 的二元词）筛，一条都没有时自动放宽。
  * `categories` 非空时只在这些分类的页面里搜（搜索弹窗的分类胶囊）。
  */
 export function search(
@@ -202,7 +191,7 @@ export function search(
 
     const categories = options.categories?.length ? options.categories : undefined;
     let hits = run(index, analysis, options.prefix === true, categories);
-    // 英文词打了一半（比如 sear → search）：严格匹配没有结果时再按词首匹配一次
+    // 英文词打了一半（如 sear → search）：严格匹配无结果时再按词首匹配一次
     if (hits.length === 0 && !options.prefix && analysis.latin.some((term) => term.length >= 3)) {
         hits = run(index, analysis, true, categories);
     }
@@ -229,7 +218,7 @@ function run(
     categories?: string[],
 ): SearchHit[] {
     const { pages } = index;
-    // 分类筛选在建索引时就定好页面集合，后面逐文档扫的时候直接跳过别的页面
+    // 分类筛选：先定好允许的页面集合，逐文档扫时跳过其他页面
     const allowedPages = categories
         ? new Set(pages.map((page, i) => (categories.includes(page.category) ? i : -1)).filter((i) => i >= 0))
         : null;
@@ -271,13 +260,12 @@ function run(
 
         if (score <= 0) continue;
 
-        // 整串连续命中（中文尤其明显）：说明不是零散命中，加权。
-        // 上限放到 200：整段粘贴时只要原文里连续出现，仍然算强信号。
+        // 整串连续命中（中文尤其明显）算强信号，加权
         if (analysis.phrase.length >= 2 && analysis.phrase.length <= 200 && doc.compactNorm.includes(analysis.phrase)) {
             score *= 1.6;
         }
 
-        // 页面标题里直接含查询串：标题命中的文章应该排在「正文里顺便提到」的前面
+        // 页面标题里直接含查询串：排在「正文里顺便提到」的前面
         if (doc.kind === 'page' && analysis.phrase.length >= 2 && doc.titleCompact.includes(analysis.phrase)) {
             score *= 2;
         }
@@ -287,9 +275,7 @@ function run(
 
     if (scored.length === 0) return [];
 
-    // 严格条件：英文 term 必须全中；中文二元词至少覆盖 60%，但最多只要求 12 个。
-    // 上限是为了「一段话」：32 个二元词如果要求命中 20 个，稍微有标点 / 空格差异就会失败；
-    // 12 个连续二元词已经足以说明是同一段内容。
+    // 严格条件：英文 term 全中；中文二元词至少覆盖 60%，但最多只要求 12 个
     const latinAll = analysis.latin.length;
     const minCjk = analysis.cjk.length <= 1
         ? analysis.cjk.length
@@ -300,8 +286,7 @@ function run(
     );
 
     // 没有严格命中时放宽：任意命中一个 term 即可。
-    // ⚠️ 不能要求「英文至少中一个」：查询里带一个索引中不存在的英文词
-    //（例如 "hello 评论" 里的 hello）时，中文明明命中也会被这条规则全部挡掉。
+    // ⚠️ 不能要求「英文至少中一个」：查询里不存在的英文词会把中文命中全部挡掉。
     if (pool.length === 0) {
         pool = scored.filter((item) => item.latinMatched + item.cjkMatched >= 1);
     }
@@ -349,11 +334,10 @@ function run(
 
 /**
  * 生成摘要：以最早命中的 term 为中心截一段，命中处切成 hit 片段。
- * 中文上下文窄一点，英文宽一点；英文还会把边界推到空格，避免从半个单词开始。
+ * 中文上下文窄一点（34），英文宽一点（90）并把边界推到空格，避免从半个单词开始。
  */
 function buildSnippet(doc: PreparedDoc, terms: string[]): SnippetPart[] {
-    // 正文块可能只是「标题路径」命中（段落本身没有查询词），这时摘要改展示标题路径，
-    // 不要让用户看到一段完全无关、也没有高亮的正文。
+    // 正文块可能只是标题路径命中，摘要改展示标题路径，避免出现无高亮的无关正文
     const candidates = (doc.kind === 'block' ? [doc.text, doc.trail] : [doc.text]).filter(Boolean);
     const source = (
         candidates.find((candidate) => {
@@ -375,8 +359,7 @@ function buildSnippet(doc: PreparedDoc, terms: string[]): SnippetPart[] {
         }
     }
 
-    // 页面级结果只有标题命中时，description 里往往没有查询词；
-    // 此时不要再把一段无关的描述当摘要展示（标题已经在上方了）。
+    // 页面级结果只有标题命中时不再展示无关的描述（标题已经在上方了）
     if (pos < 0 && doc.kind === 'page') return [];
 
     const cjk = /[\u3400-\u4dbf\u4e00-\u9fff\uf900-\ufaff]/.test(source);

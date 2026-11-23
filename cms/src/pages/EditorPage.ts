@@ -22,7 +22,7 @@ interface AppRoot extends HTMLElement {
   __cleanup?: () => void
 }
 
-// 自动保存间隔（毫秒）：编辑页每 60 秒检查一次，只在有改动且没有保存在进行时写盘
+// 自动保存间隔（毫秒）：只在有改动且没有保存在进行时写盘
 const AUTOSAVE_INTERVAL = 60_000
 
 export async function renderEditor(root: HTMLElement, path: string) {
@@ -147,7 +147,6 @@ function applyTool(md: HTMLTextAreaElement | null, tool: Omit<InsertTool, 'label
     const prefix = tool.linePrefix
     const lineStart = md.value.lastIndexOf('\n', start - 1) + 1
     if (start === end) {
-      // 无选中：在当前行行首插入前缀，光标相对内容位置不变
       md.setRangeText(prefix, lineStart, lineStart, 'end')
       md.setSelectionRange(start + prefix.length, start + prefix.length)
     } else {
@@ -287,7 +286,6 @@ function buildShell(root: HTMLElement, state: EditorState) {
   ])
   root.append(shell)
 
-  // 分类候选
   api.meta()
     .then((m) => {
       const dl = el('datalist', { id: 'cms-editor-cats' })
@@ -296,13 +294,10 @@ function buildShell(root: HTMLElement, state: EditorState) {
     })
     .catch(() => {})
 
-  // 表单 / 编辑器绑定
   bindForm(shell, state)
 
-  // 编辑区与预览区同步滚动
   const offScrollSync = setupScrollSync()
 
-  // Ctrl+S 保存
   const onKey = (e: KeyboardEvent) => {
     if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') {
       e.preventDefault()
@@ -331,7 +326,6 @@ function buildShell(root: HTMLElement, state: EditorState) {
   }
 }
 
-// 折叠 / 展开文章配置表单
 function toggleFormPanel() {
   const panel = document.querySelector('#form-panel')
   const arrow = document.querySelector('#form-toggle-arrow')
@@ -349,8 +343,6 @@ function setupScrollSync(): () => void {
 
   const textareaMax = () => textarea.scrollHeight - textarea.clientHeight
   // 两侧各自「最近一次主动滚动」的时间戳：用来识别回声，避免一边滚动时把位置再写回去
-  // （以前用 80ms 抑制回环，但预览每回传一次就重置一次抑制窗口，左侧滚动反而被压成一段一段的，
-  //   表现就是左侧滚动时右侧预览一顿一顿的）
   let editorScrolledAt = 0
   let previewScrolledAt = 0
   // 预览最近一次的滚动比例：实时预览每次输入都会重建 iframe 文档，重建完成后按它恢复位置
@@ -541,13 +533,13 @@ function togglePreview() {
 
 // ---------------- 保存 / 自动保存 / 删除 / 上传 ----------------
 
-// 自动保存：只在「有改动」且「没有保存在进行」时写盘，一分钟后自然重试
+// 自动保存：只在「有改动」且「没有保存在进行」时写盘
 async function autoSave(state: EditorState) {
   if (!state.dirty || state.saving) return
   await doSave(state, { auto: true })
 }
 
-// 自动保存的提示：顶栏显示最近一次保存时间，不弹 toast（每分钟弹一次太吵）
+// 自动保存的提示：顶栏显示最近一次保存时间，不弹 toast
 function showAutosaveHint() {
   const hint = document.querySelector('#autosave-hint') as HTMLElement | null
   if (!hint) return
@@ -562,8 +554,7 @@ async function doSave(state: EditorState, opts: { auto?: boolean } = {}) {
   state.saving = true
   const btn = document.querySelector('#btn-save') as HTMLButtonElement | null
   if (btn) btn.disabled = true
-  // 先固化本次要写盘的内容：请求期间用户还能继续输入，
-  // 快照按「已发出的那一份」算，这些新输入才不会被误标成已保存
+  // 先固化本次要写盘的内容：快照按已发出的那一份算，请求期间的新输入才不会被误标成已保存
   const payload = { data: { ...state.data }, body: state.body }
   const sent = JSON.stringify(payload)
   const before = state.path
@@ -571,15 +562,13 @@ async function doSave(state: EditorState, opts: { auto?: boolean } = {}) {
     const res = await api.save(before, state.lang, payload)
     state.path = res.path
     // 更新本语言版本的本地副本：切走再切回来才会读到刚保存的内容
-    // （否则读到的是打开页面时的旧内容，再被自动保存写回去）
     state.detail.files[state.lang] = { content: payload.body, data: payload.data }
     state.snapshot = sent
     state.dirty = makeSnapshot(state) !== state.snapshot
     const badge = document.querySelector('#dirty-badge') as HTMLElement | null
     if (badge) badge.hidden = !state.dirty
     if (opts.auto) {
-      // 自动保存不重建界面（navigate 会重建编辑器、丢掉光标与撤销栈），
-      // 只有真的移动过文件夹时才把地址栏静默对齐到新路径
+      // 自动保存不重建界面（navigate 会重建编辑器、丢掉光标与撤销栈），仅在真的移动过文件夹时静默对齐地址栏
       if (res.path !== before) history.replaceState(null, '', `#/edit/${encodePath(res.path)}`)
       showAutosaveHint()
       return
@@ -610,8 +599,7 @@ async function doDelete(state: EditorState) {
   }
 }
 
-// 打开博客中当前文章（新标签页）；博客地址默认 http://localhost:4321，
-// 可用 localStorage 键 cms-blog-base 覆盖（例如博客端口不同时）
+// 打开博客中当前文章（新标签页）；博客地址可用 localStorage 键 cms-blog-base 覆盖
 function blogOrigin(): string {
   try {
     return localStorage.getItem('cms-blog-base') || 'http://localhost:4321'

@@ -34,14 +34,13 @@ function stamp(date = new Date()) {
   )
 }
 
-// 备份模式 → 列表里的展示名称（user 为默认模式，config/all 兼容旧备份的 manifest）
+// 备份模式 → 列表展示名称（config / all 兼容旧备份的 manifest）
 const MODE_LABELS = {
   user: '仅 config.ts',
   config: '全部配置',
   all: '配置+内容',
 }
 
-// 备份模式 → 标题里的说明
 const MODE_TITLES = {
   user: 'src/config.ts',
   config: '全部配置文件',
@@ -118,7 +117,7 @@ export default {
       return
     }
 
-    // --all 最全，其次是 --config，默认只备份用户自己修改的 src/config.ts
+    // 模式优先级：--all > --config > 默认（仅 src/config.ts）
     const mode = flags.all ? 'all' : flags.config ? 'config' : 'user'
     const wanted = MODE_PATHS[mode]
 
@@ -165,7 +164,7 @@ export default {
     log.info(c.gray(`共 ${files} 个文件 / ${formatBytes(bytes)}`))
     log.info(c.gray(`恢复：pnpm momo restore ${flags.name || ''}`.trim()))
 
-    // 备份目录若在仓库内且未被忽略，会污染 git status（进而影响 momo update）
+    // 备份目录在仓库内且未被忽略时会污染 git status，进而影响 momo update
     if (isInsideRoot(outDir)) {
       const ignored = capture('git', ['check-ignore', '-q', relPath(outDir)]) !== null
       if (!ignored && git) log.warn(`${relPath(outDir)} 未被 .gitignore 忽略，建议加入以免影响 momo update`)

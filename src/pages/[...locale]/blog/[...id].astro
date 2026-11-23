@@ -30,10 +30,8 @@ const t = i18nit(currentLang);
 
 export async function getStaticPaths() {
     
-    // 获取所有支持的语言
     const locales = i18n?.locales || [i18n?.defaultLocale];
     
-    // 为每种语言和每篇文章组合生成路由
     const paths = [];
     
     for (const locale of locales) {
@@ -61,8 +59,7 @@ export async function getStaticPaths() {
     return paths;
 }
 const { entry, prev, next } = Astro.props;
-// 只渲染一次：同一篇的正文 / 标题锚点 / reading-time 都在这一次里拿到
-// （以前这里第二次 render(entry) 只是为了取 remarkPluginFrontmatter，白白多跑一遍）。
+// 只 render 一次：正文 / 标题锚点 / reading-time 都在这一次里拿到
 const { Content, headings, remarkPluginFrontmatter } = await render(entry);
 
 const pageTitle = entry.data.title + ' - ' + siteConfig.title;
@@ -83,7 +80,7 @@ const postJsonLd = [
         words: remarkPluginFrontmatter.words,
         minutes: remarkPluginFrontmatter.minutes,
     }),
-    // 面包屑：首页 › 文章标题，搜索结果里能显示层级而不是一串裸链接
+    // 面包屑：首页 › 文章标题
     articleBreadcrumbJsonLd({ title: entry.data.title, url: pageUrl, lang: currentLang }),
 ];
 
@@ -133,11 +130,11 @@ const mathStyles = remarkPluginFrontmatter.hasMath === true;
         </div>
         {image && (
             <div class="cover overflow-hidden">
-                {/* 文章封面通常就是本页的 LCP 元素：优先加载 */}
+                {/* 封面通常就是本页的 LCP 元素：优先加载 */}
                 <ImageModule src={image} alt={entry.data.title} class="w-full h-full object-cover" priority width={1080} widths={CONTENT_COVER.widths} sizes={CONTENT_COVER.sizes} quality={CONTENT_COVER.quality} formats={['avif', 'webp']} />
             </div>
         )}
-        {/* 页面级状态条（不是正文提示块）：圆角 8px 比提示块的 6px 大一档，属规范里的有意例外 */}
+        {/* 页面级状态条：圆角 8px 比提示块的 6px 大一档，是规范里的有意例外 */}
         {entry.data.draft && (
         <div class="my-8 flex items-start gap-3 rounded-[var(--momo-radius-md)] border border-[var(--error-color)] bg-[var(--error-bg-color)] p-4 text-sm text-[var(--error-text-color)] transition-colors">
             <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="mt-0.5 shrink-0 opacity-80">
@@ -187,11 +184,10 @@ const mathStyles = remarkPluginFrontmatter.hasMath === true;
             <Twikoo postSlug={entry.data.slugId} language={currentLang} envId={siteConfig.comments.backendUrl}/>
         }
     </div>
-    <!-- fixed 浮层：留在 swup 容器内，但在淡入淡出元素之外（见 MainPageLayout 的说明）。
-         这里不能用 <Fragment slot="overlay">：包一层普通 div 不会影响 fixed 定位。 -->
+    <!-- fixed 浮层：留在 swup 容器内，但在淡入淡出元素之外（见 MainPageLayout）。
+         普通 div 不建立包含块，所以不影响内部 fixed 定位。 -->
     <div slot="overlay">
-        {/* 进度条是 fixed 元素，必须待在淡入淡出元素之外（.transition-swup-fade 的
-            opacity < 1 会成为它的包含块，换页那 200ms 里会跳位）——与 TOC / FAB 同一个道理。 */}
+        {/* 进度条是 fixed 元素，必须在淡入淡出元素之外（opacity < 1 会改包含块） */}
         {siteConfig.theme.readingProgress && <ReadingProgress />}
         {
             siteConfig.toc.enable &&

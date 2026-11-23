@@ -9,15 +9,13 @@ import { siteConfig } from '@/config'
 import { i18n } from "astro:config/client";
 import i18nit from '@i18n/translation'
 
-// 404 是一个静态页面：语言只能取默认语言，实际访问的语言由地址（/en/...）在客户端同步，
-// 所以这里用 currentLang 而不是写死 "zh-CN"（写死会让 /en/ 下的 404 声明成中文页面）。
+// 404 是静态页面：语言取当前 locale，缺省回退默认语言
 const currentLang = Astro.currentLocale || i18n!.defaultLocale;
 const t = i18nit(currentLang);
 
 const pageTitle = "404 - " + siteConfig.title;
 const indexPage = getRelativeLocaleUrl(currentLang, "/");
 
-// 最近的几篇文章 + 一条「随便看一篇」的候选池：别让 404 变成死路。
 const posts = await getBlogEntrySort(currentLang);
 const recentPosts = posts.slice(0, 3).map((post) => ({
     url: blogPostUrl(currentLang, post.id),
@@ -26,7 +24,7 @@ const recentPosts = posts.slice(0, 3).map((post) => ({
     category: post.data.category || t("pagecard.uncategorized"),
 }));
 const randomPool = posts.slice(0, 30).map((post) => blogPostUrl(currentLang, post.id));
-// 初始 href 指向第一篇（禁用 JS 时也能用），脚本会把它换成随机一篇
+// 初始 href 指向第一篇（禁用 JS 时可用），脚本会换成随机一篇
 const randomHref = randomPool[0] || indexPage;
 ---
 
@@ -34,9 +32,7 @@ const randomHref = randomPool[0] || indexPage;
     <div class="mx-auto w-full max-w-[var(--page-width)] px-4 text-center py-10">
         <div class="flex min-h-[60vh] flex-col items-center justify-center">
 
-            <!-- 视觉主体：带光晕的渐变 404 -->
             <div class="relative select-none">
-                <!-- 背景光晕 -->
                 <div class="pointer-events-none absolute left-1/2 top-1/2 h-40 w-40 -translate-x-1/2 -translate-y-1/2 rounded-full bg-[var(--link-color)] opacity-20 blur-3xl"></div>
 
                 <h1 class="relative bg-gradient-to-b from-[var(--link-color)] to-[var(--text-color-70)] bg-clip-text text-[clamp(5rem,18vw,10rem)] font-black leading-none tracking-tighter text-transparent">

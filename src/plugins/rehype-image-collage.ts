@@ -1,10 +1,7 @@
 /**
  * 连续放置的多张正文图片自动拼图（siteConfig.theme.imageCollage 控制开关与每行上限）。
- *
- * 识别规则：只包含图片的段落算一个「图片块」，连续的图片块（中间可以有空行）合并成一个网格，
- * 文字 / 标题 / 代码块等都会打断；链接里的图片不算图片块；至少 2 张才拼图。
- * 行高：逐行取「该行最宽的图片完整显示」所需的高度，其余图片按此高度裁切；
- * 宽高比来自 image-size.ts，样式见 src/styles/markdown.css 与 cms/server/prose.css。
+ * 只含图片的段落连续出现时合并成网格；链接里的图片不算；至少 2 张才拼图。
+ * 样式见 src/styles/markdown.css 与 cms/server/prose.css。
  */
 import { dirname, resolve, sep } from 'node:path';
 import sharp from 'sharp';
@@ -82,7 +79,7 @@ function imageSrcIn(node: ElementContent): string | null {
   return typeof src === 'string' ? src : null;
 }
 
-/** 解码 URL 转义（文件名里的 % 不合法时原样返回，避免整个构建报错） */
+/** 解码 URL 转义（文件名里的 % 不合法时原样返回，不让构建报错） */
 function safeDecode(value: string): string {
   try {
     return decodeURIComponent(value);
@@ -107,15 +104,15 @@ async function localImageSize(file: string): Promise<ImageDimensions | null> {
 }
 
 /**
- * 把 markdown 里的图片地址解析成「本地文件」或「远端 URL」：
- * `https://…` / `//host/…` → 远端；`/xxx.png` → public 目录；其它相对路径 → 当前 markdown 所在目录。
+ * 图片地址 → 本地文件或远端 URL：`https://` / `//host/` 为远端，`/xxx.png` 走 public 目录，
+ * 其它相对路径按当前 markdown 所在目录解析。
  */
 function imageTarget(src: unknown, { baseDir, publicDir, remote }: TargetOptions = {}): ImageTarget | null {
   if (typeof src !== 'string' || !src) return null;
   const raw = src.split(/[?#]/)[0];
   if (!raw || /^(data:|blob:)/i.test(raw)) return null;
 
-  // 关掉远端量尺寸时，网络图片直接按「未知」处理（不查缓存、不发请求）
+  // 关掉远端量尺寸时，网络图片按「未知」处理（不查缓存、不发请求）
   const remoteOff = remote?.enable === false;
   if (/^https?:/i.test(raw)) return remoteOff ? null : { kind: 'remote', value: raw };
   if (raw.startsWith('//')) return remoteOff ? null : { kind: 'remote', value: `https:${raw}` };
@@ -146,8 +143,8 @@ async function measureRatio(
 }
 
 /**
- * 图片宽高比（宽 / 高）。量不出来（远端超时、文件读不到、格式不支持）时返回 null，由调用方兜底。
- * 只有网络图片的结果会被缓存（抓取贵）；本地文件每次都读，避免图片被替换后拿到旧尺寸。
+ * 图片宽高比（宽 / 高）。量不出来时返回 null，由调用方兜底。
+ * 只有网络图片的结果会缓存；本地文件每次都读，避免图片被替换后拿到旧尺寸。
  */
 async function imageRatio(src: string | null, options: TargetOptions = {}): Promise<number | null> {
   const target = imageTarget(src, options);
@@ -167,9 +164,8 @@ async function imageRatio(src: string | null, options: TargetOptions = {}): Prom
 }
 
 /**
- * 智能选择每行张数：在 2..maxColumns 之间挑一个分数最低的方案。
- * 分数 = 最后一行空位 * 8 + 超过 3 行的额外行数 * 8 + |列数 - 行数|，
- * 即「最后一行尽量补满、整体不要太高、行列尽量接近」；同分时保留张数更多的方案。
+ * 选每行张数：在 2..maxColumns 间取分数最低的方案，
+ * 分数 = 最后一行空位 * 8 + 超过 3 行的额外行数 * 8 + |列数 - 行数|。
  */
 export function pickCollageColumns(count: number, maxColumns: number): number {
   const limit = Math.max(2, Math.min(6, Math.floor(maxColumns) || 4));
@@ -207,9 +203,8 @@ export function splitRows(spans: number[], columns: number): number[][] {
 }
 
 /**
- * 一行的「高度因子」：各图按自身宽高比完整显示所需的高度（单位：列宽）里的最小值，
- * 也就是这一行最宽（宽高比最大）的那张图所需的高度。量不出宽高比的图片不参与计算；
- * 整行都量不出来时返回 null，退回固定行高 + 裁切。
+ * 一行的「高度因子」：各图按自身宽高比完整显示所需高度（单位：列宽）的最小值。
+ * 整行都量不出宽高比时返回 null，退回固定行高 + 裁切。
  */
 function rowHeightFactor(
   indexes: number[],
@@ -225,11 +220,7 @@ function rowHeightFactor(
   return Number.isFinite(factor) && factor > 0 ? factor : null;
 }
 
-/**
- * 每张图该用的 `aspect-ratio`：`占列数 / 行高因子`。
- * aspect-ratio 相对图片自身宽度，因此同一行（无论是否跨列、容器多宽）算出的高度
- * 都等于「列宽 × 行高因子」，即该行最宽图片的完整高度。
- */
+/** 每张图该用的 `aspect-ratio`（`占列数 / 行高因子`），同一行无论是否跨列都等高 */
 function rowAspectRatios(
   rows: number[][],
   ratios: Array<number | null>,
@@ -246,7 +237,7 @@ function rowAspectRatios(
 
 /**
  * 把图片节点包进 `.collage-media`（裁切 / hover 缩放用）。
- * `<figure>` 里的 `<figcaption>` 直接丢弃：拼图里不再显示图注文字（灯箱改读 img 的 title）。
+ * `<figcaption>` 直接丢弃：拼图里不显示图注，灯箱改读 img 的 title。
  */
 function wrapImage(
   node: Element,
@@ -282,7 +273,7 @@ async function createCollage(
 ): Promise<Element> {
   const count = images.length;
   const columns = pickCollageColumns(count, maxColumns);
-  // 最后一行的图片按列数均分整个宽度（不能整除时前面的多占一列），避免行尾留空
+  // 最后一行按列数均分整个宽度（不能整除时前面的多占一列），避免行尾留空
   const lastRow = count % columns === 0 ? columns : count % columns;
   const base = Math.floor(columns / lastRow);
   const extra = columns % lastRow;
@@ -295,7 +286,7 @@ async function createCollage(
     images.map((image) => imageRatio(imageSrcIn(image), imageOptions)),
   );
 
-  // 桌面端按 --cols 分行；移动端固定每行 2 张（总数为奇数时最后一张跨 2 列），两者分行不同，各算一次
+  // 桌面端按 --cols 分行，移动端固定每行 2 张（奇数时最后一张跨 2 列），分行不同各算一次
   const desktopRows = splitRows(spans, columns);
   const mobileSpans = spans.map((_, index) => (count % 2 === 1 && index === count - 1 ? 2 : 1));
   const mobileRows = splitRows(mobileSpans, 2);
@@ -310,7 +301,7 @@ async function createCollage(
       ...(desktop === undefined ? [] : ['collage-ratio']),
       ...(mobile === undefined ? [] : ['collage-ratio-sm']),
     ];
-    // 两套布局的宽高比可能不同（分行不同），所以各存一个变量
+    // 两套布局分行不同，宽高比各存一个变量
     const style = [
       desktop === undefined ? '' : `--ratio: ${round(desktop)};`,
       mobile === undefined ? '' : `--ratio-sm: ${round(mobile)};`,

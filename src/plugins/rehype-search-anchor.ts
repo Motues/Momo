@@ -1,18 +1,8 @@
 import type { Element, ElementContent, Root } from 'hast';
 
 /**
- * 给正文块注入稳定锚点，供站内搜索深度链接使用。
- *
- * 规则：
- * - 标题（h1–h6）沿用 Astro / rehype-slug 已经生成的 slug id，只打 `data-search-anchor`
- *   与 `data-search-heading` 两个标记，**绝不改写 id**（目录、脚注、已有外链都依赖它）；
- * - 其它正文顶层块（段落 / 引用 / 表格 / 提示块 / 顶层 li……）在没有 id 时补 `s-1`、`s-2`…；
- * - 只处理顶层块与顶层列表的**直接 li**，不递归进提示块 / 列表内部，避免一个块被拆成
- *   许多重叠的锚点（索引脚本按这些锚点顺序切段落）；
- * - 代码块、KaTeX、纯图片块、空块不打锚点：搜进去也没有可读文本。
- *
- * 索引脚本 `script/build-search-index.mjs` 直接读最终 HTML 里的这些标记，因此这里的
- * id 规则必须保持确定性（只依赖文档顺序）。
+ * 给正文顶层块注入稳定锚点（`s-1`…），供站内搜索深度链接；标题只加 `data-search-heading`，不改写 slug id。
+ * ⚠️ 只处理顶层块与顶层列表的直接 li；id 只依赖文档顺序，`script/build-search-index.mjs` 按它切段落。
  */
 
 const HEADING = /^h[1-6]$/;
@@ -48,7 +38,7 @@ function collectText(node: ElementContent, parts: string[]): void {
     for (const child of node.children) collectText(child, parts);
 }
 
-/** 块内可读文字（跳过代码 / 公式 / 按钮等），用来判断这个块值不值得打锚点 */
+/** 块内可读文字（跳过代码 / 公式 / 按钮等） */
 function visibleText(node: Element): string {
     const parts: string[] = [];
     for (const child of node.children) collectText(child, parts);

@@ -1,19 +1,8 @@
 #!/usr/bin/env node
 /**
- * 构建后生成站内搜索索引。
- *
- * 为什么放在 astro build 之后、而不是另起一个 Markdown 渲染管线：
- * 搜索要跳到最终页面里的锚点，锚点 id、标题 slug、Expressive Code / KaTeX 的
- * 排除规则都以**构建产物**为准。直接扫 dist 里的 HTML 最省心，也和 Pagefind
- * 原本的做法一致（只是换成了我们自己的中文匹配和段落级锚点）。
- *
- * 输出：dist/search-index/<lang>.json + manifest.json
- *
- * 依赖正文标记（见 src/plugins/rehype-search-anchor.ts）：
- *   data-search-content  —— 正文容器，只有带它的页面会被收录
- *   data-search-anchor   —— 可跳转的块
- *   data-search-heading  —— 该块是标题（索引脚本据此维护「标题路径」）
- *   data-search-ignore   —— 整棵子树跳过（设计规范页的示例）
+ * 构建后扫描 dist 里的 HTML，生成站内搜索索引：dist/search-index/<lang>.json + manifest.json。
+ * 锚点以构建产物为准，依赖 `src/plugins/rehype-search-anchor.ts` 输出的标记：
+ * `data-search-content`（正文容器）/ `data-search-anchor`（可跳转块）/ `data-search-heading`（标题）/ `data-search-ignore`（整棵跳过）。
  */
 
 import { mkdir, readdir, readFile, rm, writeFile } from 'node:fs/promises';
@@ -129,8 +118,7 @@ function pageMeta(doc, filePath) {
     );
     const description = clean(attr(descNode || { attrs: [] }, 'content') || '');
 
-    // 分类与发布日期来自文章页的 article:* meta（非文章页没有，留空）：
-    // 搜索弹窗用它们做「按分类筛选」与「没有结果时推荐最近文章」。
+    // 分类与发布日期来自文章页的 article:* meta（非文章页留空）
     const metaContent = (property) => {
         const node = findFirst(
             doc,

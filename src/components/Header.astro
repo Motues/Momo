@@ -13,23 +13,20 @@ const currentLang = Astro.currentLocale || i18n!.defaultLocale;
 const t = i18nit(currentLang);
 const showLanguageSwitcher = (i18n?.locales?.length ?? 0) > 1;
 
-// 收集所有文章分类（含未分类），按名称排序，用于移动端侧边栏
+// 移动端侧边栏的分类（含未分类）
 const blogPosts = await getBlogEntrySort(currentLang);
 const categories = [...new Set(blogPosts.map(post => post.data.category || 'undefined'))].sort();
 
 
-// 获取当前页面在不同语言下的路径
 const getLocalePath = (path: string, targetLocale: string) => {
   const currentPath = Astro.url.pathname;
   const defaultLocale = i18n?.defaultLocale || "zh-cn";
   
-  // 移除当前语言前缀
   let basePath = currentPath;
   if (currentLang && currentLang !== defaultLocale) {
     basePath = currentPath.replace(`/${currentLang}`, "") || "/";
   }
   
-  // 添加目标语言前缀（默认语言不需要前缀）
   if (targetLocale && targetLocale !== defaultLocale) {
     return `/${targetLocale}${basePath}`;
   }
@@ -42,22 +39,19 @@ const archivesPage = getRelativeLocaleUrl(currentLang, "/archives/");
 const friendsPage = getRelativeLocaleUrl(currentLang, "/friends/");
 const aboutPage = getRelativeLocaleUrl(currentLang, "/about/");
 
-// 顶栏在 swup 容器之外，换页 / 换语言都不会重建：文案与链接只能由脚本按当前语言重算
-// （见脚本里的 syncPersistedHeader）。这里把每种语言的文案一起渲染进 data 属性。
+// 顶栏在 swup 容器之外、换页不重建：这里先把每种语言的文案渲染进 data 属性，由 syncPersistedHeader 按当前语言重算
 const localeCodes: string[] = (i18n?.locales ?? [currentLang]).map((l) =>
   typeof l === 'string' ? l : l.path,
 );
-/** 生成「语言 -> 文案」映射，供 data-i18n-labels 使用（客户端按当前语言查表） */
+/** 生成「语言 -> 文案」映射，供 data-i18n-labels 使用 */
 const i18nLabels = (key: string) =>
   Object.fromEntries(localeCodes.map((code) => [code, i18nit(code)(key)]));
 
-// 顶栏按钮的 aria-label 也要跟着语言换：同样把每种语言渲染进 data 属性，
-// 由 syncPersistedHeader 里的 applyAria 在换页后按当前地址挑一份（FIX-03）。
+// 同样把每种语言的 aria-label 渲染进 data 属性，由 syncPersistedHeader 换页后按当前地址挑一份
 const i18nAria = (key: string) =>
   Object.fromEntries(localeCodes.map((code) => [code, i18nit(code)(key)]));
 
-// 当前页判定：桌面端顶栏与移动端侧边栏共用同一套逻辑。
-// 统一去掉末尾斜杠再比较，/archives 与 /archives/ 都能算作当前页。
+// 比较路径时忽略末尾斜杠：/archives 与 /archives/ 视为同一页
 const normalizePath = (path: string) => {
     const value = String(path || "/");
     return value.length > 1 ? value.replace(/\/+$/, "") : value;
@@ -65,13 +59,10 @@ const normalizePath = (path: string) => {
 const currentPath = normalizePath(Astro.url.pathname);
 const isCurrentPage = (path: string) => normalizePath(path) === currentPath;
 
-// 桌面端导航链接的公共样式：当前页的底色由独立的浮动色块（#nav-indicator）负责，
-// 链接自己不再有 bg-*，避免「色块滑过去」和「链接底色淡入」两套效果同时出现。
-// relative z-10 是为了让链接画在色块之上（色块是绝对定位 + DOM 在前）。
-// 悬停反馈见文件末尾 <style is:global> 里的 #nav-bar-list a 规则。
+// 桌面端导航链接公共样式：当前页底色由 #nav-indicator 负责，链接不带 bg-*；
+// relative z-10 让链接画在色块之上（色块绝对定位且 DOM 在前）。悬停见 #nav-bar-list a 规则
 const navLinkClass = "relative z-10 transition-colors rounded-lg px-3 py-1 mx-1";
 
-// 移动端侧边栏链接：当前页加上背景色与主题色文字，其余保持悬停效果
 const mobileNavLinkClass = (path: string) =>
     `flex items-center gap-3 px-4 py-3 rounded-lg transition-colors active:bg-[var(--button-hover-color)] active:text-[var(--link-color)] ${
         isCurrentPage(path)
@@ -88,31 +79,20 @@ if (profileConfig.indexPage) {
 }
 ---
 
-<!-- header -->
 <div id="main-header" class="fixed top-0 left-0 right-0 z-50 transition-transform duration-300 ease-in-out md:relative md:translate-y-0">
-<!-- id="header-bar"：logo + 工具按钮这一条。照片封面时由 PhotoCover.astro 把它整条切白，
-     顶栏在 swup 容器外不会重建，所以这里给一个稳定的钩子而不是靠结构选择器 -->
+<!-- id="header-bar"：logo + 工具按钮这一条；照片封面时由 PhotoCover.astro 整条切白，是稳定钩子 -->
 <div id="header-bar" class="flex items-center pt-2 md:py-4 text-[var(--text-color)] max-w-[var(--header-width)] mx-auto">
-    <!-- logo -->
     <div class="pr-4 py-2 z-30 header-logo">
         <a href={ indexPage } >
             <span class="text-3xl font-bold hover:opacity-60 transition-opacity">{ siteConfig.title }</span>
         </a>
     </div>
     
-    <!-- tools -->
     <div class="ml-auto flex gap-2 pl-4 py-2 justify-end z-30">
-        <!-- Search -->
         <button id="search-button" class="press momo-btn momo-icon-btn" aria-label={t("search.label")} data-i18n-aria={JSON.stringify(i18nAria("search.label"))}>
             <Icon name="fa6-solid:magnifying-glass" class="w-4 h-4" />
         </button>
-        <!-- Dark Mode -->
         <ThemeIcon class="press momo-btn momo-icon-btn"/>
-        <!-- RSS -->
-        <!-- <a href="/rss.xml" target="_blank" class="flex items-center justify-center w-10 h-10 hover:bg-[var(--button-hover-color)] active:scale-90 rounded-lg hover:text-current border border-[var(--button-border-color)] transition duration-300">
-            <Icon name="simple-icons:rss" class="w-4 h-4" />
-        </a> -->
-        <!-- Language Switcher -->
         {showLanguageSwitcher && <div class="relative">
             <button id="language-button" class="press momo-btn momo-icon-btn" aria-label={t("a11y.languageSwitcher")} data-i18n-aria={JSON.stringify(i18nAria("a11y.languageSwitcher"))}>
                 <Icon name="fa6-solid:globe" class="w-4 h-4" />
@@ -134,7 +114,6 @@ if (profileConfig.indexPage) {
           </div>
         </div>}
         <div class="relative md:hidden">
-          <!-- Mobile Menu -->
           <button id="mobile-menu-button" class="press momo-btn momo-icon-btn" aria-label={t("a11y.mobileMenu")} aria-expanded="false" aria-controls="mobile-menu-drawer" data-i18n-aria={JSON.stringify(i18nAria("a11y.mobileMenu"))}>
               <Icon name="fa6-solid:align-justify" class="w-5 h-5" />
           </button>
@@ -144,34 +123,26 @@ if (profileConfig.indexPage) {
 </div>
 </div>
 
-    <!-- nav_bar -->
     <div id="nav-bar" class="hidden md:flex absolute left-1/2 top-0 transform -translate-x-1/2  justify-center items-center text-lg font-bold my-5 z-100">
-        <!-- 顶部没有描边、没有底色，只有文字与当前页色块；吸顶后才长出描边 + 毛玻璃底
-             （见文件末尾 #nav-bar-list 的规则）。border 宽度一直保留 1px，只把颜色设透明 -->
+        <!-- 顶部没有描边、没有底色，只有文字与当前页色块；border 宽度一直保留 1px，只把颜色设透明 -->
         <div id="nav-bar-list" class="transition relative z-10 flex max-w-max flex-1 items-center justify-center rounded-xl p-2 border">
-          <!-- 当前页底色块：空元素 + aria-hidden，纯装饰。位置与尺寸由脚本按当前链接量出来（见 moveNavIndicator） -->
+          <!-- 当前页底色块：纯装饰（aria-hidden），位置与尺寸由 moveNavIndicator 写入 -->
           <div id="nav-indicator" aria-hidden="true"></div>
-          <!-- 首页链接 -->
           <a href={ indexPage } data-i18n-path="/" data-i18n-labels={JSON.stringify(i18nLabels("header.home"))} aria-current={isCurrentPage(indexPage) ? 'page' : undefined} class={navLinkClass}>
               <span data-i18n-text>{t("header.home")}</span>
           </a>
-          <!-- 归档链接 -->
           <a href={ archivesPage } data-i18n-path="/archives/" data-i18n-labels={JSON.stringify(i18nLabels("header.archive"))} aria-current={isCurrentPage(archivesPage) ? 'page' : undefined} class={navLinkClass}>
               <span data-i18n-text>{t("header.archive")}</span>
           </a>
-          <!-- 关于链接 -->
           <a href={ aboutPage } data-i18n-path="/about/" data-i18n-labels={JSON.stringify(i18nLabels("header.about"))} aria-current={isCurrentPage(aboutPage) ? 'page' : undefined} class={navLinkClass}>
               <span data-i18n-text>{t("header.about")}</span>
           </a>
-          <!-- 友链链接 -->
           <a href={ friendsPage } data-i18n-path="/friends/" data-i18n-labels={JSON.stringify(i18nLabels("header.friends"))} aria-current={isCurrentPage(friendsPage) ? 'page' : undefined} class={navLinkClass}>
               <span data-i18n-text>{t("header.friends")}</span>
           </a>
         </div>
     </div>
-<!-- Mobile Menu -->
-<!-- 层级：与搜索弹层同层（z-[1100]），必须高于右下角 FabMenu（z-[1000]），
-     否则抽屉的遮罩盖不住浮动按钮，FAB 会浮在遮罩之上 -->
+<!-- 层级：必须高于右下角 FabMenu，否则抽屉的遮罩盖不住浮动按钮 -->
 <div id="mobile-menu-container" class="fixed inset-0 z-[var(--momo-z-drawer)] hidden" inert aria-hidden="true">
     <div id="mobile-menu-overlay" class="absolute inset-0 bg-black/60 backdrop-blur-sm opacity-0"></div>
     
@@ -203,7 +174,6 @@ if (profileConfig.indexPage) {
             </a>
         </nav>
 
-        <!-- 分类栏：可点击收起，与默认链接之间用横线分割 -->
         {categories.length > 0 && (
         <div class="mt-2">
         <div class="w-[90%] mx-auto border-t border-[var(--button-border-color)]"></div>
@@ -216,7 +186,7 @@ if (profileConfig.indexPage) {
                 <Icon id="mobile-category-chevron" name="fa6-solid:chevron-down" class="w-4 h-4 opacity-70 transition-transform duration-300" />
             </button>
 
-            <!-- data-archives：同步脚本要用它拼「取消筛选」的链接（要带当前语言前缀） -->
+            <!-- data-archives：同步脚本用它拼「取消筛选」的链接（带当前语言前缀） -->
             <div id="mobile-category-list" data-archives={archivesPage} class="overflow-hidden transition-[max-height] duration-300 ease-in-out" style="max-height: 0px">
                 <ul class="flex flex-wrap gap-2 px-3 pt-3 pb-1">
                     {categories.map(cat => {
@@ -242,8 +212,6 @@ if (profileConfig.indexPage) {
         )}
 
         <div class="mt-auto p-5 border-t border-[var(--button-border-color)] flex gap-1 text-sm opacity-70">
-             <!-- <a href={getLocalePath("/", "zh-cn")} class="text-sm opacity-70 active:text-[var(--link-color)]">简体中文</a>
-             <a href={getLocalePath("/", "en")} class="text-sm opacity-70 active:text-[var(--link-color)]">English</a> -->
              © {profileConfig.startYear} - {new Date().getFullYear()} <a class="link-line" target="_self" href={introPage}>{profileConfig.name}</a>.
         </div>
     </div>
@@ -255,31 +223,25 @@ if (profileConfig.indexPage) {
   letter-spacing: 1px;
 }
 
-/* 移动端顶栏上滑隐藏：原来 300ms ease-in-out 配每帧判方向，容易在手指来回时抖动。
-   这里先只把曲线换成不过冲的快收尾（250ms），方向判定的阈值调整留到下一批。 */
+/* 移动端顶栏上滑隐藏：不过冲的快收尾 */
 #main-header {
   transition: transform 250ms var(--momo-ease-out);
 }
 
-/* 移动端抽屉：快起慢收（--momo-ease-sheet）。整屏高度用 pop 会「弹」得发假。
-   遮罩比抽屉短一点，收的时候先暗下去再滑走。 */
+/* 移动端抽屉：快起慢收（--momo-ease-sheet）；遮罩比抽屉短，收起时先暗下去 */
 #mobile-menu-overlay {
   transition: opacity 260ms var(--momo-ease-out);
 }
 #mobile-menu-drawer {
-  /* ⚠️ Tailwind v4 的 -translate-x-full 写的是 translate 属性（不是 transform），
-     只过渡 transform 的话抽屉会直接跳到位、完全没有动画。两个都列上更稳。 */
+  /* ⚠️ Tailwind v4 的 -translate-x-full 写的是 translate 属性，两条都要过渡，否则没有动画 */
   transition: translate 380ms var(--momo-ease-sheet),
               transform 380ms var(--momo-ease-sheet);
 }
   /* 移动端 (小于 776px) 的毛玻璃和阴影 */
   @media (max-width: 776px) {
     #main-header {
-      /* 半透明主题背景 + blur 实现毛玻璃。*/
       background-color: color-mix(in srgb, var(--bg-color) 40%, transparent);
-      /* 注意：构建时的 CSS 压缩器会把 backdrop-filter 与 -webkit-backdrop-filter 当作同一属性合并，
-         只保留后写的那一条。因此标准属性必须单独放进 @supports 规则里，否则构建后会被删掉，
-         导致 Firefox 等只支持标准属性的浏览器在 preview 里失去毛玻璃效果。 */
+      /* ⚠️ 标准 backdrop-filter 必须单独放进 @supports：压缩器会与 -webkit- 版合并、只留后写的 */
       -webkit-backdrop-filter: blur(12px);
       border-bottom: 1px solid color-mix(in srgb, var(--button-border-color) 10%, transparent);
     }
@@ -289,8 +251,7 @@ if (profileConfig.indexPage) {
       }
     }
 
-    /* 系统/用户要求降低透明效果时退回纯色背景：
-       既省掉滚动中持续合成，也照顾对半透明敏感的用户 */
+    /* 降低透明效果时退回纯色背景 */
     @media (prefers-reduced-transparency: reduce) {
       #main-header {
         background-color: var(--bg-color);
@@ -300,34 +261,23 @@ if (profileConfig.indexPage) {
     }
   }
 
-  /* ============ 桌面端导航胶囊（#nav-bar-list）的外壳 ============
-     外壳（描边 / 底色 / 阴影 / 模糊）统一由 --nav-chrome 驱动：0 = 只有文字和当前页色块，
-     1 = 完整毛玻璃胶囊。它是**派生变量**，不是状态：非照片页由脚本按 scrollY 0 / 1 切换，
-     照片封面（首页 hero）则由 photo-cover.css 换成滚动进度 --photo-p，于是和 Cover 一样
-     是逐帧插值渐变，而不是滚一像素就硬切。
-
-     ⚠️ 默认值是 1：禁用 JS 时既没有 nav-scrolled 也没有滚动脚本，顶栏必须保持完整胶囊，
-     否则滚起来文字会直接压在正文上。只有脚本可用时才把它归 0。 */
+  /* 桌面端导航胶囊（#nav-bar-list）外壳（描边 / 底色 / 阴影 / 模糊）由 --nav-chrome 驱动：
+     0 = 只有文字与当前页色块，1 = 完整毛玻璃。照片封面页由 photo-cover.css 换成 --photo-p 插值。
+     ⚠️ 默认值必须是 1：禁用 JS 时没有 nav-scrolled 也没有滚动脚本，只有脚本可用才归 0 */
   #nav-bar { --nav-chrome: 1; }
   @media (scripting: enabled) {
     #nav-bar { --nav-chrome: 0; }
   }
-  /* 吸顶。特异性比上面两条高，顺序无所谓，但排在后面更好读 */
+  /* 吸顶 */
   #nav-bar.nav-scrolled { --nav-chrome: 1; }
 
   #nav-bar-list {
-    /* border-color 透明 ≠ 没有边框：宽度还在，吸顶时不会跳 1px 布局，
-       moveNavIndicator() 减掉的也正是这 1px */
+    /* border-color 透明 ≠ 没有边框：宽度仍在，不跳 1px（moveNavIndicator 减的也是这 1px） */
     border-color: color-mix(in srgb, var(--button-border-color) calc(var(--nav-chrome, 1) * 100%), transparent);
-    /* ⚠️ 这里的 15% 是「毛玻璃的实心程度」，调它就能整体加减透明度：
-       0% = 彻底无色（只剩模糊 + 描边 + 阴影），100% = 实心底（等于 prefers-reduced-transparency
-       的回退）。底色本身仍取 --bg-color（浅色近白 / 深色近黑），所以即使 15% 也是「跟着主题
-       微微偏一点」，而不是纯透明——留这点底色是为了压在正文上时导航文字还有对比度。 */
+    /* ⚠️ 15% 是毛玻璃的实心程度：0% = 只剩模糊 / 描边 / 阴影，100% = 实心底（同 reduced-transparency 回退） */
     background-color: color-mix(in srgb, var(--bg-color) calc(var(--nav-chrome, 1) * 15%), transparent);
     box-shadow: 0 4px 12px color-mix(in srgb, var(--shadow-color) calc(var(--nav-chrome, 1) * 100%), transparent);
-    /* 注意：与 #main-header 同理，构建时的 CSS 压缩器会把 backdrop-filter 与
-       -webkit-backdrop-filter 当作同一属性合并、只保留后写的那条，
-       所以标准属性必须单独放进 @supports 规则里。 */
+    /* ⚠️ 同 #main-header：标准属性必须单独放进 @supports */
     -webkit-backdrop-filter: blur(calc(12px * var(--nav-chrome, 1)));
   }
   @supports (backdrop-filter: blur(1px)) {
@@ -336,7 +286,7 @@ if (profileConfig.indexPage) {
     }
   }
 
-  /* 系统/用户要求降低透明效果时退回纯色背景（同 #main-header） */
+  /* 降低透明效果时退回纯色背景（同 #main-header） */
   @media (prefers-reduced-transparency: reduce) {
     #nav-bar-list {
       background-color: color-mix(in srgb, var(--bg-color) calc(var(--nav-chrome, 1) * 100%), transparent);
@@ -345,9 +295,7 @@ if (profileConfig.indexPage) {
     }
   }
 
-  /* 桌面端导航的「当前页」底色块。
-     独立于链接的一个绝对定位元素，位置 / 尺寸由脚本量当前链接后写入
-     （moveNavIndicator），切页时用 transform 平移过去。 */
+  /* 当前页底色块：独立绝对定位元素，位置 / 尺寸由 moveNavIndicator 写入，切页时平移过去 */
   #nav-indicator {
     position: absolute;
     top: 0;
@@ -359,22 +307,21 @@ if (profileConfig.indexPage) {
     pointer-events: none;
     opacity: 0;
     transition:
-      /* 位移与宽度走「轻微 Q」：滑过去时轻轻过冲再回正，像有质量 */
+      /* 位移与宽度用带轻微过冲的曲线 */
       transform 380ms var(--momo-ease-pop),
       width 380ms var(--momo-ease-pop),
-      /* 高度过冲会露馅（会看到胶囊先鼓再收），用不过冲的收尾 */
+      /* 高度不能用过冲曲线 */
       height 220ms var(--momo-ease-out);
   }
 
-  /* 系统/用户要求减弱动画时直接就位，不做滑行 */
+  /* 减弱动画时直接就位 */
   @media (prefers-reduced-motion: reduce) {
     #nav-indicator {
       transition: none;
     }
   }
 
-  /* 导航链接的悬停反馈：底色归色块，这里只变色。
-     当前页不再变色（它已经有底色了），避免色块滑过去时文字还在跳色。 */
+  /* 悬停只变色：底色归色块，当前页不再跳色 */
   #nav-bar-list a[data-i18n-path]:hover {
     color: var(--link-color);
   }
@@ -383,18 +330,16 @@ if (profileConfig.indexPage) {
     color: inherit;
   }
 
-  /* 移动端侧边栏的分类：选中的用桌面端归档页同款样式标记（蓝底 + --accent-fg）。
-     ⚠️ 底色必须用 --accent-bg 而不是 --link-color：深色模式下 --link-color 是亮蓝
-     （#57ace7），压白字只有 2.48:1，根本看不清。
-     写在这里而不是 Tailwind 的 aria-[current=true]: 变体，是为了确定地压过
-     hover / active 的悬停样式——普通样式优先于 utilities 层。 */
+  /* 移动端分类选中态（同归档页）：蓝底 + --accent-fg。
+     ⚠️ 底色必须用 --accent-bg 而不是 --link-color（深色下亮蓝压白字只有 2.48:1）；
+     写在这里才能压过 hover / active 的 utilities。 */
   #mobile-category-list a[aria-current="true"] {
     background-color: var(--accent-bg);
     color: var(--accent-fg);
     border-color: var(--accent-bg);
   }
 
-  /* 当手指上滑时，JS 会给这个 ID 添加该类来隐藏 Header */
+  /* 手指上滑时由 JS 加上，隐藏顶栏 */
   .header-hidden {
     transform: translateY(-100%);
   }
@@ -407,10 +352,9 @@ import { currentLangFromUrl, DEFAULT_LOCALE, LOCALES, syncDocumentLang } from '@
 import { getRelativeLocaleUrl } from '@utils/urlUtils';
 import { subscribeScroll } from '@utils/scrollBus';
 
-// 客户端换页时本脚本只会被执行一次（Astro 产出的是带 src 的 module，模块表去重）；
-// 但每次换页都要重新初始化：统一挂在 registerPageInit（首屏 + 每次 astro:page-load）。
-// 元素级监听一律用 onclick = 赋值（天然幂等），挂在 window / document 上的
-// 监听则存进全局注册表，初始化时先解绑旧的，避免监听器成倍累积。
+// 换页时脚本只执行一次（Astro 产出带 src 的 module，模块表去重），但每次换页都要重新初始化：
+// 统一挂在 registerPageInit（首屏 + 每次 astro:page-load）。元素级监听用 onclick = 赋值保证幂等，
+// window / document 上的监听存进全局注册表，初始化时先解绑旧的，避免监听器成倍累积。
 function initMobileNav() {
   const menuButton = document.getElementById('mobile-menu-button');
   const closeButton = document.getElementById('mobile-menu-close');
@@ -425,8 +369,8 @@ function initMobileNav() {
   window.__momoMobileNav?.cleanup?.();
 
   let closeTimer = null;
-  // 抽屉的滚动锁是计数式的（@utils/scrollLock），所以必须只在「状态真的翻转」时加减：
-  // 连续点两次会先 clearTimeout 掉待执行的解锁、再补一次加锁，没有这个守卫就会多锁一层、解不开
+  // 抽屉的滚动锁是计数式的（@utils/scrollLock），只在「状态真的翻转」时加减，
+  // 否则连续点两次会多锁一层、解不开
   let menuScrollLocked = false;
 
   /** 抽屉里可以 Tab 到的元素（保持 DOM 顺序，首尾循环用） */
@@ -439,8 +383,7 @@ function initMobileNav() {
     ).filter((el) => el instanceof HTMLElement && el.offsetParent !== null);
   }
 
-  // 焦点陷阱（FIX-02）：抽屉打开时 Tab 不能跑到背后的页面上去。
-  // Esc 关闭并把焦点还给汉堡按钮，否则键盘用户会停在「已经收起的抽屉」里。
+  // 焦点陷阱：抽屉打开时 Tab 不能跑到背后的页面；Esc 关闭并把焦点还给汉堡按钮
   const onDrawerKeydown = (event) => {
     if (!container || container.classList.contains('hidden')) return;
 
@@ -469,16 +412,15 @@ function initMobileNav() {
   function openMenu() {
     clearTimeout(closeTimer);
     container.classList.remove('hidden');
-    // 抽屉关闭时是 inert + aria-hidden（键盘 / 读屏都进不去），打开时先放开
+    // 关闭态是 inert + aria-hidden，打开时先放开
     container.removeAttribute('inert');
     container.setAttribute('aria-hidden', 'false');
     menuButton?.setAttribute('aria-expanded', 'true');
 
-    // 强制重绘以触发动画
     requestAnimationFrame(() => {
       overlay?.classList.add('opacity-100');
       drawer?.classList.remove('-translate-x-full');
-      // 焦点移进抽屉：优先关闭按钮，读屏会接着念抽屉里的内容
+      // 焦点移进抽屉，优先关闭按钮
       (closeButton || focusables()[0])?.focus();
     });
     if (!menuScrollLocked) {
@@ -492,10 +434,9 @@ function initMobileNav() {
     drawer?.classList.add('-translate-x-full');
     menuButton?.setAttribute('aria-expanded', 'false');
 
-    // 等待动画结束后隐藏容器
     closeTimer = setTimeout(() => {
       container.classList.add('hidden');
-      // 彻底移出无障碍树与 Tab 顺序：抽屉只是收起来了，DOM 还在
+      // 移出无障碍树与 Tab 顺序
       container.setAttribute('inert', '');
       container.setAttribute('aria-hidden', 'true');
       if (menuScrollLocked) {
@@ -506,19 +447,17 @@ function initMobileNav() {
     }, 300);
   }
 
-  // 注意：菜单按钮在 swup 容器外的顶栏里、不会被重建，用 onclick 赋值避免重复绑定
+  // 菜单按钮在 swup 容器外不重建，用 onclick 赋值避免重复绑定
   menuButton.onclick = openMenu;
   if (closeButton) closeButton.onclick = () => closeMenu(true);
   if (overlay) overlay.onclick = () => closeMenu(true);
   container.addEventListener('keydown', onDrawerKeydown);
 
-  // 监听导航点击（点击后自动关闭）
   drawer?.querySelectorAll('a').forEach(link => {
     link.onclick = () => closeMenu(false);
   });
 
-  // ---- 顶部导航条吸顶：class 直接由滚动位置推导 ----
-  // 滚动统一走全局调度器（@utils/scrollBus），回调直接拿到当帧的 scrollY
+  // 顶部导航条吸顶：class 由滚动位置推导（滚动走 @utils/scrollBus）
   let lastScrollY = -1;
 
   function updateNavBar(y) {
@@ -527,25 +466,19 @@ function initMobileNav() {
     if (!navBar || !navBarList) return;
     const scrolled = y > 0;
     navBar.classList.toggle('fixed', scrolled);
-    // 外壳（描边 / 底色 / 阴影 / 模糊）全部由 --nav-chrome 派生，这里只负责翻状态：
-    //   0 = 顶部，只有文字与当前页色块（没有边框、没有底色）
-    //   1 = 吸顶，完整毛玻璃胶囊
-    // photo-cover.css 会把照片封面页的这个变量换成滚动进度 --photo-p，
-    // 于是首页是逐帧插值，而不是滚一像素就硬切 —— 所以状态类仍然要照常维护。
-    // 打在两层上是同一个状态的两个落点：#nav-bar 供 photo-cover.css 覆盖，
-    // #nav-bar-list 是外壳本身，两行都由这只 updateNavBar() 幂等对账。
+    // 外壳由 --nav-chrome 派生，这里只翻状态：0 = 顶部，1 = 吸顶毛玻璃。
+    // photo-cover.css 会把照片封面页的该变量换成滚动进度 --photo-p，状态类仍要照常维护；
+    // 打在两层上：#nav-bar 供 photo-cover.css 覆盖，#nav-bar-list 是外壳本身。
     navBar.classList.toggle('nav-scrolled', scrolled);
     navBarList.classList.toggle('nav-scrolled', scrolled);
   }
 
   const unsubscribeScroll = subscribeScroll(updateNavBar);
 
-  // 首屏与每次换页都对一次齐：此刻的滚动位置是权威值，
-  // DOM 上的 class 可能还停留在上一页的状态（顶栏不重建）
+  // 首屏与每次换页都对齐一次（DOM 上的 class 可能还停在上一页的状态）
   updateNavBar(window.scrollY);
 
-  // 换页开始时收掉抽屉：顶栏在 swup 容器外不会重建，以前靠「整页替换」复位；
-  // 抽屉开着时 body 的滚动还是锁住的，不复位会把新页面一起锁住。
+  // 换页开始时收掉抽屉，否则 body 的滚动锁会被带到新页面
   const onVisitStart = () => closeMenu();
   document.addEventListener('swup:visit:start', onVisitStart);
 
@@ -559,7 +492,7 @@ function initMobileNav() {
   };
 }
 
-// 顶栏在 swup 容器之外不会重建：首屏 + 每次换页都要重新绑定（registerPageInit）
+// 顶栏在 swup 容器外不重建：首屏 + 每次换页都要重新绑定（registerPageInit）
 registerPageInit(initMobileNav);
 
 function initCategoryAccordion() {
@@ -572,10 +505,9 @@ function initCategoryAccordion() {
   toggle.dataset.bound = 'true';
 
   toggle.onclick = () => {
-    // 用 max-height 过渡实现收起/展开，避免 grid-template-rows 过渡导致的反复重排卡顿
+    // 用 max-height 过渡，避免 grid-template-rows 反复重排卡顿
     const collapsed = list.style.maxHeight === '0px' || list.style.maxHeight === '0rem' || list.style.maxHeight === '0';
     list.style.maxHeight = collapsed ? '20rem' : '0px';
-    // 箭头方向与面板状态对应：展开(下拉)时朝上，折叠(上拉)时朝下
     chevron?.classList.toggle('rotate-180', collapsed);
     toggle.setAttribute('aria-expanded', String(collapsed));
   };
@@ -583,18 +515,15 @@ function initCategoryAccordion() {
 registerPageInit(initCategoryAccordion);
 
 /**
- * 移动端侧边栏的分类筛选（与归档页的地址参数保持同步）。
- * - 一次只筛一个分类：点 B 就从 A 切到 B，而不是把分类追加进地址；
- * - 归档页桌面端是多选（?category=A,B），此时点其中任意一个会收窄成只筛它；
- * - 唯一选中的分类再点一次 = 取消筛选、回到全部文章（链接指向不带参数的归档页）。
- * 静态构建时拿不到查询参数，所以选中态只能在这里按 location.search 重算。
+ * 移动端侧边栏的分类筛选：与归档页地址参数同步，一次只筛一个分类，
+ * 唯一选中的分类再点一次 = 取消筛选（链接指向不带参数的归档页）。
+ * 静态构建拿不到查询参数，选中态只能在这里按 location.search 重算。
  */
 function syncMobileCategoryFilter() {
   const list = document.getElementById('mobile-category-list');
   if (!list) return;
 
-  // 归档页地址按「当前地址推导出的语言」重算：顶栏不重建，语言切换后
-  // 服务端渲染的那份 data-archives 会停留在落地页的语言上
+  // 归档页地址按当前地址的语言重算：data-archives 是落地页语言下服务端渲染的
   const archives = getRelativeLocaleUrl(currentLangFromUrl(), '/archives/');
   list.dataset.archives = archives;
   const selected = (new URLSearchParams(window.location.search).get('category') ?? '')
@@ -615,7 +544,7 @@ function syncMobileCategoryFilter() {
 }
 
 function initMobileCategoryFilter() {
-  // 侧边栏在容器外不会重建，挂在 window 上的监听仍要先解绑，避免成倍累积
+  // 监听要先解绑，避免换页后成倍累积
   window.__momoMobileCategory?.cleanup?.();
 
   const onResize = () => syncMobileCategoryFilter();
@@ -635,8 +564,7 @@ function withoutLocalePrefix(pathname) {
   const matched = LOCALES
     .filter((code) => code !== DEFAULT_LOCALE)
     .find((code) => pathname === `/${code}` || pathname.startsWith(`/${code}/`));
-  // ⚠️ 前缀长度要算上开头那个斜杠：'/en/friends/'.slice(2) 是 'n/friends/'（错），
-  // slice(3) 才是 '/friends/'。少算这一位会让换语言后落到 /n/... 这种 404 地址上。
+  // ⚠️ 前缀长度要算上开头那个斜杠（slice(matched.length + 1)），否则会落到 /n/... 这种 404
   const rest = matched ? pathname.slice(matched.length + 1) : pathname;
   return rest.startsWith('/') ? rest : `/${rest}`;
 }
@@ -647,17 +575,9 @@ const normalizePath = (path) => {
   return value.length > 1 ? value.replace(/\/+$/, '') : value;
 };
 
-/* ------------------------------------------------------------------
- * 桌面端顶栏的「当前页」底色块（#nav-indicator）
- *
- * 色块是导航条里一个独立的绝对定位元素，链接自己不再有 bg-*。
- * 切页时不是把旧底色淡出、新底色淡入，而是**一个色块平移过去**。
- *
- * 顶栏在 swup 容器之外、换页不重建，所以位置一律现量：
- *   1. 点击导航链接 → 立刻按目标链接滑过去（不等 swup 把新页面取回来，跟手）
- *   2. 每次换页 → syncPersistedHeader() 末尾按地址权威重算（刷新 / 前进后退 / 换语言）
- *   3. 换页被取消 → 回弹到真实的当前页
- * ------------------------------------------------------------------ */
+/* 桌面端顶栏的「当前页」底色块（#nav-indicator）：独立绝对定位元素，
+   位置一律现量 —— 点击导航时先乐观滑过去，换页后由 syncPersistedHeader 按地址重算，
+   换页取消时回弹。 */
 
 /** 当前页对应的导航链接（桌面端顶栏，移动端抽屉不算） */
 function activeNavLink() {
@@ -665,19 +585,15 @@ function activeNavLink() {
 }
 
 /**
- * 把色块移到指定链接上（不传则隐藏）。
- *
- * 尺寸用两个 getBoundingClientRect 相减得到，再减掉导航条自身的边框宽度：
- * 绝对定位的包含块是 padding box，而 rect 量的是 border box，漏掉这一条会整体偏 1px。
- * 链接的 rect 不含 mx-1 外边距，正好等于原来 bg-* 覆盖的范围，视觉上无变化。
+ * 把色块移到指定链接上（不传则隐藏）。尺寸由两次 getBoundingClientRect 相减得到，
+ * 再减去导航条自身边框宽度（绝对定位的包含块是 padding box，rect 量的是 border box）。
  */
 function moveNavIndicator(link) {
   const indicator = document.getElementById('nav-indicator');
   const list = document.getElementById('nav-bar-list');
   if (!indicator || !list) return;
 
-  // 移动端整条导航是 hidden（#nav-bar 是 hidden md:flex），量不到就藏起来。
-  // 没有当前页（文章详情等）同理。
+  // 移动端导航 hidden（量不到宽度）或没有当前页（文章详情等）时藏起来
   if (!link || !list.offsetWidth) {
     indicator.style.opacity = '0';
     return;
@@ -689,8 +605,7 @@ function moveNavIndicator(link) {
   const x = linkRect.left - listRect.left - (parseFloat(style.borderLeftWidth) || 0);
   const y = linkRect.top - listRect.top - (parseFloat(style.borderTopWidth) || 0);
 
-  // 四个链接同字号同内边距，top / height 实际是常量，写死即可（CSS 里也没给它们过渡）；
-  // 需要过渡的只有水平位移与宽度 —— 四个文案宽度不同，颜色块要能拉伸
+  // top / height 实际是常量（链接同字号同内边距），只需过渡水平位移与宽度
   indicator.style.top = `${y}px`;
   indicator.style.height = `${linkRect.height}px`;
   indicator.style.width = `${linkRect.width}px`;
@@ -709,8 +624,7 @@ function initNavIndicator() {
 
   window.__momoNavIndicator?.cleanup?.();
 
-  // 1. 点击：先乐观地滑过去，换页完成后由 syncPersistedHeader() 校正。
-  //    只响应普通左键 —— 中键 / Ctrl 点击会开新标签页，页面并没有换，色块不能跟着动。
+  // 点击先乐观滑过去（换页后由 syncPersistedHeader 校正）；只响应普通左键，中键 / Ctrl 会开新标签页
   const onClick = (event) => {
     if (event.defaultPrevented || event.button !== 0) return;
     if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
@@ -722,8 +636,7 @@ function initNavIndicator() {
   };
   list.addEventListener('click', onClick);
 
-  // 2. 导航条尺寸一变就重量：视口缩放（含跨过 md 断点）、字体到位、换语言改文案。
-  //    色块是绝对定位的，改它自己的宽度不会反过来触发 ResizeObserver，不会自激。
+  // 导航条尺寸变化时重量（视口缩放 / 字体到位 / 换语言）；色块绝对定位，改它不会自激 ResizeObserver
   let raf = 0;
   const observer = new ResizeObserver(() => {
     cancelAnimationFrame(raf);
@@ -731,7 +644,7 @@ function initNavIndicator() {
   });
   observer.observe(list);
 
-  // 3. 换页被取消（命中 swup ignore、用户打断等）：弹回真实的当前页
+  // 换页被取消时弹回真实的当前页
   const onVisitCancel = () => syncNavIndicator();
   document.addEventListener('swup:visit:cancel', onVisitCancel);
 
@@ -748,21 +661,17 @@ function initNavIndicator() {
 registerPageInit(initNavIndicator);
 
 /**
- * 顶栏在 swup 的替换容器之外 —— 换页与换语言都不会重建它的 DOM，
- * 所以凡是「跟着当前地址变」的东西都要在这里按地址重算：
- *   1. 语言菜单的链接与高亮（语言一律从地址推导，不依赖 <html lang>）
- *   2. logo 链接
- *   3. 导航链接 / 文案 / 选中态（data-i18n-path / data-i18n-labels / data-i18n-text）
- *   4. 桌面端顶栏底色块的位置
- * 由 registerPageInit 注册：首屏也要跑一次（swup 下首屏没有 astro:page-load）。
+ * 顶栏在 swup 容器外、换页与换语言都不重建，凡是跟着当前地址变的东西都在这里重算：
+ * 语言菜单 / logo / 导航链接与文案 / 选中态 / aria-label / 分类筛选 / 色块位置。
+ * 由 registerPageInit 注册，首屏也要跑一次（swup 下首屏没有 astro:page-load）。
  */
 function syncPersistedHeader() {
   const pathname = window.location.pathname;
   const currentLang = currentLangFromUrl(pathname);
-  // <html lang> 与地址不一致时以地址为准（swup 的 head 插件是「顺带」同步，不是真源）
+  // <html lang> 与地址不一致时以地址为准
   syncDocumentLang();
 
-  // 1. 语言菜单：每个选项指向当前页面对应的语言版本，并高亮当前语言
+  // 语言菜单：指向当前页对应的语言版本并高亮当前语言
   const menu = document.getElementById('language-menu');
   if (menu) {
     const basePath = withoutLocalePrefix(pathname);
@@ -776,15 +685,12 @@ function syncPersistedHeader() {
     });
   }
 
-  // 2. logo 指向当前语言的首页
+  // logo 指向当前语言的首页
   document
     .querySelector('#main-header .header-logo a')
     ?.setAttribute('href', getRelativeLocaleUrl(currentLang, '/'));
 
-  // 3. 导航链接 / 文案 / 选中态：一次遍历解决。
-  //    原来这里要分别 querySelectorAll 三遍（[data-i18n-path]、[data-i18n-labels]、
-  //    #nav-bar 与 #mobile-menu-drawer 各自的选中态），每次换页都多扫几遍 DOM。
-  //    顺序仍然是「先写 href 与文案，再判选中」——选中态依赖写好的 href 才判得准。
+  // 导航链接 / 文案 / 选中态一次遍历解决：先写 href 与文案，再判选中（选中态依赖写好的 href）
   const here = normalizePath(pathname);
   const isActiveHref = (href) =>
     normalizePath(new URL(href, window.location.origin).pathname) === here;
@@ -809,13 +715,13 @@ function syncPersistedHeader() {
     applyLabel(link);
 
     const active = isActiveHref(link.getAttribute('href'));
-    // 桌面端顶栏：选中态只记在 aria-current 上，底色交给独立的浮动色块（#nav-indicator）
+    // 桌面端：选中态只记在 aria-current 上，底色交给 #nav-indicator
     if (link.closest('#nav-bar')) {
       if (active) link.setAttribute('aria-current', 'page');
       else link.removeAttribute('aria-current');
       return;
     }
-    // 移动端抽屉：选中项是「底色 + 主题色文字」（与 mobileNavLinkClass 保持一致）
+    // 移动端抽屉：底色 + 主题色文字（与 mobileNavLinkClass 保持一致）
     if (link.closest('#mobile-menu-drawer')) {
       link.classList.toggle('bg-[var(--button-hover-color)]', active);
       link.classList.toggle('text-[var(--link-color)]', active);
@@ -824,11 +730,10 @@ function syncPersistedHeader() {
     }
   });
 
-  // 4. 只有文案、没有 href 的节点（移动端「分类」折叠按钮、未分类胶囊等）
+  // 只有文案、没有 href 的节点（分类折叠按钮、未分类胶囊等）
   document.querySelectorAll('[data-i18n-labels]:not([data-i18n-path])').forEach(applyLabel);
 
-  // 4b. aria-label：顶栏按钮在容器外不重建，读屏文案同样要按当前地址的语言重算（FIX-03）。
-  //     data-i18n-title 是「title 与 aria-label 用同一句话」的标记（主题切换按钮）。
+  // aria-label 同样按地址语言重算；data-i18n-title 表示 title 与 aria-label 共用一句（主题按钮）
   document.querySelectorAll('[data-i18n-aria]').forEach((el) => {
     const raw = el.getAttribute('data-i18n-aria');
     if (!raw) return;
@@ -844,11 +749,10 @@ function syncPersistedHeader() {
     if (el.hasAttribute('data-i18n-title')) el.setAttribute('title', text);
   });
 
-  // 5. 移动端分类筛选的选中态与链接（含当前语言前缀）
+  // 移动端分类筛选的选中态与链接（含当前语言前缀）
   syncMobileCategoryFilter();
 
-  // 6. 桌面端顶栏底色块：必须排在最后 —— 上面刚改过 href 与文案，
-  //    链接宽度变了才量得准
+  // 色块必须最后算：上面刚改过 href 与文案，链接宽度变了才量得准
   syncNavIndicator();
 }
 
@@ -876,7 +780,7 @@ function initLanguageMenu() {
   };
   document.addEventListener('click', onDocumentClick);
 
-  // 换页开始时收掉语言菜单（顶栏不重建，以前靠整页替换复位）
+  // 换页开始时收掉语言菜单
   const onVisitStart = () => languageMenu.classList.add('hidden');
   document.addEventListener('swup:visit:start', onVisitStart);
 
@@ -893,8 +797,7 @@ function initHeaderScroll() {
   const header = document.getElementById('main-header');
   if (!header) return;
 
-  // 顶栏在容器外不会重建，但初始化会反复执行，必须先解绑上一次的滚动回调。
-  // 原实现每次新建 onScroll 闭包再 removeEventListener，移除的是从未绑定过的函数，等于没解绑。
+  // 初始化会反复执行，必须先解绑上一次的滚动回调
   window.__momoHeaderScroll?.cleanup?.();
 
   let lastScrollY = window.scrollY;

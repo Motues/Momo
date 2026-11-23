@@ -98,7 +98,6 @@ export default {
 
     log.raw()
     log.ok(`恢复完成，共 ${restored} 项（备份位于 ${relPath(target.dir)}）`)
-    // 只有备份里含依赖清单时，才需要重新安装依赖
     const depFiles = ['package.json', 'pnpm-lock.yaml', 'pnpm-workspace.yaml', 'cms/package.json']
     if (entries.some((rel) => depFiles.includes(rel))) {
       log.info(c.gray('建议执行 pnpm install 让依赖与配置保持一致'))

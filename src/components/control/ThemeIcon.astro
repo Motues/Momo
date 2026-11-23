@@ -12,8 +12,8 @@ const translations = {
   system: t("themeInfo.system")
 };
 
-// 顶栏在 swup 容器外、换页不重建：aria-label / title 也要按当前地址的语言重算，
-// 所以在这里把每种语言的文案一起渲染进 data 属性（由 Header 的 syncPersistedHeader 换掉）。
+// 顶栏在 swup 容器外、换页不重建：各语言的 aria-label / title 一并渲染进 data 属性，
+// 由 Header 的 syncPersistedHeader 换掉。
 const localeCodes: string[] = (i18n?.locales ?? [currentLang]).map((l) =>
   typeof l === 'string' ? l : l.path,
 );
@@ -103,13 +103,12 @@ if (typeof window !== 'undefined') {
       }
       window.localStorage.setItem('theme', themeSet);
 
-      // --- 新增：如果不是页面初次加载，则显示弹窗 ---
+      // 非首次加载才显示弹窗
       if (!isFirstLoad) {
         showThemeToast(themeSet);
       }
     };
 
-    // 系统主题变化监听器
     const handleSystemThemeChange = (e) => {
       if (htmlRoot.classList.contains('system-theme')) {
         if (e.matches) {
@@ -120,8 +119,7 @@ if (typeof window !== 'undefined') {
       }
     };
 
-    // 顶栏在 swup 容器外不会重建，本函数会被反复调用：
-    // 必须保留上一次的函数引用才能真正解绑（旧实现 remove 的是新建函数，从未生效）
+    // 顶栏不重建、本函数会反复调用：必须用上一次保存的函数引用解绑，否则 removeEventListener 不生效
     const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
     if (window.__momoTheme.mediaQuery && window.__momoTheme.onSystemThemeChange) {
       window.__momoTheme.mediaQuery.removeEventListener('change', window.__momoTheme.onSystemThemeChange);
@@ -188,23 +186,22 @@ if (typeof window !== 'undefined') {
     /* 毛玻璃弹窗基础样式 */
   :global(#theme-toast) {
     position: fixed;
-    bottom: 10%;               /* 距离视野底部 32px */
+    bottom: 10%;
     left: 50%;
     transform: translateX(-50%) translateY(20px);
     
-    /* 核心毛玻璃设置 */
-    background-color: rgba(255, 255, 255, 0.7); /* 半透明白色 */
-    -webkit-backdrop-filter: blur(10px);      /* 兼容 Safari */
+    background-color: rgba(255, 255, 255, 0.7);
+    -webkit-backdrop-filter: blur(10px);
     
     color: #1a1a1a;
     padding: 10px 20px;
     border-radius: 12px;
-    border: 1px solid var(--button-border-color); /* 细微边框增加质感 */
+    border: 1px solid var(--button-border-color);
     font-size: 0.9rem;
     font-weight: 500;
     z-index: 10000;
     
-    /* 动画：只过渡真正会变化的属性，避免 transition: all 命中布局属性 */
+    /* 只过渡真正会变化的属性 */
     opacity: 0;
     visibility: hidden;
     transition: opacity var(--momo-t-slow) var(--momo-ease-out),
@@ -215,23 +212,20 @@ if (typeof window !== 'undefined') {
     pointer-events: none;
   }
 
-  /* 支持标准 backdrop-filter 的浏览器（Chrome 76+ / Firefox 103+ / Safari 18+）。
-     必须与 -webkit- 前缀版分开写：构建时的 CSS 压缩器会把这两个属性当作同一属性合并，
-     只保留后写的那条；单独放进 @supports 里，构建后标准属性才不会被删掉。 */
+  /* ⚠️ 标准 backdrop-filter 必须与 -webkit- 前缀版分开写并放进 @supports：
+     构建压缩器会把两者当同一属性合并、只保留后写的，标准版会被删掉 */
   @supports (backdrop-filter: blur(1px)) {
     :global(#theme-toast) {
-      backdrop-filter: blur(10px); /* 模糊程度 */
+      backdrop-filter: blur(10px);
     }
   }
 
-  /* 显示状态 */
   :global(#theme-toast.show) {
     opacity: 1;
     visibility: visible;
     transform: translateX(-50%) translateY(0);
   }
 
-  /* 暗色模式下的毛玻璃（深色半透明） */
   :global(html[data-theme="dark"] #theme-toast) {
     background-color: rgba(30, 30, 30, 0.7);
     border: 1px solid var(--button-border-color);

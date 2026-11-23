@@ -6,7 +6,6 @@ import { safeRel, blogPath } from './store.mjs'
 
 const reveal = new Hono()
 
-// 各平台「打开目录」的命令
 function opener() {
   if (process.platform === 'win32') return 'explorer.exe'
   if (process.platform === 'darwin') return 'open'

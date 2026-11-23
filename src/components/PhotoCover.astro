@@ -1,24 +1,10 @@
 ---
-// 全站照片背景（siteConfig.theme.photoCover）
-//
-// 这个组件由 MainPageLayout 渲染，**所有页面都有**，有两种状态：
-//   - hero（只有首页第 1 页）：满屏照片 + 黑色蒙版，标题从屏幕正中滑回原位；
-//     滚动结束后照片淡到 --photo-rest。
-//   - 内页：只剩 --photo-rest 的淡淡一层，作为整页的背景。
-//
-// 两个容易踩的点：
-//   1. 固定层放在 MainPageLayout 的 isolate 容器里、**swup 容器之外**，
-//      所以换页时它不会被替换：既躲开了 .transition-swup-fade 的 opacity 包含块问题
-//      （见 MainPageLayout 的说明），内页换页时照片也不会重新请求。
-//   2. 标题是绝对定位的（Cover.astro 的 photo 模式）。字号随滚动变化 → 高度一直在变，
-//      如果标题留在文档流里，它下面的文章卡片会被推着抖。
-//      占位高度因此由脚本按「终态字号」量一次写进 --photo-copy-h。
-//
-// 样式在 src/styles/photo-cover.css（由 Layout.astro 按开关用 <link> 挂载，
-// 组件里再 import 会让关掉开关的用户也白背一份 CSS）。
+// 全站照片背景（siteConfig.theme.photoCover）：首页第 1 页是满屏 hero，其余页面只铺一层淡背景。
+// 固定层由 MainPageLayout 渲染在 swup 容器之外，换页不重建；样式在 src/styles/photo-cover.css，
+// 由 Layout.astro 按开关挂载，组件里不要再 import。
 import ImageModule from '@components/misc/ImageModule.astro';
-// publicDir 只能从 astro:config/server 拿：组件会被打包进 dist/.prerender/chunks/，
-// 用 import.meta.url 往上数两级会数到构建产物目录里（实测报 Input file is missing）
+// publicDir 必须从 astro:config/server 取：组件会被打包进 dist/.prerender/chunks/，
+// import.meta.url 往上数两级会数进构建产物目录
 import { publicDir } from 'astro:config/server';
 import sharp from 'sharp';
 import { existsSync } from 'node:fs';
@@ -38,21 +24,15 @@ const photoCover = siteConfig.theme.photoCover;
 // 淡完之后 / 内页时照片的不透明度
 const REST_OPACITY = 0.12;
 
-// 模糊底图的宽度（像素）。照片要铺满整屏，这一层只负责「先把颜色铺上」，
-// 细节交给 photo-cover.css 里的 filter: blur(38px)，所以 32px 足够。
+// 模糊底图的宽度（像素）：这一层只负责先铺上颜色，细节交给 CSS 的 blur(38px)
 const PREVIEW_WIDTH = 32;
 
-// ---- 模糊底图（照片下载完成前先铺上的那一层）----
-// **构建期生成**（`pnpm dev` 下同样按需生成，换了图刷新即可看到）：
-// 用 sharp 把原图缩到 32px 宽、编成 webp，再以 data URI 内联进样式属性。
-// 一张 1920×1080 的照片缩完只有 200 字节上下（base64 后约 250 字节），随 HTML 一起到达，
-// 不发额外请求 —— 这一层的意义就是「立刻有颜色」，让它去和原图抢带宽是本末倒置。
-// 因此**不需要**在 public/ 下手工准备 preview/ 小图了（老约定仍然优先，见下）。
-// 只处理 public/ 下的照片（以 / 开头）：src/ 下的照片由 ImageModule 自己的 LQIP 兜底。
+// 模糊底图（照片下载完成前先铺上的那一层）：构建期用 sharp 把 public/ 下的原图缩到 32px 宽、
+// 编成 webp，以 data URI 内联进 HTML（约 200 字节，不发额外请求），所以不必手工准备 preview/ 小图
+// （手放的仍然优先）；src/ 下的照片走 ImageModule 自己的 LQIP。
 let preview = '';
 if (enabled && photoCover.image.startsWith('/')) {
-    // 老约定优先：public/ 下与原图同目录的 preview/ 里如果放了小图，就用你自己那张
-    // （想手工挑裁剪 / 色调时留着这个口子；没有就走下面的构建期生成）
+    // 老约定优先：public/ 下同目录的 preview/ 里有小图就用它
     const publicRoot = fileURLToPath(publicDir);
     const manualPreview = photoCover.image.replace(/\/([^/]+)$/, '/preview/$1');
 
@@ -61,7 +41,7 @@ if (enabled && photoCover.image.startsWith('/')) {
     } else {
         try {
             const buffer = await sharp(join(publicRoot, photoCover.image))
-                // withoutEnlargement：原图本来就比 32px 窄时不要放大（白白多几字节）
+                // withoutEnlargement：原图比 32px 窄时不放大
                 .resize({ width: PREVIEW_WIDTH, withoutEnlargement: true })
                 .webp({ quality: 40 })
                 .toBuffer();
@@ -94,9 +74,8 @@ if (enabled && photoCover.image.startsWith('/')) {
     const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
 
     function initPhotoCover() {
-        // 先解绑上一次：照片层在 swup 容器外不重建，但滚动监听是每次 init 重新挂的。
-        // 必须在下面的提前 return **之前** —— 内页没有 hero，元素不在，
-        // 但监听还挂在 window 上，不解绑的话它会继续往 <html> 写进度。
+        // 先解绑上一次：照片层在 swup 容器外不重建，滚动监听却是每次 init 重挂的，
+        // 因此必须在下面的提前 return 之前解绑，否则内页会继续往 <html> 写进度。
         window.__momoPhotoCover?.cleanup?.();
 
         const root = document.documentElement;
@@ -106,14 +85,12 @@ if (enabled && photoCover.image.startsWith('/')) {
         const arrow = document.getElementById('photo-cover-arrow');
         if (!hero || !copy || !spacer) return;
 
-        /** 过渡距离：标题的落点正好到视口正中所需的滚动量 */
+        /** 过渡距离：占位块高度减去 fixed 顶栏，约等于一屏 */
         let distance = 1;
 
         /**
-         * 量两件事：
-         *  1. 占位块上方压着多少（桌面端顶栏在文档流里，移动端是 fixed 不占位），
-         *     既要让标题在视口正中，也要让箭头落在首屏真正的底部；
-         *  2. 标题在**终态字号**下的高度 —— 字号随滚动变化，不按终态量的话占位会跟着抖。
+         * 量两件事：写入 --photo-copy-h 的标题高度（必须按**终态字号**量，否则占位会抖），
+         * 以及占位块上方压着的高度 --photo-header（桌面端顶栏在文档流里，移动端是 fixed）。
          */
         function measure() {
             const previous = root.style.getPropertyValue('--photo-p');
@@ -125,13 +102,8 @@ if (enabled && photoCover.image.startsWith('/')) {
             const headerHeight = hero.getBoundingClientRect().top + window.scrollY;
             root.style.setProperty('--photo-header', `${headerHeight}px`);
 
-            // 过渡距离 = 整整一屏。
-            // 标题的落点在占位末尾（文档坐标约 1 屏 + 标题高度），滚满一屏之后
-            // 它刚好到视口顶部、正好贴在第一张卡片上方 —— 和其它页面 Cover 的位置一模一样。
-            // 早先按「落点滑到视口正中」取距离，标题就会全程停在屏幕中间、末段才窜上去。
-            //
-            // 例外：移动端顶栏是 fixed（hero 起点为 0），它浮在内容之上，
-            // 落位时得给它让出高度，否则标题会停在它背后。
+            // 过渡距离 = 整整一屏：滚满一屏后标题刚好到视口顶部、贴在第一张卡片上方，
+            // 与其它页面 Cover 的位置一致。移动端顶栏是 fixed，落位时要给它让出高度。
             const fixedHeader = headerHeight < 1
                 ? (document.getElementById('main-header')?.getBoundingClientRect().height || 0)
                 : 0;
@@ -144,7 +116,7 @@ if (enabled && photoCover.image.startsWith('/')) {
             const raw = Math.min(Math.max(window.scrollY / distance, 0), 1);
             // 位置用线性：见 photo-cover.css 里 .photo-cover-copy 的注释
             root.style.setProperty('--photo-pos', raw.toFixed(4));
-            // 淡出 / 字号 / 颜色用 smoothstep（起步慢、中段快、收尾稳），比线性自然得多。
+            // 淡出 / 字号 / 颜色用 smoothstep（起步慢、中段快、收尾稳）；
             // 用户要求减少动效时不做插值，滚一下就直接落位。
             const eased = reducedMotion.matches && raw > 0 ? 1 : raw * raw * (3 - 2 * raw);
             root.style.setProperty('--photo-p', eased.toFixed(4));
@@ -174,9 +146,8 @@ if (enabled && photoCover.image.startsWith('/')) {
             };
         }
 
-        // 延一帧再对齐：swup 的 ScrollPlugin 是在 page:view 里用 rAF 派发 scrollTo(0) 的，
-        // 同一帧里 astro:page-load 先跑，此刻读到的还是**上一页**的滚动位置。
-        // 首屏不用等这一帧——--photo-p 的 CSS 初值就是 0（见 photo-cover.css）。
+        // 延一帧再对齐：swup 的 ScrollPlugin 在 page:view 的 rAF 里才派发 scrollTo(0)，
+        // 同一帧里 astro:page-load 先跑，此刻读到的还是上一页的滚动位置。
         requestAnimationFrame(update);
 
         window.__momoPhotoCover = {
@@ -189,11 +160,8 @@ if (enabled && photoCover.image.startsWith('/')) {
 
     registerPageInit(initPhotoCover);
 
-    // 照片层在 swup 容器之外、换页不重建，进度得由脚本按当前页面切：
-    // 首页 → 0（满屏），内页 → 1（淡背景）。
-    // 用 after-swap 而不是 before-swap：@swup/astro 把 before-swap 派发成**不带载荷**的
-    // 裸 Event（拿不到新文档），after-swap 时 DOM 已经换好，直接查当前文档就行，
-    // 而且它和内容替换在同一个同步钩子里，不会闪出上一��的透明度。
+    // 照片层在 swup 容器之外、换页不重建，进度得由脚本按当前页面切（首页 0，内页 1）。
+    // 用 astro:after-swap 而不是 before-swap：后者在 @swup/astro 下不带载荷，拿不到新文档。
     document.addEventListener('astro:after-swap', () => {
         const value = document.getElementById('photo-cover-text') ? '0' : '1';
         const style = document.documentElement.style;

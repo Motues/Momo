@@ -1,13 +1,6 @@
 /**
  * 本文件由 scripts/vendor-hashwx.js 生成，请勿手工编辑。
- *
- * 上游: https://github.com/tevador/hashwx @ 74b567a31276a4c5d7cb232a5b7639467f49f961（v1.0.0）
- * 许可: LGPL-3.0，完整文本见 vendor/hashwx/hashwx-LICENSE.txt
- * 构建: 上游 Emscripten 构建，WebAssembly 1.0（MVP）
- * sha256: b1a0dbb3ef444d3c7069e0a5e0a0273ffa4cf8fef62cbbe43761c02f7cd6aff5
- * 体积: 12541 字节
- *
- * 真实性由 tests/hashwx.test.js 的官方 KAT 向量保证。
+ * 上游 tevador/hashwx @ 74b567a（v1.0.0），LGPL-3.0，许可全文见 vendor/hashwx/hashwx-LICENSE.txt
  */
 
 export const HASHWX_WASM_SHA256 =

@@ -24,7 +24,6 @@ export function remarkLqip(options: RemarkLqipOptions = {}) {
     const promises: Promise<void>[] = [];
 
     visit(tree, 'image', (node) => {
-      // 只处理本地图片
       if (node.url.startsWith('http') || node.url.startsWith('/')) return;
 
       promises.push(

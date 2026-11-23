@@ -23,7 +23,7 @@ const {
   headings = [] 
 } = Astro.props;
 
-// 过滤掉 h1 (通常是文章标题) 和层级过深的标题，保留 h2, h3, h4
+// 只保留 h2 / h3 / h4（过滤 h1 与更深层级）
 const tocHeadings = headings.filter(h => h.depth > 1 && h.depth < 5);
 ---
 
@@ -109,10 +109,8 @@ const tocHeadings = headings.filter(h => h.depth > 1 && h.depth < 5);
 import { registerPageInit } from '@utils/pageInit';
 import { subscribeScroll } from '@utils/scrollBus';
 
-// 本脚本是带 src 的 module（模块表去重 ⇒ 换页不会重跑），而 FabMenu 在 swup 容器内、
-// 每次换页 DOM 都是全新的：初始化统一挂在 registerPageInit 上。
-// 只靠元素上的 dataset 守卫无法回收挂在 window/document 上的旧监听器，
-// 因此统一用全局注册表保存「上一次绑定」，每次初始化先解绑再绑定。
+// 本脚本带 src（模块表去重 ⇒ 换页不会重跑），而 FabMenu 在 swup 容器内、每次换页 DOM 全新：
+// 初始化挂在 registerPageInit 上，监听器统一存进全局注册表，每次先解绑再绑定。
 function initFabMenu() {
   window.__momoFabMenu?.cleanup?.();
 
@@ -143,9 +141,8 @@ function initFabMenu() {
   }
 
   function updateScroll(scrollTop) {
-    // 控制 FAB 整体显示/隐藏（只在状态真的变化时改 class）。
-    // 这里切的是 is-visible（CSS 里对应 visibility）而不是 opacity，原因见文件底部样式：
-    // 容器只要 opacity < 1 就会成为 backdrop 根，内部按钮的 backdrop-blur 在动画期间失效。
+    // FAB 显隐：切 is-visible（CSS 里对应 visibility）而不是 opacity，
+    // 否则容器 opacity < 1 会成为 backdrop 根，内部按钮的 backdrop-blur 在动画期间失效。
     const visible = scrollTop > threshold;
     if (visible !== lastVisible) {
       lastVisible = visible;
@@ -165,7 +162,6 @@ function initFabMenu() {
       container.classList.remove('toc-active');
     }
 
-    // 更新进度条
     if (progressCircle && docHeight > 0) {
       const scrollPercent = Math.min(100, (scrollTop / docHeight) * 100);
       if (Math.abs(scrollPercent - lastPercent) >= 0.5 || scrollPercent === 100) {
@@ -188,31 +184,26 @@ function initFabMenu() {
   // 目录高亮观察器（换页时必须断开，否则会持续观察已卸载的标题节点）
   let tocObserver = null;
 
-  // 主按钮切换
   trigger.onclick = (e) => {
     e.stopPropagation();
     container.classList.toggle('is-active');
-    // 如果关闭了主菜单，也一并关闭目录
     if (!container.classList.contains('is-active')) {
       isTocOpen = false;
       container.classList.remove('toc-active');
     }
   };
 
-  // 目录按钮触发
   if (tocTrigger) {
     tocTrigger.onclick = (e) => {
       e.stopPropagation();
       isTocOpen = !isTocOpen;
       container.classList.toggle('toc-active', isTocOpen);
-      // 记录打开目录时的滚动位置
       if (isTocOpen) {
         scrollPosOnTocOpen = window.scrollY || document.documentElement.scrollTop;
       }
     };
   }
 
-  // 关闭目录按钮
   if (closeToc) {
     closeToc.onclick = (e) => {
       e.stopPropagation();
@@ -223,9 +214,8 @@ function initFabMenu() {
 
 tocLinks.forEach(link => {
     link.onclick = (e) => {
-      e.preventDefault(); // 阻止默认的锚点跳转，以便使用平滑滚动
+      e.preventDefault(); // 阻止默认锚点跳转，改用平滑滚动
       
-      // 点击即时反馈：移除所有高亮，给当前点击的项加上高亮
       tocLinks.forEach(l => l.classList.remove('is-active'));
       link.classList.add('is-active');
 
@@ -233,7 +223,7 @@ tocLinks.forEach(link => {
       const targetElement = document.getElementById(targetId);
       
       if (targetElement) {
-        // 考虑到可能有顶部导航栏，预留一点偏移量（可选，比如 60px）
+        // 预留顶部导航栏的偏移量
         const offset = 60; 
         const bodyRect = document.body.getBoundingClientRect().top;
         const elementRect = targetElement.getBoundingClientRect().top;
@@ -245,20 +235,18 @@ tocLinks.forEach(link => {
           behavior: 'smooth'
         });
         
-        // 缩起目录面板
         isTocOpen = false;
         container.classList.remove('toc-active');
       }
     };
   });
 
-  // 提取所有正文里的标题元素
   const headingElements = Array.from(tocLinks)
     .map(link => document.getElementById(link.getAttribute('href').substring(1)))
-    .filter(Boolean); // 过滤掉不存在的元素
+    .filter(Boolean);
 
   if (headingElements.length > 0) {
-    // 设置观察器参数：当标题进入视窗顶部向下 10% 到 20% 的区域时触发
+    // 观察器参数：标题进入视窗顶部向下 10%~20% 的区域时触发
     const observerOptions = {
       root: null,
       rootMargin: '-10% 0px -80% 0px', 
@@ -268,24 +256,19 @@ tocLinks.forEach(link => {
     tocObserver = new IntersectionObserver((entries) => {
       entries.forEach(entry => {
         if (entry.isIntersecting) {
-          // 清除所有高亮
           tocLinks.forEach(l => l.classList.remove('is-active'));
-          // 找到当前对应的目录链接并高亮
           const activeId = entry.target.id;
           const activeLink = document.querySelector(`.toc-link[href="#${activeId}"]`);
           if (activeLink) {
             activeLink.classList.add('is-active');
-            // activeLink.scrollIntoView({ block: 'nearest' });
           }
         }
       });
     }, observerOptions);
 
-    // 开始观察所有标题
     headingElements.forEach(el => tocObserver.observe(el));
   }
 
-  // 回到顶部
   if (backTop) {
     backTop.onclick = () => {
       window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -294,7 +277,6 @@ tocLinks.forEach(link => {
     };
   }
 
-  // 回到底部
   if (backBottom) {
     backBottom.onclick = () => {
       window.scrollTo({ top: document.documentElement.scrollHeight, behavior: 'smooth' });
@@ -303,7 +285,6 @@ tocLinks.forEach(link => {
     };
   }
 
-  // 回到评论区
   if (backComment) {
     backComment.onclick = () => {
       const comments = document.getElementById('comments');
@@ -338,30 +319,23 @@ tocLinks.forEach(link => {
   };
 }
 
-// 首屏 + 每次换页（swup 下首屏不会有 astro:page-load，见 @utils/pageInit）
+// 首屏 + 每次换页（swup 下首屏没有 astro:page-load，见 @utils/pageInit）
 registerPageInit(initFabMenu);
 </script>
 
 <style is:global>
-  /* ⚠️ 带 backdrop-blur 的按钮，出现 / 消失动画不能靠「祖先」的 opacity：
-     祖先只要 opacity < 1（或带 filter / will-change: opacity）就会成为 backdrop 根，
-     后代的 backdrop-filter 只能采样这个根内部的内容（= 什么都没有），
-     于是动画期间只剩下 20% 的底色，等过渡结束、opacity 回到 1 才「啪」地一下变模糊
-     —— 观感就是「先弹出、动画结束才变模糊」。
-     分工：容器只做 visibility + transform，淡入淡出落在带 backdrop-blur 的元素自己身上
-     （元素自身的 opacity 不会破坏自己的 backdrop-filter，只是把模糊结果按透明度混合）。 */
+  /* ⚠️ 带 backdrop-blur 的元素，出现 / 消失动画不能靠祖先的 opacity：
+     祖先 opacity < 1 会成为 backdrop 根，后代毛玻璃整帧失效。
+     分工：容器只做 visibility + transform，淡入淡出落在带 backdrop-blur 的元素自己身上。 */
   #fabMenu {
-    /* visibility 是离散插值：显示（hidden -> visible）立刻可见，
-       隐藏（visible -> hidden）要等 300ms 过渡跑完才生效，收起动画因此完整播完 */
+    /* visibility 是离散插值：显示立刻可见，隐藏等 300ms 过渡跑完，收起动画才完整 */
     visibility: hidden;
     transition: visibility 300ms;
   }
   #fabMenu.is-visible { visibility: visible; }
 
-  /* 菜单项按钮：淡入沿用 #menuItems 的 300ms ease-out（--ease-out = cubic-bezier(0,0,.2,1)），
-     按压缩放保持原来的 200ms + 默认缓动。
-     ⚠️ 这里保持原样：弹入/弹出由 #menuItems 上的 Tailwind `transition duration-300 ease-out`
-     驱动（它过渡的是 translate 属性），.fab-item 自己只负责 opacity 与按下时的 scale。 */
+  /* 菜单项：淡入沿用 #menuItems 的 300ms ease-out，按压缩放保持 200ms + 默认缓动。
+     ⚠️ 弹入 / 弹出由 #menuItems 的 transition 驱动（过渡 translate），这里只负责 opacity 与 scale。 */
   #fabMenu .fab-item {
     transition: opacity 300ms cubic-bezier(0, 0, 0.2, 1),
                 scale 200ms cubic-bezier(0.4, 0, 0.2, 1);
@@ -369,7 +343,7 @@ registerPageInit(initFabMenu);
 
   #progress-circle {
     stroke: var(--text-color);
-    /* 阅读进度环：跟着滚动逐帧更新，只需一点点补间，走最短的 t-fast */
+    /* 阅读进度环：逐帧更新，只补间 t-fast */
     transition: stroke-dasharray var(--momo-t-fast) linear;
   }
   

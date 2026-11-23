@@ -1,9 +1,8 @@
 /**
  * /sitemap.xml —— 站点地图（含分页、文章发布时间与各语言 hreflang 对照）
- *
- * 手写而不是引入 @astrojs/sitemap：URL 由 `getBlogEntrySort` 与分页规则推导，
- * 与页面实际生成的路径严格一致，同时不给模板增加新依赖。
+ * 手写而不引入 @astrojs/sitemap：URL 由页面实际的路径规则推导。
  */
+
 import type { APIContext } from 'astro';
 import { i18n } from 'astro:config/client';
 import { siteConfig } from '@/config';

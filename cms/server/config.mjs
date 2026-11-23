@@ -1,4 +1,4 @@
-// config.mjs — 站点配置（src/config.ts）读写 API
+// 站点配置（src/config.ts）读写 API
 import { Hono } from 'hono'
 import { readConfig, writeConfig } from './config-file.mjs'
 

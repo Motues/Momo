@@ -1,6 +1,4 @@
-/**
- * 客户端换页的统一初始化入口。
- */
+/** 客户端换页的统一初始化入口 */
 type PageInit = () => void;
 
 const inits = new Set<PageInit>();
@@ -19,7 +17,7 @@ function runAll() {
 /** 注册「首屏 + 每次换页」都要跑的初始化（必须幂等） */
 export function registerPageInit(fn: PageInit): void {
   inits.add(fn);
-  // 首屏已经跑过（说明本模块是换页之后才第一次被加载的）：立刻补跑
+  // 首屏已跑过（模块在换页之后才首次加载）：立刻补跑
   if (started) fn();
 }
 

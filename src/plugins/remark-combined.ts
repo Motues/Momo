@@ -45,7 +45,7 @@ export function remarkCombined() {
         nodes.push({ type: 'html', value: '</span>' });
       } else if (match[5]) {
         nodes.push({ type: 'html', value: '<span class="underline-text">' });
-        nodes.push(...processText(match[5])); // 支持嵌套
+        nodes.push(...processText(match[5]));
         nodes.push({ type: 'html', value: '</span>' });
       }
 

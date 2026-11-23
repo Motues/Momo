@@ -305,7 +305,7 @@ export async function renderMedia(root: HTMLElement) {
 
   async function load() {
     const seq = ++loadSeq
-    // 首次进入时占位，避免空白页看起来像坏了
+    // 首次进入时占位
     if (!state.list) grid.textContent = '加载中…'
     try {
       const list = await api.mediaList({ scope: state.scope, q: state.q })
@@ -377,7 +377,7 @@ export async function renderMedia(root: HTMLElement) {
     if (uploaded || duplicated) await load()
   }
 
-  // 拖拽上传：只认文件（拖文本 / 链接时不要拦截页面默认行为）
+  // 拖拽上传只认文件，不拦截文本 / 链接的默认行为
   const hasFiles = (e: DragEvent) => [...(e.dataTransfer?.types || [])].includes('Files')
   main.addEventListener('dragenter', (e) => {
     if (!hasFiles(e)) return

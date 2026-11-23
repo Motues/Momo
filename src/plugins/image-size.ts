@@ -1,9 +1,6 @@
 /**
- * 从图片「头部字节」解析宽高（拼图插件 rehype-image-collage.ts 专用）。
- *
- * 本地图片用 sharp 读，网络图片只在构建期抓一小段头部（默认最多 512 KB），
- * 解析出宽高就立刻断开，不下载整张图片；超时 / 失败 / 格式不支持一律返回 null，
- * 由调用方兜底。支持 PNG、JPEG、GIF、WebP、AVIF/HEIF、BMP、SVG。
+ * 从图片头部字节解析宽高（拼图插件 rehype-image-collage.ts 专用）。
+ * 网络图片构建期只抓头部；超时 / 失败 / 格式不支持返回 null，由调用方兜底。
  */
 import sharp from 'sharp';
 
@@ -20,7 +17,7 @@ export interface RemoteSizeOptions {
   userAgent?: string;
 }
 
-/** 同时进行的远端请求数：构建时并行抓头部，又不至于把网络和对方服务器打满 */
+/** 远端请求的最大并发数 */
 const MAX_CONCURRENT = 6;
 
 export const REMOTE_DEFAULTS = {
@@ -118,7 +115,7 @@ function bmpSize(buf: Buffer): ImageDimensions | null {
   return width > 0 && height > 0 ? { width, height } : null;
 }
 
-/** AVIF / HEIF：从 ISO-BMFF 里找 ispe（图像空间范围）盒子，取主图的宽高 */
+/** AVIF / HEIF：从 ISO-BMFF 的 ispe（图像空间范围）盒子取主图宽高 */
 function avifSize(buf: Buffer): ImageDimensions | null {
   if (buf.length < 32 || buf.toString('latin1', 4, 8) !== 'ftyp') return null;
   const brand = buf.toString('latin1', 8, 12);
@@ -153,10 +150,7 @@ function svgSize(buf: Buffer): ImageDimensions | null {
   return null;
 }
 
-/**
- * 从（可能只读到一部分的）字节里解析宽高。
- * 返回 null 表示「还不确定」：调用方可以继续读更多字节，或按未知处理。
- */
+/** 从（可能只读到一部分的）字节里解析宽高；返回 null 表示解析不出，由调用方兜底 */
 export function parseImageSize(buffer: Buffer): ImageDimensions | null {
   if (!buffer || buffer.length < 16) return null;
   return (
@@ -171,7 +165,7 @@ export function parseImageSize(buffer: Buffer): ImageDimensions | null {
   );
 }
 
-/** 兜底：交给 sharp 试一次（截断的字节有时也能读出头部信息） */
+/** 兜底：交给 sharp 再试一次（截断的字节有时也能读出头部信息） */
 async function sharpSize(buffer: Buffer): Promise<ImageDimensions | null> {
   try {
     const { width, height } = await sharp(buffer).metadata();
@@ -200,7 +194,7 @@ export async function fetchRemoteImageSize(
       redirect: 'follow',
       signal: controller.signal,
       headers: {
-        // 只要头部这一段；服务器不支持 Range 时会返回整图，但下面解析出来就会立刻断开
+        // 只取头部这一段；服务器不支持 Range 时会返回整图，但解析出尺寸就立刻断开
         Range: `bytes=0-${maxBytes - 1}`,
         Accept: 'image/*,*/*;q=0.8',
         'User-Agent': userAgent,
@@ -259,10 +253,7 @@ function schedule(task: () => Promise<ImageDimensions | null>): Promise<ImageDim
   });
 }
 
-/**
- * 带缓存与并发限流的版本：同一个 URL 只抓一次，多个拼图/文章同时用到时共享同一个 Promise。
- * 失败结果同样会被缓存（一次构建里不重复踩同一个超时）。
- */
+/** 带缓存与并发限流：同一 URL 只抓一次（失败结果也缓存），并发中共享同一个 Promise */
 export function remoteImageSize(
   url: string,
   options: RemoteSizeOptions = {},

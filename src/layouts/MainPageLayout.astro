@@ -67,30 +67,22 @@ const {
   preloadImage={preloadImage}
   pagination={pagination}
 >
-  <!-- isolate：给固定的照片层一个层叠上下文。
-       它用 z-index:-1 落在正文之下，而负 z-index 的绘制早于 body 的背景色，
-       不隔离会被 body 的底色盖住。放在 swup 容器（main）之外还有两个好处：
-       换页时照片层不会被替换 —— 既躲开了 .transition-swup-fade 的 opacity 包含块问题，
-       内页之间跳转也不会重新请求图片。 -->
+  <!-- isolate：给固定的照片层建立层叠上下文。
+       它用 z-index:-1 落在正文之下，而负 z-index 的绘制早于 body 的背景色，不隔离会被盖住。
+       放在 swup 容器（main）之外：换页不替换照片层，也不会重新请求图片。 -->
   <div class="relative isolate flex flex-col min-h-screen">
     <PhotoCover hero={photoCover} />
 
-    <!-- 顶栏在 swup 容器之外：换页时不重建（替代原来的 transition:persist），
-         毛玻璃不重绘、没有跳动。它的语言菜单 / logo / 导航链接由 Header 里
-         的 syncPersistedHeader() 在每次换页后按当前地址重算。 -->
+    <!-- 顶栏在 swup 容器之外：换页时不重建（替代 transition:persist）；
+         语言菜单 / logo / 导航链接由 Header 的 syncPersistedHeader() 在每次换页后按当前地址重算。 -->
     <div>
       <Header />
     </div>
 
     <!-- swup 的替换容器：换页时整段换成新文档里的 main#swup-container。
-         只有它的内容需要「每页都不一样」。
-
-         ⚠️ 淡入淡出的 .transition-swup-fade 只包住正文，不能直接加在 main 上：
-         元素的 opacity 小于 1 时，它内部 position: fixed 的后代会改以它为包含块，
-         而 TOC（TOC.svelte 的 aside）与移动端目录/悬浮按钮（FabMenu）都是 fixed，
-         一旦被包住，过渡的那 200ms 里它们会整体跳位。
-         所以这两块走 overlay 插槽：仍在容器内（每页重建、内容跟着换），
-         但在淡入淡出元素之外（包含块仍是视口）。 -->
+         ⚠️ .transition-swup-fade 只包住正文，不能加在 main 上：opacity < 1 会让内部 fixed 后代
+         改以它为包含块，TOC 与 FabMenu 在过渡的 200ms 里会跳位。
+         这两块走 overlay 插槽：仍在容器内（每页重建），但在淡入淡出元素之外。 -->
     <main id="swup-container" class="flex-grow" tabindex="-1">
       <div class="transition-swup-fade">
         <slot />

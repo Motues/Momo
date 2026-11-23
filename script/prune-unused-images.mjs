@@ -1,20 +1,8 @@
 #!/usr/bin/env node
 /**
- * 构建后清理：删掉 dist/_astro 里没有任何产物引用的图片。
- *
- * 为什么需要这一步：
- * ImageModule 用 `import.meta.glob` 取 ImageMetadata，而 Vite 会把 glob 命中的
- * **每一张**图片都当静态资源输出（哪怕从来没人引用它，例如 src/assets 下遗留的
- * 素材）。同时 `<Image>` 只输出尺寸变体，那些「原图副本」在 HTML / CSS / JS 里
- * 一个引用都没有，属于纯浪费。
- *
- * 判定方式：把所有文本产物（html / css / js / json / xml …）拼成一个大字符串，
- * 图片文件名在里面出现过就保留。文件名带内容 hash，不会和别的文件撞名；宁可
- * 误留（多一个文件）也绝不误删，所以只做「完全没出现过」的删除。
- *
- * 用法：
- *   node script/prune-unused-images.mjs           # 删除
- *   node script/prune-unused-images.mjs --check   # 只报告，有未引用图片时退出码 1
+ * 构建后清理：删除 dist/_astro 里没有任何产物引用的图片。
+ * 判定：所有文本产物（html / css / js / json / xml…）里出现过文件名的就保留——宁可误留，绝不误删。
+ * 用法：node script/prune-unused-images.mjs [--check]（--check 只报告，有未引用图片时退出码 1）
  */
 
 import { readdir, readFile, stat, unlink } from 'node:fs/promises';
@@ -66,7 +54,7 @@ async function main() {
         process.exit(1);
     }
 
-    // 1. 文本产物拼成一个 haystack
+    // 文本产物拼成一个 haystack
     const textParts = [];
     for (const file of all) {
         if (!TEXT_EXTS.has(extname(file).toLowerCase())) continue;
@@ -74,7 +62,7 @@ async function main() {
     }
     const haystack = textParts.join('\n');
 
-    // 2. _astro 下的图片逐个核对引用
+    // 逐个核对 _astro 下图片是否被引用
     const images = [];
     for (const file of all) {
         if (!file.startsWith(ASSETS_DIR + sep)) continue;

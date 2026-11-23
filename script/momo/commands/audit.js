@@ -1,5 +1,4 @@
 // audit.js — pnpm momo audit：统计构建产物的首屏体积指标，用于优化前后对比
-// 只依赖 Node 内置模块；指标口径与 TODO.md 的「基线数据」一致
 import { readFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import {

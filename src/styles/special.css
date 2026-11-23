@@ -1,6 +1,5 @@
 .link-line{
     color: inherit;
-    /* transition: color 0.3s ease; */
     text-decoration: none;
     position: relative;
     display: inline-block;
@@ -14,7 +13,6 @@
     width: 100%;
     border-bottom-style: dotted;
     border-bottom-width: 2px;
-    /* background: currentColor; */
     transition: transform var(--momo-t-base) var(--momo-ease-out);
     transform-origin: right;
     transform: scaleX(1);

@@ -1,12 +1,4 @@
-/**
- * 纯 JS SHA-256（字节输入）
- *
- * 用途：HashWX 的函数种子派生 —— seed = SHA256(c(32B) ‖ u8le(index) ‖ u64le(block))。
- * 每个 block（默认 65536 个 nonce）只需一次，因此同步的纯 JS 实现完全够用；
- * 这里也不能用 crypto.subtle —— 它是异步的，会打断同步解题循环。
- *
- * 摘要口径必须与三端后端完全一致。
- */
+/** 纯 JS SHA-256（字节输入）：用于 HashWX 种子派生，必须同步（不能用异步的 crypto.subtle）；摘要口径须与三端后端一致 */
 
 const K = new Uint32Array([
   0x428a2f98, 0x71374491, 0xb5c0fbcf, 0xe9b5dba5, 0x3956c25b, 0x59f111f1, 0x923f82a4, 0xab1c5ed5,

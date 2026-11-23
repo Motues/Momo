@@ -11,7 +11,6 @@ const totalPages = page.lastPage;
 const showPrevious = currentPage > 1;
 const showNext = currentPage < totalPages;
 
-// 逻辑：生成带省略号的页码数组
 function getVisiblePages(current: number, total: number) {
   const delta = 1; 
   const range = [];
@@ -47,8 +46,7 @@ const getPageUrl = (p: number) => {
 const currentLang = Astro.currentLocale || i18n!.defaultLocale;
 const t = i18nit(currentLang);
 
-// 样式类：整合了移动端和桌面端的差异
-// 按压反馈统一交给 .press（见 styles/global.css），不再用 active:scale-90
+// 按压反馈统一交给 .press（见 styles/global.css），不要再用 active:scale-90
 const btnBaseClass = "press p-2 md:px-4 md:py-2 flex items-center border rounded-lg";
 const btnActiveProps = "text-[var(--text-color)] hover:bg-[var(--button-hover-color)] border-[var(--button-border-color)]";
 const btnDisabledProps = "text-[var(--text-color-30)] border-[var(--button-border-color)] opacity-40 cursor-not-allowed pointer-events-none";
@@ -56,7 +54,7 @@ const btnDisabledProps = "text-[var(--text-color-30)] border-[var(--button-borde
 
 <nav data-reveal="rise" aria-label={t("pageNavigation.label")} class="flex flex-row justify-between items-center gap-1 my-8 max-w-[var(--page-width)] mx-auto text-sm">
   
-  <!-- 禁用态用 <span> 而不是 href="#": 后者仍然是可聚焦链接，点一下会把地址改成 #（还会写一条历史） -->
+  <!-- 禁用态用 <span> 而不是 href="#"：后者仍可聚焦，点击会改地址并写入历史 -->
   {showPrevious ? (
     <a
       href={getRelativeLocaleUrl(currentLang, getPageUrl(currentPage - 1))}
@@ -92,8 +90,7 @@ const btnDisabledProps = "text-[var(--text-color-30)] border-[var(--button-borde
       }
       
       const isCurrent = p === currentPage;
-      // 当前页不再是「指向自己的链接」：用 span + aria-current="page"，
-      // 读屏软件会念「当前页」，键盘也不会多停一站。
+      // 当前页用 span + aria-current="page"（读屏念「当前页」，键盘也不多停一站）
       if (isCurrent) {
         return (
           <span

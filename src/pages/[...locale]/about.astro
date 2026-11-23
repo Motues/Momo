@@ -27,7 +27,7 @@ if (!aboutPost) {
 const { Content, remarkPluginFrontmatter } = await render(aboutPost);
 
 const pageTitle = t("header.about") + " - " + siteConfig.title;
-// SEO：用该页 Cover 文案作为描述，避免多个页面共用同一段描述
+// SEO：描述取该页 Cover 文案
 const pageDescription = `${t("cover.title.about")} - ${t("cover.subTitle.about")}`;
 const pageUrl = absoluteUrl(normalizePath(Astro.url.pathname));
 // 关于页的结构化数据：ProfilePage + Person（站点主人）

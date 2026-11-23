@@ -8,7 +8,6 @@ const articles = new Hono()
 
 const PREFIX = '/api/articles'
 
-// 解析通配路由的剩余路径
 function rest(c) {
   const p = c.req.path
   const raw = p.slice(PREFIX.length)

@@ -2,15 +2,7 @@ import { findShortcodes } from './owo';
 
 /**
  * 评论正文里的表情水合：把 `:name:` 短代码替换成内联小图。
- *
- * 为什么在前端做（而不是写进 content_html）：
- *  - 服务端净化口径三端不同（Go 的 bluemonday 与 Worker 的正则都会剥掉 `data:` 图片），
- *    存短代码可以三端一致；
- *  - 表情被删除/改名后，老评论里未命中的短代码会**原样保留为文字**，不会图裂。
- *
- * 安全边界：所有 `<img>` 都用 `createElement` 构建，`src` 只取自
- * `EmojiSet.images`（其值在构建时已按 data:image/* 或 https:// 白名单校验过），
- * 全程不拼接 HTML、不使用 innerHTML。
+ * 所有 `<img>` 都用 `createElement` 构建、`src` 只取自 `EmojiSet.images`（构建时已按白名单校验），不拼接 HTML。
  */
 
 /** 这些标签内部的文本不参与替换（代码块里的 `:name:` 应当保持原样） */
@@ -19,11 +11,7 @@ const SKIP_TAGS = new Set(['CODE', 'PRE', 'SCRIPT', 'STYLE', 'TEXTAREA']);
 export interface EmojifyOptions {
 	/** 短代码 → 图片地址 */
 	images?: Map<string, string>;
-	/**
-	 * 触发重新水合的键（通常传被渲染的 HTML 原文）。
-	 * `{@html}` 更新会整体替换 innerHTML，把 html 一起作为 action 参数
-	 * 可以让 Svelte 在内容变化时重新调用 update()，避免水合结果被覆盖后丢失。
-	 */
+	/** 触发重新水合的键（通常传被渲染的 HTML 原文），内容变化时 Svelte 会重新调用 update() */
 	html?: string;
 }
 
@@ -75,13 +63,7 @@ function hydrateTextNode(node: Text, images: Map<string, string>): void {
 	node.parentNode?.replaceChild(fragment, node);
 }
 
-/**
- * 表情包更新后，已经水合过的 `<img>` 也要跟着换图。
- *
- * 短代码在第一次水合时就已经变成 `<img>` 了，后续再跑文本水合根本碰不到它；
- * 如果管理员换掉了同名表情的图片地址（`owo.json` 更新），正文会一直停在旧图上。
- * 这里只认 `alt = :name:` 且 `src` 确实变了的节点，因此重复调用是幂等的。
- */
+/** 表情包更新后，按 `alt` 里的短代码同步已水合的 `<img>` 的 `src`（幂等） */
 function refreshHydratedImages(root: HTMLElement, images: Map<string, string>): number {
 	let updated = 0;
 	for (const image of root.querySelectorAll<HTMLImageElement>('img.momo-emoji')) {
@@ -95,10 +77,7 @@ function refreshHydratedImages(root: HTMLElement, images: Map<string, string>): 
 	return updated;
 }
 
-/**
- * 就地水合一个容器内的所有文本节点。
- * 幂等：已替换过的位置不再有 `:name:` 文本，重复调用不会重复插图片。
- */
+/** 就地水合一个容器内的所有文本节点；幂等，重复调用不会重复插图片 */
 export function hydrateEmojis(root: HTMLElement, images?: Map<string, string>): number {
 	if (!root || !images || images.size === 0) return 0;
 	const doc = root.ownerDocument;
@@ -127,11 +106,7 @@ export function hydrateEmojis(root: HTMLElement, images?: Map<string, string>): 
 
 /**
  * Svelte action：`<div use:emojify={{ images, html }}>{@html ...}</div>`
- *
- * `update` 会在参数变化时重新水合 —— 既覆盖「表情包异步到达」，
- * 也覆盖「`{@html}` 整体替换 innerHTML 后水合结果被清掉」的情况
- * （把 html 原文一起作为参数，内容变化时 Svelte 必然会调用 update）。
- * 水合是幂等的，因此重复调用安全。
+ * 参数变化时重新水合（幂等），覆盖表情包异步到达与 `{@html}` 整体替换 innerHTML 两种情况。
  */
 export function emojify(node: HTMLElement, options: EmojifyOptions = {}) {
 	hydrateEmojis(node, options.images);

@@ -5,8 +5,7 @@ import i18nit from "@i18n/translation";
 const currentLang = Astro.currentLocale || i18n!.defaultLocale;
 const t = i18nit(currentLang);
 
-// 搜索弹窗在 swup 容器之外，不会随换页重建：把**每种语言**的文案一起渲染进 data 属性，
-// 由脚本里的 syncSearchLocale() 在每次换页后按当前地址（语言）挑出该用的那一份。
+// 弹窗在 swup 容器外、换页不重建：每种语言的文案一起渲染进 data 属性，由 syncSearchLocale() 按当前地址挑一份
 const localeCodes: string[] = (i18n?.locales ?? [currentLang]).map((l) =>
   typeof l === 'string' ? l : l.path,
 );
@@ -22,8 +21,7 @@ const translationsByLocale = Object.fromEntries(
         label: tr("search.label"),
         hint: tr("search.hint"),
         searching: tr("search.searching"),
-        // t() 在没传参数时会把 {count} 原样替换成 "count"，这里先把它保住，
-        // 真正填数字交给运行期的 updateCount()
+        // t() 无参时会把 {count} 替换成 "count"，这里先保住占位符，数字交给 updateCount()
         results: tr("search.results", { count: "{count}" }),
         tip: tr("search.tip"),
         devHint: tr("search.devHint"),
@@ -38,14 +36,7 @@ const translationsByLocale = Object.fromEntries(
 );
 ---
 
-<!--
-  层级：z-[var(--momo-z-modal)] 必须高于右下角 FabMenu（#fabMenu 为 z-[1000]，其目录面板 z-[1001]
-  是在 FAB 自己的层叠上下文里，所以盖过 1000 即可），否则遮罩与弹窗会压在 FAB 下面，
-  浮动按钮会浮在遮罩之上；同时保持在图片灯箱（z-2000）之下。
-
-  关闭态带 inert：只是 opacity-0 + pointer-events-none 时，键盘 Tab 仍然能进到隐藏的输入框里
-  （FIX-02）。inert 同时把整棵子树移出无障碍树，打开时由 openModal 摘掉。
--->
+<!-- 层级：必须高于 FabMenu（#fabMenu z-[1000]）、低于图片灯箱（z-2000）；关闭态带 inert，打开时由 openModal 摘掉 -->
 <div
   id="search-modal"
   role="dialog"
@@ -82,18 +73,14 @@ const translationsByLocale = Object.fromEntries(
         </button>
       </div>
 
-      <!-- 分类筛选：分类来自搜索索引（文章页的 article:section），点一下只在该分类里搜。
-           没有分类时整行隐藏。按钮由脚本生成，样式走全局。 -->
+      <!-- 分类筛选：分类来自索引的 article:section，按钮由脚本生成，没有分类时整行隐藏 -->
       <div id="search-filters" class="search-filters" role="group" aria-label={t("search.allCategories")} hidden></div>
 
-      <!-- #search-results 是滚动容器（由 OverlayScrollbars 接管），
-           #search-results-list 才是真正被重写的目标。
-           ⚠️ 两者必须分开：OS 会在容器里插入自己的包装层
-           （data-overlayscrollbars-padding / -content），重写容器的 innerHTML 会把
-           这些包装层一起冲掉，实例当场失效。只换 list 的子节点，OS 的结构完好。 -->
+      <!-- #search-results 由 OverlayScrollbars 接管，#search-results-list 才是重写目标。
+           ⚠️ 两层必须分开：重写容器会冲掉 OS 的包装层（data-overlayscrollbars-*），实例当场失效。 -->
       <div id="search-results" class="overflow-y-auto flex-grow">
         <div id="search-results-list" role="listbox" aria-label={t("search.label")}>
-          <!-- data-search-hint：还停留在「默认提示」状态时，换页/换语言后要按当前语言改文案 -->
+          <!-- data-search-hint：仍是默认提示态，换页 / 换语言后按当前语言改文案 -->
           <div class="p-8 text-center text-[var(--text-color-70)]" data-search-hint>
             <p>{t("search.hint")}</p>
           </div>
@@ -150,29 +137,28 @@ const FALLBACK_TRANSLATIONS: SearchTranslations = {
   suggestions: 'Try these posts',
 };
 
-/** 搜索历史的 localStorage 键；只存查询串（最多 HISTORY_LIMIT 条） */
+/** 搜索历史的 localStorage 键；只存查询串，最多 HISTORY_LIMIT 条 */
 const HISTORY_KEY = 'momo-search-history';
 const HISTORY_LIMIT = 8;
 
 let translations: SearchTranslations = FALLBACK_TRANSLATIONS;
-// 当前弹窗文案 / 查询对应的语言；换语言后清掉旧输入与旧结果
+// 当前文案 / 查询对应的语言；换语言后清掉旧输入与旧结果
 let activeLocale = '';
 
-// 索引按语言缓存；preparedLang 记住当前这份是哪种语言。
+// 索引按语言缓存；preparedLang 记录当前缓存的语言
 let prepared: PreparedIndex | null = null;
 let preparedLang = '';
 let hits: SearchHit[] = [];
 let activeIndex = -1;
-// 分类筛选：空串 = 全部分类（单选，比多选更符合「先缩小范围」的使用习惯）
+// 分类筛选：空串 = 全部分类（单选）
 let activeCategory = '';
-// 每次输入 / 清空都 +1：索引加载是异步的，回来时如果已经换了查询就丢掉旧结果
+// 查询序号：每次输入 / 清空都 +1，异步结果回来时序号不符就丢弃
 let searchSeq = 0;
 let debounceTimer: ReturnType<typeof setTimeout> | undefined;
-// 中文输入法拼写过程中 input 里是拼音，先不触发搜索，等 compositionend 再查
+// 输入法拼写中（input 里是拼音）不触发搜索，等 compositionend
 let composing = false;
-// 关闭后把焦点还给打开弹窗的那个元素（搜索按钮 / 键盘快捷键前的位置）
 let returnFocus: HTMLElement | null = null;
-// 已经处理过的 ?q= 深链接，避免每次 page-load 都重新打开弹窗
+// 已处理过的 ?q= 深链接，避免每次 page-load 重复打开弹窗
 let handledDeepLink = '';
 
 function el<T extends Element>(id: string): T | null {
@@ -184,7 +170,7 @@ function isOpen(): boolean {
   return Boolean(modal && !modal.classList.contains('opacity-0'));
 }
 
-/** 弹窗开关时同步 inert：关闭态里键盘与读屏都进不去（FIX-02） */
+/** 开关弹窗时同步 inert：关闭态键盘与读屏都进不去 */
 function setModalInert(inert: boolean) {
   const modal = el<HTMLElement>('search-modal');
   if (!modal) return;
@@ -207,11 +193,7 @@ function readTranslations(): SearchTranslations | null {
   return byLocale[currentLangFromUrl()] || Object.values(byLocale)[0] || null;
 }
 
-/* ------------------------------------------------------------------
- * 本地搜索历史（FEAT-12）
- * localStorage 在隐私模式下会抛错，所以全部读写都包在 try 里：
- * 历史只是锦上添花，不能因为存不了就让搜索本身失败。
- * ------------------------------------------------------------------ */
+/** 本地搜索历史：localStorage 在隐私模式下会抛错，读写全部包在 try 里 */
 function readHistory(): string[] {
   try {
     const raw = localStorage.getItem(HISTORY_KEY);
@@ -229,7 +211,6 @@ function rememberQuery(query: string) {
   try {
     localStorage.setItem(HISTORY_KEY, JSON.stringify(next));
   } catch {
-    // 存不了就算了
   }
 }
 
@@ -237,14 +218,10 @@ function clearHistory() {
   try {
     localStorage.removeItem(HISTORY_KEY);
   } catch {
-    // 同上
   }
 }
 
-/**
- * 弹窗在 swup 容器外、不会随换页重建，所以文案按**当前地址**重新挑一份；
- * 语言变了就把已加载的索引作废（索引文件本身就是按语言拆开的）。
- */
+/** 按当前地址重挑文案；语言变了就作废已加载的索引 */
 function syncSearchLocale() {
   const next = readTranslations();
   if (!next) return;
@@ -263,8 +240,7 @@ function syncSearchLocale() {
     renderFilters();
     const input = el<HTMLInputElement>('search-input');
     if (input) input.value = '';
-    // 弹窗虽然已经关了，但结果 DOM 还留在容器里；先把列表恢复成空闲态，
-    // 否则下一次打开会短暂闪出上一门语言的旧结果。
+    // 先恢复空闲态，否则下次打开会闪出旧语言结果
     showIdle();
   }
 
@@ -279,7 +255,6 @@ function syncSearchLocale() {
   const tip = document.querySelector('[data-search-tip]');
   if (tip) tip.textContent = translations.tip;
 
-  // 空闲态（提示 / 历史）的文案也要换语言
   const current = input?.value.trim() ?? '';
   if (!current) showIdle();
   else renderFilters();
@@ -289,8 +264,7 @@ function setPageScrollLocked(locked: boolean) {
   const modal = el<HTMLElement>('search-modal');
   if (!modal) return;
 
-  // 滚动锁是计数式的，而弹窗在容器外不会重建；「是否已上锁」必须记在 DOM 上，
-  // 否则每次初始化闭包归零，会把并存的抽屉 / 灯箱锁一起打穿。
+  // 滚动锁是计数式的，弹窗不会重建：「是否已上锁」必须记在 DOM 上，否则闭包归零会打穿并存的抽屉 / 灯箱锁
   const state = locked ? '1' : '0';
   if (modal.dataset.scrollLocked === state) return;
   modal.dataset.scrollLocked = state;
@@ -328,7 +302,6 @@ function openModal() {
   const modalEl = modal as HTMLElement & { __closeTimer?: ReturnType<typeof setTimeout> };
   clearTimeout(modalEl.__closeTimer);
 
-  // 记住是谁打开的：关闭后把焦点还回去
   if (document.activeElement instanceof HTMLElement && !modal.contains(document.activeElement)) {
     returnFocus = document.activeElement;
   }
@@ -349,7 +322,6 @@ function openModal() {
   setTimeout(() => input?.focus(), 240);
   setPageScrollLocked(true);
 
-  // 打开时就加载索引：首次会等一会儿，但输入框可以立刻打字
   void ensureIndex(false).then((index) => {
     if (index) renderFilters();
   });
@@ -376,7 +348,7 @@ function closeModal() {
     modal.classList.add('opacity-0', 'pointer-events-none');
     // inert 要等淡出结束再加，否则关闭动画期间焦点会先掉回 body
     setModalInert(true);
-    // 等淡出结束再解锁：解锁早了，淡出的这几百毫秒里滚轮又能滚到后面的页面
+    // 等淡出结束再解锁，否则淡出期间滚轮还能滚到后面的页面
     setPageScrollLocked(false);
     if (returnFocus && document.contains(returnFocus)) {
       returnFocus.focus();
@@ -404,7 +376,7 @@ function updateCount(count: number | null) {
   target.textContent = count === null ? '' : translations.results.replace('{count}', String(count));
 }
 
-/** 分类胶囊：分类来自索引，点一下在当前分类里搜（再点一次回到全部） */
+/** 分类胶囊：分类来自索引，点一下在当前分类里搜，再点一次回到全部 */
 function renderFilters() {
   const filters = el<HTMLElement>('search-filters');
   if (!filters) return;
@@ -416,7 +388,6 @@ function renderFilters() {
     return;
   }
 
-  // 语言切换 / 索引重载后当前分类可能已经不存在了
   if (activeCategory && !categories.includes(activeCategory)) activeCategory = '';
 
   const fragment = document.createDocumentFragment();
@@ -447,10 +418,7 @@ function historyItem(query: string): HTMLLIElement {
   return item;
 }
 
-/**
- * 空闲态：没有输入时显示「最近搜索」（有历史）或一句提示。
- * 以前这里永远是提示，历史就没地方放了。
- */
+/** 空闲态：有历史显示「最近搜索」，否则显示一句提示 */
 function showIdle() {
   searchSeq++;
   clearTimeout(debounceTimer);
@@ -543,15 +511,11 @@ async function runSearch(query: string) {
   activeIndex = hits.length > 0 ? 0 : -1;
   renderResults();
 
-  // 只在真的搜出东西时记历史：手滑打错的串不该留在「最近搜索」里
+  // 只在有结果时记历史
   if (hits.length > 0) rememberQuery(query);
 }
 
-/* ------------------------------------------------------------------
- * 结果渲染：按文章聚合（FEAT-12）
- * 同一篇文章的多个段落结果收在一个分组里，组头是文章标题（链接到文章顶部），
- * 下面才是各段落的命中行；只有「文章标题命中、正文没有」时只渲染一行，不重复两遍标题。
- * ------------------------------------------------------------------ */
+/** 结果渲染：按文章聚合，组头是文章标题（链接到文章顶部），下面是各段落的命中行 */
 interface HitGroup {
   page: number;
   title: string;
@@ -666,7 +630,7 @@ function renderResults() {
   let index = 0;
 
   for (const group of groupHits()) {
-    // 只有页面级命中（标题 / 描述命中，正文没有）时，一行说明白就够了
+    // 只有页面级命中（正文无命中）时一行就够
     if (group.hits.length === 1 && !group.hits[0].anchor) {
       fragment.append(hitLink(group.hits[0], index++, 'head'));
       continue;
@@ -682,7 +646,7 @@ function renderResults() {
   setActive(0);
 }
 
-/** 没有结果：给出「试试这些文章」（索引里最新的几篇），而不是一片空白 */
+/** 没有结果：给出「试试这些文章」（索引里最新的几篇） */
 function renderEmpty() {
   const list = el<HTMLElement>('search-results-list');
   if (!list) return;
@@ -804,7 +768,7 @@ function bindResultClicks() {
   if (!list || list.dataset.bound === 'true') return;
   list.dataset.bound = 'true';
 
-  // 历史项 / 清空按钮 / 结果链接都走事件委托（结果是自己创建的节点）
+  // 历史项 / 清空按钮 / 结果链接都走事件委托
   list.addEventListener('click', (event) => {
     const target = event.target instanceof Element ? event.target : null;
     if (!target) return;
@@ -824,8 +788,7 @@ function bindResultClicks() {
       return;
     }
 
-    // 同页 #锚点 点击不会派发 swup:visit:start，必须在这里主动收起弹窗；
-    // 中键 / Ctrl 点击是新标签页，窗口保持打开。
+    // 同页 #锚点 不会派发 swup:visit:start，必须在这里主动收起弹窗；中键 / Ctrl 是新标签页
     const link = target.closest('a[data-search-hit]');
     if (!link) return;
     if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey || event.button !== 0) return;
@@ -863,17 +826,15 @@ function prefetchIndex() {
   if (connection?.saveData) return;
   if (connection?.effectiveType && /(^|-)2g$/.test(connection.effectiveType)) return;
 
-  // 确认真的要预取后再置位，省流模式恢复后还能补一次
+  // 确认真要预取后再置位
   scope[flag] = true;
 
   const run = () => {
     loadSearchIndex(lang)
       .then(() => {
-        // 索引到手后把分类胶囊画出来（打开弹窗时还会再对一次）
         if (isOpen()) void ensureIndex(false).then((index) => index && renderFilters());
       })
       .catch(() => {
-        // 预取失败不打扰用户：打开搜索时还会再试一次并给出提示
       });
   };
 
@@ -905,7 +866,7 @@ function initSearchModal() {
 
   if (!searchButton || !searchModal) return;
 
-  // 换页时本脚本会重新执行：先解绑上一次挂在 document 上的 keydown
+  // 换页时脚本重新执行，先解绑上次挂在 document 上的 keydown
   (window as Window & { __momoSearchModal?: { cleanup?: () => void } }).__momoSearchModal?.cleanup?.();
 
   const onKeyDown = (event: KeyboardEvent) => {
@@ -917,7 +878,7 @@ function initSearchModal() {
       return;
     }
 
-    // 焦点陷阱：Tab 在弹窗内循环，不跑到背后的页面上（FIX-02）
+    // 焦点陷阱：Tab 在弹窗内首尾循环
     if (event.key === 'Tab' && open) {
       const items = modalFocusables();
       if (items.length > 0) {
@@ -935,7 +896,7 @@ function initSearchModal() {
       return;
     }
 
-    // 全站快捷键：Ctrl/Cmd + K 或 `/` 打开搜索（`/` 是搜索引擎惯用键，FEAT-12）
+    // 全站快捷键：Ctrl/Cmd + K 或 `/` 打开搜索
     if (!open && (event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'k') {
       event.preventDefault();
       openModal();
@@ -971,7 +932,7 @@ function initSearchModal() {
   bindResultClicks();
   bindFilterClicks();
 
-  // 悬停 / 聚焦搜索按钮时提前拉索引（PERF-07：不再在首屏 idle 时无条件预取）
+  // 悬停 / 聚焦搜索按钮时预取索引
   if (searchButton.dataset.prefetchBound !== '1') {
     searchButton.dataset.prefetchBound = '1';
     searchButton.addEventListener('pointerenter', prefetchIndex, { passive: true });
@@ -985,7 +946,7 @@ function initSearchModal() {
     },
   };
 
-  // 首屏 / 换页都确保输入框已绑定（元素常驻，dataset 保证只绑一次）
+  // 首屏 / 换页都确保输入框已绑定（dataset 保证只绑一次）
   bindSearchInput();
   if (searchInput) searchInput.placeholder = `${translations.placeholder}...`;
   renderFilters();
@@ -995,13 +956,10 @@ function initSearchModal() {
 // 首屏 + 每次换页（swup 下首屏不会有 astro:page-load，见 @utils/pageInit）
 registerPageInit(syncSearchLocale);
 registerPageInit(initSearchModal);
-// PERF-07：原来这里还有一条 registerPageInit(prefetchIndex)，让每个访客首屏 idle 后
-// 都下载整份索引（约 22 KB gzip），即使从不搜索。现在只在悬停 / 聚焦搜索按钮时预取。
 </script>
 
 <style>
-  /* 遮罩只动画 opacity：backdrop-filter 逐帧插值会持续触发合成与重绘，
-     模糊值固定为 2px（与原动画的终值一致），观感基本不变 */
+  /* 遮罩只动 opacity；模糊固定 2px */
   @keyframes backdropFadeIn {
     from { opacity: 0; }
     to { opacity: 1; }
@@ -1014,17 +972,13 @@ registerPageInit(initSearchModal);
 
   .modal-backdrop {
     background-color: rgba(0, 0, 0, 0.3);
-    /* 注意：构建时的 CSS 压缩器会把 backdrop-filter 与 -webkit-backdrop-filter
-       当作同一属性合并、只保留后写的那条，所以标准属性必须单独放进 @supports。 */
+    /* ⚠️ 压缩器会合并 backdrop-filter 与 -webkit- 前缀版，标准属性必须单独放进 @supports */
     -webkit-backdrop-filter: blur(2px);
     transition: opacity var(--momo-t-base) var(--momo-ease-out);
   }
 
-  /* 弹窗本体：从 90% 弹出到 100%，带轻微过冲（--momo-ease-pop）。
-     过渡写在 CSS 里而不是用 Tailwind 的 `transition duration-300`：
-     那里是默认 ease、300ms，弹出来「软塌塌」的。
-     ⚠️ scale-90 / scale-100 在 Tailwind v4 里改的是 `scale` 属性，不是 transform，
-     所以这里必须单独列 scale，否则只有透明度在动、缩放是硬跳。 */
+  /* 弹窗本体：90% → 100% 弹出，带轻微过冲（--momo-ease-pop）
+     ⚠️ Tailwind v4 的 scale-90 / scale-100 改的是 scale 属性，必须单独过渡 scale */
   .search-modal-content {
     transition:
       transform var(--momo-t-base) var(--momo-ease-pop),
@@ -1153,7 +1107,6 @@ registerPageInit(initSearchModal);
     color: var(--text-color-70);
   }
 
-  /* ---- 分类胶囊 ---- */
   .search-filters {
     display: flex;
     flex-wrap: wrap;
@@ -1188,14 +1141,13 @@ registerPageInit(initSearchModal);
     border-color: var(--border-color-strong);
   }
 
-  /* 选中态用 --accent-bg + --accent-fg（深色下亮蓝压白字不够对比，见 variables.css） */
+  /* 选中态用 --accent-bg + --accent-fg（对比度见 variables.css） */
   .search-chip[aria-pressed='true'] {
     background-color: var(--accent-bg);
     border-color: var(--accent-bg);
     color: var(--accent-fg);
   }
 
-  /* ---- 最近搜索 ---- */
   .search-history,
   .search-empty {
     padding: var(--momo-space-3) var(--momo-space-4) var(--momo-space-4);
@@ -1265,7 +1217,6 @@ registerPageInit(initSearchModal);
     border-color: var(--border-color-strong);
   }
 
-  /* ---- 没有结果时的推荐 ---- */
   .search-empty-title {
     margin-bottom: var(--momo-space-4);
     text-align: center;
@@ -1314,7 +1265,7 @@ registerPageInit(initSearchModal);
     }
   }
 
-  /* 结果摘要里的 <mark>：只换色、不加底色，避免整段变得花哨 */
+  /* 结果摘要里的 <mark>：只换色、不加底色 */
   mark {
     background-color: transparent;
     color: var(--link-color);

@@ -1,13 +1,7 @@
 /*
- * 全站照片背景（siteConfig.theme.photoCover）
- *
- * ⚠️ 这份样式**故意不放进组件**：照片层由 MainPageLayout 渲染、每个页面都有，
- * 放在组件里的话即使开关关掉，这份 CSS 也会进每个页面的样式包。
- * 因此和 overlayscrollbars 一样，由 Layout.astro 用 `?url` 取出独立资源、
- * 再按开关用 <link> 挂进 <head>——关掉开关就一点都不加载。
- *
- * 滚动进度写进 <html> 的 --photo-p（0 → 1，脚本里已做 smoothstep 缓动），
- * 照片、蒙版、标题的位置 / 字号 / 颜色、顶栏配色全部由它在下面派生。
+ * 全站照片背景（siteConfig.theme.photoCover）：故意不放进组件，因为照片层每页都渲染，
+ * 由 Layout.astro 用 ?url 取出、按开关用 <link> 挂载，关掉开关就一点都不加载。
+ * 滚动进度写在 <html> 的 --photo-p（0 → 1，脚本已做 smoothstep 缓动），其余效果都由它派生。
  */
 
 /* ==================== 固定的照片层（所有页面） ==================== */
@@ -19,13 +13,12 @@
     pointer-events: none;
     /* 整段滚动里只改 opacity，合成层不会重排 */
     opacity: calc(1 - var(--photo-p, 1) * (1 - var(--photo-rest, 0.12)));
-    /* 图片还没到位时的兜底底色，跟随明暗主题，避免浅色模式下闪一下纯白 */
+    /* 图片还没到位时的兜底底色，跟随明暗主题 */
     background-color: color-mix(in srgb, var(--text-color) 16%, transparent);
 }
 
-/* 模糊预览图：图片由 PhotoCover.astro 在构建期用 sharp 从原图缩出来（几十像素的 webp，
-   直接以 data URI 内联，不发额外请求），也可以在 public/ 下同目录的 preview/ 里手工放一张覆盖它。
-   用 background-image 而不是 <img>：路径写错时只是什么都不显示，不会出现裂图图标。 */
+/* 模糊预览图：构建期由 PhotoCover.astro 缩成几十像素的 webp 并以 data URI 内联；
+   public/ 下同目录的 preview/ 可手工覆盖。用 background-image，路径写错也不会出现裂图图标。 */
 .photo-cover-preview {
     position: absolute;
     inset: 0;
@@ -42,8 +35,7 @@
     inset: 0;
 }
 
-/* 黑色蒙版：上浓下淡的竖向渐变。整张照片都压住（而不是只压顶部），
-   白字才在亮调照片（比如日出、天空）上也读得清；顶部再重一点，让顶栏更清楚。 */
+/* 黑色蒙版：上浓下淡的竖向渐变。整张照片都压住（不只是顶部），白字才在亮调照片上也读得清 */
 .photo-cover-mask {
     position: absolute;
     inset: 0;
@@ -56,60 +48,47 @@
 }
 
 /* ==================== 以下只在脚本可用时生效 ====================
-   禁用 JS 的访客会原样拿到「一个没有任何照片封面的首页」：
-   进度变量不存在 → 各条规则的 var() 兜底值是 1（落位后的样子），
-   占位块被 display:none 撤掉，标题就是一个普通的 Cover。 */
+   禁用 JS 时进度变量不存在 → var() 兜底值为 1（落位后的样子），占位块由 display:none 撤掉 */
 @media (scripting: enabled) {
     /* 首页才把进度归零：内页这两个变量都不存在，一律按 1（淡背景）渲染。
-       --photo-p 是缓动过的进度（淡出 / 字号 / 颜色），--photo-pos 是线性的（位置），
-       --photo-k 是「还没落位的比例」，--photo-ink 是「还有多少白色墨水」；
-       后两个写在根上，顶栏配色（另一个元素）也要读它们。 */
+       --photo-p 是缓动进度（淡出 / 字号 / 颜色），--photo-pos 是线性进度（位置）。 */
     html:has(.photo-cover-copy) {
         --photo-p: 0;
         --photo-pos: 0;
         --photo-k: calc(1 - var(--photo-p, 1));
-        /* 白色保持到进度过半才往下掉：否则过渡中段是「中灰字压在亮照片上」，
-           两边都不清楚。等照片淡得差不多了再翻成主题色，对比度才有保障。 */
+        /* 白色保持到进度过半才往下掉，避免过渡中段「中灰字压在亮照片上」 */
         --photo-ink: min(calc(var(--photo-k) * 2), 1);
     }
 
-    /* 标题的包含块。绝对定位的标题以它为基准，纵向只靠 transform 走。
-       标题字号随滚动变化 → 高度一直在变，留在文档流里会把下面的卡片推着抖。 */
+    /* 标题的包含块：绝对定位的标题以它为基准，纵向只靠 transform 走
+       （字号随滚动变化 → 高度一直在变，留在文档流里会把下面的卡片推着抖） */
     .photo-cover-hero {
         position: relative;
         /* 占位高度：整屏 + 标题在终态字号下的高度，由脚本量出写进 --photo-copy-h */
         height: calc(100svh + var(--photo-copy-h, 0px));
-        /* 标题在两个端点的纵向位置：起始 = 视口正中，终点 = 占位末尾（它本来的位置）。
-           由 --photo-header / --photo-copy-h 推出。 */
+        /* 标题在两个端点的纵向位置：起始 = 视口正中，终点 = 占位末尾（它本来的位置） */
         --copy-y0: calc(50svh - var(--photo-header, 0px) + var(--copy-bias, 0px));
         --copy-y1: calc(100svh + var(--photo-copy-h, 0px) / 2);
-        /* photo 模式下标题自己的上下留白是 pt 1.25rem / pb 2.5rem（见 .photo-cover-copy），
-           两者不等：translate(-50%) 居中的是 padding 盒子，主标题 + 副标题这一整组会比它
-           高 0.625rem，补回来整组才真正落在目标上。
-           ⚠️ 这个变量必须和 --copy-y0 写在**同一条规则**里：var() 只向上查找继承值，
-           放到子元素 .photo-cover-copy 上，上面的 --copy-y0 取不到（会静默回退成 0px）。 */
+        /* 上下留白不等（pt 1.25rem / pb 2.5rem）：translate(-50%) 居中的是 padding 盒子，
+           整组会比目标高 0.625rem，靠它补回来。
+           ⚠️ 必须与 --copy-y0 写在同一条规则里：var() 只向上查找继承值，放到子元素上 --copy-y0 取不到 */
         --copy-bias: 0.625rem;
     }
 
-    /* 整屏占位 + 向下箭头（箭头放在占位里，就自然贴着首屏底部） */
+    /* 整屏占位（向下箭头放在里面，自然贴着首屏底部） */
     .photo-cover-spacer {
         position: relative;
         height: 100svh;
     }
 
-    /* 向下箭头：没有圆形描边、没有底色，只剩一个箭头本身。
-       所以按钮那 52px 方块是**看不见的点击热区**，视觉上只有里面的 svg；
-       宽度够大是为了好按（尤其手机上），不是为了好看。 */
+    /* 向下箭头：没有描边、没有底色，52px 方块是看不见的点击热区，视觉上只有里面的 svg */
     .photo-cover-arrow {
-        /* 唯一的尺寸旋钮：只影响箭头，热区不变。
-           ⚠️ 这个是 svg 的盒子大小，不是箭头的视觉宽度：viewBox 是 24×24，而路径
-           （m5 9 7 7 7-7）只占中间一块，可见宽度 ≈ 这个值 × 0.65（34px → 约 22px，比
-           原来的 21px 盒子大六成）。想再大就调它，线条粗细会按同比例跟着变。 */
+        /* 唯一的尺寸旋钮：只影响箭头，热区不变。⚠️ 量的是 svg 盒子而非箭头本身：
+           viewBox 24×24 且路径只占中间一块，可见宽度 ≈ 这个值 × 0.65 */
         --arrow-size: 34px;
         position: absolute;
         left: 50%;
-        /* 占位块是排在顶栏之后的（桌面端顶栏在文档流里），所以要补回顶栏的高度，
-           箭头才会落在首屏真正的底部而不是被推到折线以下 */
+        /* 占位块排在顶栏之后（桌面端顶栏在文档流里），要补回顶栏高度才落在首屏真正的底部 */
         bottom: calc(clamp(22px, 5svh, 44px) + var(--photo-header, 0px));
         z-index: 1;
         display: grid;
@@ -121,18 +100,15 @@
         background: none;
         color: #fff;
         cursor: pointer;
-        /* 自身居中用 translate 属性、不用 transform：transform 留给 hover 的 scale，
-           两个属性各自合成，互不覆盖 */
+        /* 自身居中用 translate 属性、不用 transform：transform 留给 hover 的 scale */
         translate: -50% 0;
-        /* 滚动一开始就退场，别挡着内容 */
+        /* 滚动一开始就退场 */
         opacity: max(0, calc(1 - var(--photo-p, 1) * 2));
-        /* ⚠️ 故意不写 opacity：淡出是逐帧跟着 --photo-p 走的，加了过渡会拖在滚动后面 */
+        /* ⚠️ 故意不写 opacity 过渡：淡出逐帧跟着 --photo-p 走，加了过渡会拖在滚动后面 */
         transition: scale 0.25s ease, filter 0.25s ease;
     }
 
-    /* 呼吸式的定时跳动：做在 svg 上而不是按钮上，按钮的 scale 才能腾出来给 hover。
-       2.4s 一轮、节奏固定，位移 + 轻微放大 + 明暗一起呼吸；
-       中间 45% / 55% 停一下再回来，让它听起来像「一下、一下」的拍子，而不是匀速的正弦波。 */
+    /* 呼吸动画挂在 svg 上（按钮的 scale 要留给 hover）；2.4s 一轮，45% / 55% 停一下再回来 */
     .photo-cover-arrow svg {
         width: var(--arrow-size);
         height: var(--arrow-size);
@@ -157,8 +133,7 @@
         }
     }
 
-    /* hover：没有底色可以变了，所以改成「放大 + 发白光」。
-       呼吸不停——停在中途会比让箭头继续飘更难看（那会跳一下）。 */
+    /* hover：没有底色可以变，改成「放大 + 发白光」，呼吸不停 */
     .photo-cover-arrow:hover {
         scale: 1.16;
         filter: drop-shadow(0 0 8px rgb(255 255 255 / 0.7));
@@ -169,19 +144,17 @@
     }
 
     .photo-cover-arrow:focus-visible {
-        /* 圆角只为了把焦点圈画成圆形（按钮本体已经看不见了） */
+        /* 圆角只为把焦点圈画成圆形（按钮本体已经看不见了） */
         border-radius: 999px;
         outline: 2px solid #fff;
         outline-offset: 2px;
     }
 
-    /* 标题：p = 0 时中心落在视口正中，p = 1 时落在占位末尾 —— 也就是它本来的位置。
-       用 translate 的 -50% 做自身居中，字号在动画中怎么变都不用重算。
-       位置用**线性**进度 --photo-pos 而不是缓动过的 --photo-p：缓动（smoothstep）
-       会让位移「先慢后快」，而页面本来就在以 1px/px 把标题往上带，两者叠加后
-       中段几乎完全抵消——标题会在屏幕中间「钉」住几百像素，末段才突然窜上去。 */
+    /* 标题：p = 0 时中心落在视口正中，p = 1 时落在占位末尾（它本来的位置）。
+       ⚠️ 位置必须用线性的 --photo-pos 而不是缓动的 --photo-p：页面本来就在以 1px/px 把标题往上带，
+       位移再走缓动会在中段互相抵消，标题会「钉」在屏幕中间几百像素 */
     .photo-cover-copy {
-        /* photo 模式自己控制上下留白：常规样式是 pt-5 / pb-10，落位后与普通 Cover 完全一致 */
+        /* photo 模式自己控制上下留白，落位后与普通 Cover 完全一致 */
         padding-top: 1.25rem;
         padding-bottom: 2.5rem;
         position: absolute;
@@ -194,8 +167,7 @@
         will-change: transform;
     }
 
-    /* 字号上限没有照抄参考站的 6rem：中文标题（比如「欢迎来到 Momo 的博客」）
-       在 96px 下会折成很难看的一长一短两行，4.5rem 是「仍然醒目」与「多数标题一行」之间的折中。 */
+    /* 字号上限 4.5rem：中文长标题在 96px 下会折成很难看的两行 */
     .photo-cover-copy h1 {
         font-size: calc(clamp(2.5rem, 6vw, 4.5rem) * var(--photo-k) + 1.875rem * var(--photo-p, 1));
         line-height: 1.18;
@@ -229,47 +201,33 @@
         }
     }
 
-    /* 照片上的顶栏：只改 #header-bar（logo + 工具按钮）与 #nav-bar（桌面端导航），
+    /* 照片上的顶栏：只改 #header-bar（logo + 工具按钮）与 #nav-bar（桌面端导航）；
        移动端抽屉也在 #main-header 里，但它有自己的不透明底色，不能跟着变白。
-
-       ⚠️ 文字色 / 描边跟着 --photo-ink 插值**回到主题色**，和 Cover 的标题是同一条曲线
-       （--photo-ink 本来就是它派生出来的）：照片上是白色，滚满一屏后正好落回
-       var(--text-color)，与其它页面逐像素一致。 */
+       文字色 / 描边跟着 --photo-ink 插值回主题色，与 Cover 标题是同一条曲线 */
     html:has(.photo-cover-copy) #header-bar {
         color: color-mix(in srgb, #fff calc(var(--photo-ink, 1) * 100%), var(--text-color));
     }
 
     html:has(.photo-cover-copy) #header-bar button {
-        /* .momo-btn 自带表面色与文字色；照片页的工具栏要是「透明底 + 白描边」，
-           这里把它改回继承 #header-bar 的插值色，否则会变成一排实心按钮。 */
+        /* .momo-btn 自带表面色与文字色，这里改回继承 #header-bar 的插值色，否则是一排实心按钮 */
         background-color: transparent;
         color: inherit;
         border-color: color-mix(in srgb, rgb(255 255 255 / 0.4) calc(var(--photo-ink) * 100%), var(--button-border-color));
     }
 
-    /* 照片上悬停给一点白色底；滚回主题色后自动落回普通的 surface-hover */
+    /* 照片上悬停给一点白色底，滚回主题色后自动落回普通的 surface-hover */
     html:has(.photo-cover-copy) #header-bar button:hover {
         background-color: color-mix(in srgb, #fff calc(var(--photo-ink) * 18%), var(--surface-color-hover));
     }
 
-    /* ---- 桌面端导航胶囊：整颗跟着滚动进度插值（和 Cover 一样，不是滚一像素就硬切）----
-       两条曲线分工：
-
-         --nav-chrome（外壳：描边 / 底色 / 阴影 / 模糊）直接取 --photo-p，从头到尾平滑长出来，
-           顶部完全透明（没有边框、没有底色），滚满一屏后与其它页面逐像素一致。
-
-         --nav-ink（文字 / 色块的白色成分）比 Cover 的 --photo-ink **提前收窄**（p 0.15 → 0.4）：
-           Cover 的标题又大又带描边，熬得过「半灰」阶段；导航是 11px 的字，压在逐渐变亮的
-           毛玻璃上只会糊成一片。让它趁照片还压得住的时候先把颜色翻完，等毛玻璃明显起来
-           时文字已经是主题色，对比度反而更高。
-
-       ⚠️ 这条 --nav-chrome 覆盖的特异性（1,2,1）必须高过 Header 里的
-       #nav-bar.nav-scrolled（1,1,0），否则吸顶那颗 1 会把插值压掉。 */
+    /* ---- 桌面端导航胶囊：整颗跟着滚动进度插值 ----
+       --nav-chrome（外壳：描边 / 底色 / 阴影 / 模糊）取 --photo-p，顶部完全透明，滚满一屏后与其它页面一致；
+       --nav-ink（文字 / 色块的白色成分）比 --photo-ink 提前收窄（p 0.15 → 0.4）：导航只有 11px，
+       扛不住「半灰」阶段。⚠️ 这条覆盖的特异性（1,2,1）必须高过 Header 里的 #nav-bar.nav-scrolled（1,1,0） */
     html:has(.photo-cover-copy) #nav-bar {
         --nav-chrome: var(--photo-p, 1);
         --nav-ink: clamp(0, calc((0.4 - var(--photo-p, 0)) * 4), 1);
-        /* 描边浓度：顶部 0.45，让白字在亮照片上立得住；过渡中段再补一层——
-           此时文字正好是「半灰」，最需要局部对比度；两端都落回 0 */
+        /* 描边浓度：顶部 0.45 让白字在亮照片上立得住，过渡中段再补一层，两端落回 0 */
         --nav-halo: calc(0.45 * var(--nav-ink) + 0.5 * min(var(--nav-ink), calc(1 - var(--nav-ink))));
         color: color-mix(in srgb, #fff calc(var(--nav-ink) * 100%), var(--text-color));
     }
@@ -279,8 +237,7 @@
             0 2px 12px rgb(0 0 0 / calc(var(--nav-halo) * 0.7));
     }
 
-    /* 外壳是逐帧插值的，必须关掉 transition：否则每一帧都会重起一段 150ms 过渡，
-       底色与模糊会明显落后于滚动（像拖了一条尾巴）。 */
+    /* ⚠️ 外壳是逐帧插值的，必须关掉 transition：否则每帧都重起一段 150ms 过渡，会明显拖在滚动后面 */
     html:has(.photo-cover-copy) #nav-bar-list {
         transition: none;
     }
@@ -290,9 +247,7 @@
         background-color: color-mix(in srgb, rgb(255 255 255 / 0.28) calc(var(--nav-ink) * 100%), var(--button-hover-color));
     }
 
-    /* 当前页导航项不再单独钉成主题色：照片上它与其它项一样是白色，否则首页会出现
-       「首页是黑字、其它三项是白字」（当前页就是首页）。色块是半透明白，白字压在
-       上面依然清楚；滚下来后色块与文字一起回到主题色。 */
+    /* ⚠️ 当前页导航项不能单独钉成主题色：否则首页会出现「首页是黑字、其它是白字」 */
 
     @media (max-width: 776px) {
         /* 移动端顶栏自己的半透明底色不动，额外叠一层黑色并随进度淡出 */

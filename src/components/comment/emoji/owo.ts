@@ -1,36 +1,7 @@
 /**
- * 表情面板的数据层：拉取 owo.json、短代码推导与标签构建。
- *
- * 契约 v3（见 `doc/emoji.md`，三端读同一份 `doc/vectors/emoji-v3.json`）：
- * 表情来源是管理员配置的**一组** OwO 格式地址（`emoji_cdn_urls`，最多 5 个），
- * 由访客浏览器**按数组顺序并发拉取后拼接合并**成一个面板；本站既不代理也不存储。
- * 旧的单地址 `emoji_cdn_url` 只在数组为空时作为回落（调用方归一化成数组后传进来）。
- * v1 的「自定义表情包」与本站公开表情接口已整体删除，这里不再有任何指向本站的表情请求。
- *
- * 缓存策略（stale-while-revalidate，见 doc/emoji.md 第 6 节）：
- *  - `EMOJI_CACHE_TTL_MS`（7 天）是**可用期**：期内首屏可以直接用缓存同步水合；
- *  - `EMOJI_REVALIDATE_MS`（6 小时）是**校验间隔**：到点后由 `revalidateEmojiSet` 静默拉一次，
- *    内容变了才替换界面，没变/失败都保留缓存（源站没有 ETag，校验只能整份重下）。
- *
- * 多来源合并口径（doc/emoji.md 第 3.3 节）：
- *  - 顶层标签按「首次出现」的顺序排列；
- *  - 后面的来源出现同名标签时，把它的 `container` **追加**进已有标签（不新建标签页）；
- *  - `sanitizePacks` 逐个来源执行（脏数据在合并前就丢掉）；
- *  - 某个来源失败只丢这一个来源（`partial: true`），全部失败才回退本地缓存（`stale: true`）。
- *
- * 这里只做**渲染侧**的两件事：
- *  1. 把「标签名 → { type, container }」的 owo 形状转成标签页数据；
- *  2. 为 `image` 项推导短代码 `:name:`，并把「短代码 → 图片 URL」交给水合器。
- *
- * 短代码推导（与 doc/emoji.md 第 5 节一致）：
- *  1. `text` 归一化后合法就用它（`tv_doge` → `tv-doge`）；
- *  2. 否则用 `src` 的 FNV-1a 32 位哈希 → `e-<8 位十六进制>`；
- *  3. 同标签内重名、或与**标签栏靠前的标签**重名时追加 `-2`/`-3`……，
- *     保证每个条目都能水合回**它自己**那张图（否则 QQ 的动图会被 Bilibili 的同名静态图顶掉）。
- *     水合侧仍是「先到先得」，因此老评论里已有的 `:doge:` 不会图裂，只是继续指向靠前标签的图。
- *
- * 哈希刻意用同步的 FNV-1a 而不是 WebCrypto 的 SHA-1：水合发生在渲染路径上，
- * 需要一个同步可用的稳定哈希；而且非安全上下文（http 站点）里 `crypto.subtle` 根本不存在。
+ * 表情面板的数据层：并发拉取一组 owo.json、按数组顺序合并标签，并构建标签页与短代码映射（契约见 `doc/emoji.md`）。
+ * 短代码：`text` 归一化合法则用它，否则用 `src` 的 FNV-1a 哈希 `e-<8 位十六进制>`；重名追加 `-2`/`-3`。
+ * 缓存：`EMOJI_CACHE_TTL_MS`（7 天）内可同步水合，`EMOJI_REVALIDATE_MS`（6 小时）到点静默校验。
  */
 
 export interface OwoItem {
@@ -51,7 +22,6 @@ export interface EmojiTabItem {
 	insert: string;
 	/** 预览：文本表情是文本本身；图片表情是 data:/https: 图片地址 */
 	preview: string;
-	/** 悬停提示 */
 	title: string;
 	/** 图片表情的短代码（文本表情为 undefined） */
 	shortcode?: string;
@@ -74,14 +44,7 @@ export interface EmojiSet {
 }
 
 export const EMOJI_CACHE_TTL_MS = 7 * 24 * 60 * 60 * 1000;
-/**
- * 后台校验（stale-while-revalidate）的间隔：缓存照常用，但超过这个时间就静默拉一次来源。
- *
- * 7 天的 `EMOJI_CACHE_TTL_MS` 是「离线可用期」，不是「新鲜期」——只靠它的话，管理员换了
- * owo.json 内容，老访客最多要等 7 天。默认 6 小时与源站 `cache-control: max-age=3600`
- * 同一量级（见 doc/emoji.md 第 6 节）；源站没有 ETag/Last-Modified，校验只能整份重下，
- * 所以间隔不能压到几分钟，否则纯阅读成本会高到失去「懒加载」的意义。
- */
+/** 后台校验间隔：缓存照常用，超过这个时间就静默拉一次来源（7 天的 TTL 只是「离线可用期」） */
 export const EMOJI_REVALIDATE_MS = 6 * 60 * 60 * 1000;
 export const EMOJI_CACHE_PREFIX = 'momo_emoji_cache_v1:';
 export const EMOJI_MAX_TEXT_LENGTH = 64;
@@ -120,16 +83,8 @@ export function normalizeShortcode(label: unknown): string {
 }
 
 /**
- * 把文本表情里的 HTML 实体还原成字符。
- *
- * 官方表情源（`open.motues.top/emoji/owo.json`）的「颜文字」标签里有 `&quot;`，
- * 例如 `ヾ(´･ ･｀｡)ノ&quot;` —— 来源本身是从网页里抄出来的文本。原样插入评论后，
- * 服务端 Markdown 会把 `&` 再转义一次，正文里就会显示成字面量 `&quot;`；
- * 所以在构建面板数据时先解一层实体。
- *
- * 只处理最小的具名实体集 + 数字实体，且只解一层；不用 DOMParser / textarea，
- * 因为水合路径与单元测试环境里不保证有 DOM。无法识别的实体原样保留。
- * 解码后仍会经过上面的长度与尖括号过滤（`&lt;` 还原出的 `<` 不会被放行）。
+ * 把文本表情里的 HTML 实体还原成字符：只解一层、最小具名实体集 + 数字实体。
+ * 不用 DOMParser / textarea：水合路径与单元测试环境不保证有 DOM。
  */
 const NAMED_ENTITIES: Record<string, string> = {
 	amp: '&',
@@ -155,11 +110,8 @@ export function decodeHtmlEntities(text: string): string {
 }
 
 /**
- * 从 `image` 项的 icon 里取出安全的图片地址。
- *
- * 这是渲染侧的安全边界：只有 `data:image/{png,jpeg,gif,webp};base64,…`
- * 与 `https://…` 会返回，其余（含 svg data URI、http、任意标签）一律丢弃 —— 水合器
- * 只会用这个返回值去 `createElement('img').src`。
+ * 从 `image` 项的 icon 里取出安全的图片地址（渲染侧安全边界）：只放行
+ * `data:image/{png,jpeg,gif,webp};base64,…` 与 `https://…`，其余（含 svg data URI、http）一律丢弃。
  */
 export function safeImageUrl(icon: unknown): string {
 	const matched = IMG_TAG_RE.exec(String(icon ?? ''));
@@ -175,12 +127,8 @@ export function safeImageUrl(icon: unknown): string {
 }
 
 /**
- * 扫描文本里的短代码。
- *
- * 边界规则（两处都要满足）：
- *  - 名称前一个字符不能是字母/数字（否则 `12:30:45` 会被当成短代码）；
- *  - 名称后一个字符不能是数字（同上）。
- * 刻意不用正则 lookbehind：Safari 16.4 之前不支持，而本组件要覆盖 iOS 15+。
+ * 扫描文本里的短代码：名称前不能是字母/数字、后不能是数字（否则 `12:30:45` 会被当成短代码）。
+ * 不用正则 lookbehind：Safari 16.4 之前不支持，本组件要覆盖 iOS 15+。
  */
 export function findShortcodes(
 	text: string,
@@ -209,7 +157,6 @@ export function findShortcodes(
 	return matches;
 }
 
-/** 文本里是否出现了短代码 */
 export function containsShortcode(text: string): boolean {
 	return findShortcodes(text, 1).length > 0;
 }
@@ -244,23 +191,15 @@ export function sanitizePacks(raw: unknown): OwoShape {
 	return packs;
 }
 
-/**
- * 归一化表情地址列表：只保留非空字符串，顺序原样保留。
- *
- * 兼容传进来单个字符串（旧调用方/旧测试）的情况；空值一律得到空数组。
- */
+/** 归一化表情地址列表：只留非空字符串、顺序原样保留；单个字符串也兼容，空值得到空数组 */
 export function normalizeCdnUrls(cdnUrls: string | string[] | null | undefined): string[] {
 	const list = Array.isArray(cdnUrls) ? cdnUrls : typeof cdnUrls === 'string' ? [cdnUrls] : [];
 	return list.filter((url): url is string => typeof url === 'string' && url !== '');
 }
 
 /**
- * 合并两个来源的 owo 形状：顶层标签保持**首次出现**的顺序，
- * 后面的来源遇到同名标签时把 `container` 追加进已有标签（不新建标签页）。
- *
- * 标签自身的元数据（`type` / `enabled`）以**首次出现**的来源为准：标签的顺序与身份
- * 都按数组顺序确定，与 doc/emoji.md 第 3.3 节一致。`sanitizePacks` 已在合并前
- * 逐个来源执行过，因此这里的 container 里只会有结构正确的项。
+ * 合并两个来源的 owo 形状：顶层标签保持**首次出现**的顺序，同名标签把 `container`
+ * 追加进已有标签（不新建标签页）；标签自身的 `type` / `enabled` 以首次出现的来源为准。
  */
 export function mergePacks(target: OwoShape, source: OwoShape): OwoShape {
 	for (const [label, pack] of Object.entries(source)) {
@@ -281,20 +220,12 @@ function cacheKey(cdnUrlsKey: string): string {
 
 interface EmojiCacheEntry {
 	savedAt: number;
-	/**
-	 * 最近一次向来源校验成功（或尝试过）的时间。
-	 * 旧缓存没有这个字段时回落到 `savedAt`，因此不需要换 `EMOJI_CACHE_PREFIX` 版本。
-	 */
+	/** 最近一次向来源校验（或尝试过）的时间；旧缓存没有这个字段时回落到 `savedAt` */
 	revalidatedAt?: number;
 	packs: OwoShape;
 }
 
-/**
- * 读取 owo.json 的本地缓存（同步、不发请求）。
- *
- * 第一个参数是**整个地址列表**的 JSON（`JSON.stringify(cdnUrls)`，见 doc/emoji.md 第 6 节），
- * 不是单个地址 —— 参数名保留 `cdnUrl` 只是为了少改调用点。
- */
+/** 读取 owo.json 的本地缓存（同步、零请求）；`cdnUrl` 实为**整个地址列表**的 JSON，不是单个地址 */
 export function readEmojiCache(cdnUrl: string, storage: Storage | null = safeStorage()): EmojiCacheEntry | null {
 	if (!cdnUrl || !storage) return null;
 	try {
@@ -313,9 +244,7 @@ export function readEmojiCache(cdnUrl: string, storage: Storage | null = safeSto
 
 /**
  * 写入 owo.json 缓存（存储被禁用时静默失败）；`cdnUrl` 同样是地址列表的 JSON。
- *
- * `revalidatedAt` 默认等于写入时间：写入的语义就是「刚从来源拿到了内容」。
- * 只更新时间、不改内容时请用 `touchEmojiCache`。
+ * `revalidatedAt` 默认等于写入时间；只更新时间、不改内容请用 `touchEmojiCache`。
  */
 export function writeEmojiCache(
 	cdnUrl: string,
@@ -333,12 +262,7 @@ export function writeEmojiCache(
 	}
 }
 
-/**
- * 只把「最近校验时间」推到 `revalidatedAt`（内容与 `savedAt` 都不动）。
- *
- * 用于后台校验拿到「内容没变」或「校验失败」的情况：既不重写 40KB 的包体语义，
- * 又让下一次校验落在 `EMOJI_REVALIDATE_MS` 之后，避免同一个访客每个页面都重试一次。
- */
+/** 只把「最近校验时间」推到 `revalidatedAt`（内容与 `savedAt` 都不动），避免同一访客每页都重试 */
 export function touchEmojiCache(
 	cdnUrl: string,
 	storage: Storage | null = safeStorage(),
@@ -356,11 +280,8 @@ export function isEmojiCacheFresh(entry: EmojiCacheEntry | null, now = Date.now(
 }
 
 /**
- * 缓存是否「到点该向来源校验了」。
- *
- * 与 `isEmojiCacheFresh` 是两件事：后者决定**首屏还能不能同步水合**（7 天可用期），
- * 这里决定**要不要在后台再拉一次**（6 小时间隔）。没有缓存时返回 true ——
- * 但调用方应当走正常加载（`loadEmojiSet`），而不是后台校验。
+ * 缓存是否「到点该向来源校验了」：与 7 天可用期的 `isEmojiCacheFresh` 是两件事。
+ * 没有缓存时返回 true，但调用方应走正常加载（`loadEmojiSet`）而不是后台校验。
  */
 export function needsRevalidation(
 	entry: EmojiCacheEntry | null,
@@ -386,8 +307,7 @@ function safeStorage(): Storage | null {
 
 async function fetchJson(url: string, fetchImpl: typeof fetch, cache?: RequestCache): Promise<unknown> {
 	const init: RequestInit = { headers: { Accept: 'application/json' } };
-	// 只有「强制重拉 / 后台校验」才指定 cache：'no-cache' 表示绕过浏览器 HTTP 缓存
-	// （源站没有 ETag/Last-Modified，校验只能整份重下，光靠 max-age=3600 会拿到旧内容）
+	// 只有「强制重拉 / 后台校验」才指定 cache：'no-cache' 绕开浏览器 HTTP 缓存（源站没有 ETag）
 	if (cache) init.cache = cache;
 	const res = await fetchImpl(url, init);
 	if (!res || !res.ok) throw new Error(`HTTP ${res?.status ?? '??'}`);
@@ -417,7 +337,6 @@ async function fetchAllPacks(
 	fetchImpl: typeof fetch,
 	cache?: RequestCache
 ): Promise<{ packs: OwoShape; errors: unknown[] }> {
-	// Promise.allSettled 不会短路：一个来源失败不影响其他来源
 	const settled = await Promise.allSettled(urls.map((url) => fetchPack(url, fetchImpl, cache)));
 	const merged: OwoShape = {};
 	const errors: unknown[] = [];
@@ -432,12 +351,9 @@ async function fetchAllPacks(
 }
 
 /**
- * 拉取配置的 owo.json（可多个来源，按数组顺序并发拉取后合并）。
- *
- * - 命中 7 天内的缓存（键 = 整个地址列表的 JSON）不发请求；
- * - `force` 时绕过缓存，并且用 `cache: 'no-cache'` 绕开浏览器 HTTP 缓存（手动刷新要拿到真正的最新内容）；
- * - 全部来源成功 → 合并结果（`partial: false`）；部分成功 → 合并成功的那几个并标 `partial: true`；
- * - 全部失败 → 回退旧缓存（标 `stale: true`）；连缓存都没有则抛错（由面板显示错误态）。
+ * 拉取配置的 owo.json（可多个来源，按数组顺序并发拉取后合并）：命中 7 天缓存不发请求；
+ * `force` 绕过缓存与浏览器 HTTP 缓存；部分成功标 `partial`，全部失败回退旧缓存并标 `stale`，
+ * 连缓存都没有则抛错（由面板显示错误态）。
  */
 export async function loadDefaultPacks(
 	cdnUrls: string | string[],
@@ -459,7 +375,6 @@ export async function loadDefaultPacks(
 
 	const { packs: merged, errors } = await fetchAllPacks(urls, fetchImpl, force ? 'no-cache' : undefined);
 
-	// 全部失败：回退旧缓存（哪怕已过期），没有缓存才抛错
 	if (errors.length === urls.length) {
 		if (cached) return { packs: cached.packs, fromCache: true, stale: true, partial: false };
 		const first = errors[0];
@@ -471,15 +386,8 @@ export async function loadDefaultPacks(
 }
 
 /**
- * 把一份 owo 形状的数据转成标签页 + 短代码映射。
- * 标签顺序 = owo.json 里键的顺序（多来源合并后 = 各来源首次出现的顺序）。
- *
- * 短代码跨标签/跨来源去重：靠前的标签先占名，后来的追加 `-2`/`-3`……，
- * 因此**不同来源的同名表情**也能各自水合回它自己那张图。
- *
- * `type` 口径（doc/emoji.md 第 2 节）：只有显式声明 `emoji` / `emoticon` 的标签走文本分支；
- * 缺省与**无法识别**的值一律按 `image` 处理（面板的在线校验会挡未知 type，
- * 能走到这里的未知值基本来自第三方文件里的图片包，按 image 处理才不会整包消失）。
+ * 把一份 owo 形状的数据转成标签页 + 短代码映射，标签顺序 = 各来源首次出现的顺序。
+ * 只有显式声明 `emoji` / `emoticon` 的标签走文本分支，缺省与无法识别的 `type` 一律按 `image` 处理。
  */
 export function buildEmojiSet(packs: OwoShape, options: { stale?: boolean; partial?: boolean } = {}): EmojiSet {
 	const tabs: EmojiTab[] = [];
@@ -497,13 +405,7 @@ export function buildEmojiSet(packs: OwoShape, options: { stale?: boolean; parti
 				if (!url) continue;
 
 				let name = normalizeShortcode(raw.text) || `e-${fnv1aHex(url)}`;
-				// 名字被同包前面的项占用，或已被**靠前的包**占用时，追加 -2/-3……
-				//
-				// 跨包重名不能沿用「先到先得」（后来的项继续指向靠前包的那张图）：
-				// 默认源里 Bilibili 与 QQ 有 33 个同名表情（doge / sob / heart-eyes…），
-				// QQ 是动图、Bilibili 是静态 PNG，先到先得会让用户从 QQ 面板点的动图
-				// 在评论正文里变成 Bilibili 的静图——看起来就是「GIF 不动了」。
-				// 给后来的项一个自己的名字，水合才会回到它自己的那张图。
+				// 名字被同包前面的项或靠前的包占用时追加 -2/-3……，否则水合会指向靠前包的那张图
 				if (used.has(name) || images.has(name)) {
 					let suffix = 2;
 					while (used.has(`${name}-${suffix}`) || images.has(`${name}-${suffix}`)) suffix += 1;
@@ -524,9 +426,9 @@ export function buildEmojiSet(packs: OwoShape, options: { stale?: boolean; parti
 			const text = decodeHtmlEntities(String(raw.icon ?? ''));
 			if (!text) continue;
 			if (codePointLength(text) > EMOJI_MAX_TEXT_LENGTH) continue;
-			// 解码后再过滤尖括号：`&lt;` 会还原成 `<`，不能让它以文本表情的身份绕过这条限制
+			// 解码后再过滤尖括号：`&lt;` 会还原成 `<`，不能让它绕长度与尖括号过滤
 			if (/[<>]/.test(text)) continue;
-			// 悬停提示同样解实体（老源里 title 也可能带 `&quot;` 之类）
+			// 悬停提示同样解实体
 			const title = decodeHtmlEntities(String(raw.text ?? '')) || text;
 			items.push({ insert: text, preview: text, title });
 		}
@@ -544,8 +446,7 @@ export function buildEmojiSet(packs: OwoShape, options: { stale?: boolean; parti
 }
 
 /**
- * 只读本地缓存构建的表情集合（同步、零请求；用于首屏已有缓存时直接水合）。
- * `cdnUrls` 是完整地址列表（缓存键就是它的 JSON）。
+ * 只读本地缓存构建的表情集合（同步、零请求）；`cdnUrls` 是完整地址列表（缓存键就是它的 JSON）。
  */
 export function getCachedEmojiSet(
 	options: { cdnUrls?: string | string[]; cdnUrl?: string | string[]; storage?: Storage | null; now?: number } = {}
@@ -558,10 +459,7 @@ export function getCachedEmojiSet(
 }
 
 /**
- * 同步判断「本地缓存是否到点该后台校验了」。
- *
- * **没有缓存时返回 false**：那种情况应当走正常加载（`loadEmojiSet`），而不是后台校验 ——
- * 校验的语义是「手上已经有一份可用的，去确认一下有没有变」。
+ * 同步判断「本地缓存是否到点该后台校验了」：**没有缓存时返回 false**，那种情况应走 `loadEmojiSet`。
  */
 export function emojiCacheNeedsRevalidation(
 	options: {
@@ -592,12 +490,9 @@ export function resetEmojiSetCache(): void {
 }
 
 /**
- * 加载表情集合（来源 = 配置的一组 owo.json 地址，按数组顺序合并）。
- *
- * - 命中 7 天缓存不发请求，否则并发拉取全部地址（可 force）；
- *   部分来源失败 → 成功的那几个照常渲染并标 `partial`；全部失败 → 回退旧缓存并标 `stale`。
- * - 同一个地址列表的并发调用共享一次加载；结果缓存在模块级，
- *   因此评论区里每个回复框的 picker 不会各拉一份。
+ * 加载表情集合（来源 = 配置的一组 owo.json 地址，按数组顺序合并）：命中 7 天缓存不发请求；
+ * 部分来源失败照常渲染并标 `partial`，全部失败回退旧缓存标 `stale`。
+ * 同一地址列表的并发调用共享一次加载，结果缓存到模块级，各回复框的 picker 不会各拉一份。
  */
 export async function loadEmojiSet(options: {
 	cdnUrls: string | string[];
@@ -635,20 +530,9 @@ export async function loadEmojiSet(options: {
 }
 
 /**
- * 后台校验（stale-while-revalidate）：手上已有缓存时，静默向来源确认一次。
- *
- * 返回值就是「要不要换界面」：
- *  - `null` —— 内容没变 / 有来源失败 / 没有缓存可作为基线：调用方**保持现有界面不动**；
- *  - `EmojiSet` —— 内容确实变了：调用方直接替换，无需再判空。
- *
- * 规则：
- *  - 没有缓存时返回 `null`（没基线可比，交给 `loadEmojiSet` 正常首载）；
- *  - 用 `cache: 'no-cache'` 请求：源站只有 `max-age=3600` 且没有 ETag，不加这个会直接吃
- *    浏览器 HTTP 缓存，白刷一遍还拿到旧内容；
- *  - **任一来源失败就不换界面**：合并结果缺标签，换上去会让面板「少了一整包」；
- *    失败同样把 `revalidatedAt` 推到当前时间，让重试节奏回到 `EMOJI_REVALIDATE_MS`（避免每页重试风暴）；
- *  - 内容变化用 `JSON.stringify` 比较（两侧都经过 `sanitizePacks`，键序稳定，40KB 量级的比较成本可忽略），
- *    没变时只 `touchEmojiCache`，不重写包体、不触发无意义的重新水合。
+ * 后台校验（stale-while-revalidate）：返回值就是「要不要换界面」——
+ * `null` = 内容没变 / 有来源失败 / 无缓存基线，保持现有界面；`EmojiSet` = 内容确实变了，直接替换。
+ * 任一来源失败不换界面（合并结果会缺一整包），但把 `revalidatedAt` 推到当前时间以维持重试节奏。
  */
 export async function revalidateEmojiSet(options: {
 	cdnUrls: string | string[];

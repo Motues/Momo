@@ -11,7 +11,7 @@ const { envId, postSlug, language } = Astro.props;
 <div id="twikoo-comment"></div>
 
 <script is:inline define:vars={{ envId, postSlug, language }}>
-  // 用 define:vars 注入文章参数，所以这个脚本必须是 is:inline。
+  // 用 define:vars 注入文章参数，所以这个脚本必须是 is:inline
   window.__momoTwikoo = window.__momoTwikoo || { loading: null };
 
   /** 评论库整个会话只加载一次（重复 append <script src> 会重复执行整个库） */
@@ -37,21 +37,20 @@ const { envId, postSlug, language } = Astro.props;
   async function initTwikoo() {
     const el = document.getElementById('twikoo-comment');
     if (!el) return;
-    // 同一次换页里脚本可能被执行两次（swup 重放 + 兜底）：交给 dataset 守卫
+    // 脚本可能执行两次（swup 重放 + 兜底），用 dataset 守卫
     if (el.dataset.twikooInit === '1') return;
     el.dataset.twikooInit = '1';
 
     try {
       const twikoo = await loadTwikooLib();
       if (!twikoo) return;
-      // 换文章时旧实例还挂在已被移除的节点上：能销毁就销毁
-      // （各版本 API 不一定都有 destroy，做存在性判断并吞掉异常）
+      // 旧实例挂在已移除的节点上，能销毁就销毁（各版本 API 不保证有 destroy）
       try {
         twikoo.destroy?.();
       } catch (error) {
         /* 忽略：销毁失败不影响新实例 */
       }
-      // 库是异步加载的，期间用户可能已经跳到别的页面：节点已经不在文档里就别再初始化
+      // 异步加载期间可能已换页，节点不在文档里就别再初始化
       if (!el.isConnected) return;
       twikoo.init({
         envId: envId,

@@ -1,8 +1,5 @@
 /**
- * 站内搜索的数据结构。
- *
- * 索引文件由 `script/build-search-index.mjs` 在 `astro build` 之后生成，
- * 客户端只读这些字段；字段名刻意压短，减小下载体积。
+ * 站内搜索的数据结构：索引由 `script/build-search-index.mjs` 在构建后生成，字段名刻意压短。
  */
 
 /** 索引里的一篇文章 / 一个正文页 */

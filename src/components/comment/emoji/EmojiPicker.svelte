@@ -10,10 +10,7 @@
   } from './owo';
 
   export let language: string = 'zh-cn';
-  /**
-   * 表情来源地址列表（由评论列表接口的 `emoji_cdn_urls` 下发，旧后端的单地址
-   * `emoji_cdn_url` 由调用方归一化成单元素数组）。空数组表示没有可用地址，按钮不可用。
-   */
+  /** 表情来源地址列表（接口的 `emoji_cdn_urls` 下发），空数组表示没有可用地址、按钮不可用 */
   export let cdnUrls: string[] = [];
   /** 兼容旧调用方：单个地址（列表为空时作为回落） */
   export let cdnUrl: string = '';
@@ -27,20 +24,19 @@
 
   /** 面板最大高度：视口空间充足时的上限 */
   const PANEL_MAX_HEIGHT = 256;
-  /** 面板最小高度：再小就没法点表情了（下方放不下时才考虑翻到按钮上方） */
+  /** 面板最小高度：再小就没法点表情（下方放不下且上方更宽裕时翻到按钮上方） */
   const PANEL_MIN_HEIGHT = 96;
   /** 面板最大宽度（24rem） */
   const PANEL_MAX_WIDTH = 384;
   /** 面板最小宽度（极窄视口的保护，避免算出负数宽度） */
   const PANEL_MIN_WIDTH = 200;
-  /** 面板与按钮之间的间距（原来对应 mt-2） */
+  /** 面板与按钮之间的间距 */
   const PANEL_GAP = 8;
   /** 面板与可视视口边缘保留的空白 */
   const VIEWPORT_MARGIN = 12;
   /**
-   * 面板配色变量：它们定义在 `.comment-container`（style/main.css）而**不是** `:root`，
-   * 面板 portal 到 body 之后不再继承这些变量，必须把按钮上的计算值复制到面板的内联样式里，
-   * 否则面板会变成「无边框、默认文字色」的裸块（深色模式下尤其明显）。
+   * 面板配色变量：它们定义在 `.comment-container`（style/main.css）而不是 `:root`，
+   * portal 到 body 后不再继承，必须复制成面板的内联样式，否则面板无边框、文字色也不对。
    */
   const THEME_VARS = [
     '--text-color',
@@ -78,14 +74,7 @@
   $: activeTab = emojiSet?.tabs.find((tab) => tab.id === activeTabId) ?? emojiSet?.tabs[0] ?? null;
   $: activeTabItems = activeTab?.items ?? [];
 
-  /**
-   * 当前标签是不是颜文字（文本表情）包。
-   *
-   * 文本表情长短不一（`OωO` 与 `(๑•̀ㅂ•́)و✧` 宽度差好几倍），必须按内容自适应宽度，
-   * 否则塞进固定列宽的网格里会互相挤压、重叠；图片表情尺寸一致，继续走等宽网格。
-   * 一个包的项要么全是文本、要么全是图片（见 owo.ts 的 buildEmojiSet），
-   * 所以用「所有项都没有短代码」判定即可。
-   */
+  /** 当前标签是不是文本表情包：文本表情长短不一，必须按内容自适应宽度；图片表情走等宽网格 */
   $: activeTabIsText = activeTabItems.length > 0 && activeTabItems.every((item) => !item.shortcode);
 
   /** 换上一份新集合：统一维护选中标签与提示位（加载/刷新/回传父组件都走这里） */
@@ -115,12 +104,7 @@
     }
   }
 
-  /**
-   * 后台校验：缓存照常显示，静默确认一次来源。
-   *
-   * 只有内容真的变了（`revalidateEmojiSet` 返回非 null）才替换面板；
-   * 没变、部分来源失败、网络挂了都保持现状 —— 用户感知不到，但也不会看到旧表情以为没更新。
-   */
+  /** 后台校验：缓存照常显示，只有内容真的变了（`revalidateEmojiSet` 返回非 null）才替换面板 */
   async function refreshQuietly() {
     if (unavailable || refreshing) return;
     refreshing = true;
@@ -134,10 +118,7 @@
     }
   }
 
-  /**
-   * 可视视口（移动端软键盘/缩放都只改 visualViewport，不改 window.innerWidth/innerHeight）。
-   * 拿不到 visualViewport（或它给出 0 尺寸）时回落到窗口尺寸。
-   */
+  /** 可视视口（软键盘 / 缩放只改 visualViewport）；拿不到或给出 0 尺寸时回落到窗口尺寸 */
   function visibleViewport() {
     const vv = window.visualViewport;
     if (vv && vv.width > 0 && vv.height > 0) {
@@ -164,16 +145,9 @@
   }
 
   /**
-   * 面板用 `position: fixed` + 实测坐标定位（而不是 `absolute` 挂在按钮外层）：
-   *
-   * - 二级/拍平回复外面套了 `overflow-hidden` 的容器（CommentItem.svelte 的回复列表），
-   *   `absolute` 面板会被它裁掉；曲线救国改 z-index 没用 —— `z-index` 只在最近的
-   *   层叠上下文里比较，`overflow-hidden` 照样裁。挂到 body 并改 `fixed` 才能同时摆脱
-   *   裁剪与宿主的层叠上下文（`transform` / `filter` 祖先也会把 `fixed` 关在里面）。
-   * - 宽度按可视视口算，并夹住左边缘：窄屏上按钮本身有缩进（头像 + 边框 + padding），
-   *   再用 `left: 0` + `100vw` 估算就会从右边溢出。
-   * - 高度按「按钮底边 → 可视视口底边」的剩余空间自适应；只有下方连最小高度都放不下、
-   *   且上方更宽裕时才翻到按钮上方（移动端软键盘弹出后的兜底）。
+   * 面板用 `position: fixed` + 实测坐标定位：`absolute` 会被回复列表的 `overflow-hidden` 裁掉，
+   * 改 z-index 无效（`z-index` 只比最近的层叠上下文），祖先 `transform` / `filter` 也会困住 `fixed`。
+   * 宽度夹住可视视口左右边缘；高度按按钮下方剩余空间自适应，放不下且上方更宽裕时翻到按钮上方。
    */
   function updatePanelPosition() {
     if (!buttonEl) return;
@@ -220,17 +194,10 @@
     });
   }
 
-  /**
-   * 面板挂到 body：脱离所有 `overflow-hidden` 裁剪盒与祖先层叠上下文。
-   *
-   * Svelte 5 的 action 在 effect 里执行，正常情况下节点已插入 DOM 后再搬走；
-   * 这里再加一个微任务兜底（节点被 Svelte 重新插回原位时再搬一次），
-   * 两种执行顺序下最终都会落在 body 上。
-   */
+  /** 面板挂到 body：脱离所有 `overflow-hidden` 裁剪盒与祖先层叠上下文（微任务里再兜底搬一次） */
   function portal(node: HTMLElement) {
     const move = () => {
-      // isConnected 为 false 时说明要么还没被 Svelte 插入（等下一次微任务），
-      // 要么已经被销毁 —— 两种都不该再往 body 上挂。
+      // isConnected 为 false 说明还没被 Svelte 插入或已被销毁，两种都不该再往 body 上挂
       if (!node.isConnected) return;
       if (node.parentNode !== document.body) document.body.appendChild(node);
     };
@@ -255,8 +222,7 @@
     // 先算好位置再渲染，面板不会先闪在错误位置再跳过去
     updatePanelPosition();
     open = true;
-    // 缓存「到点」→ 静默校验（不显示加载态）；否则走正常加载
-    // （无缓存、或缓存已过 7 天可用期时，走正常加载才能拿到 loading / stale / 错误态）
+    // 缓存「到点」→ 静默校验（不显示加载态）；否则走正常加载才能拿到 loading / stale / 错误态
     const hydratedFromCache = emojiSet.tabs.length > 0;
     if (hydratedFromCache && emojiCacheNeedsRevalidation({ cdnUrls: urlList })) void refreshQuietly();
     else void ensureLoaded(false);
@@ -390,7 +356,7 @@
           <p class="py-6 text-center text-xs text-[var(--text-color)]/60">{t('comments.emojiLoading')}</p>
         {:else if activeTab && activeTab.items.length > 0}
           {#if activeTabIsText}
-            <!-- 颜文字：按内容宽度自适应（长短不一，固定列宽会互相挤压） -->
+            <!-- 颜文字：按内容宽度自适应 -->
             <div class="flex flex-wrap gap-1">
               {#each activeTab.items as item}
                 <button type="button"
@@ -465,15 +431,13 @@
   }
   /*
    * 面板底色默认跟随 hover 底色；宿主可用 --momo-panel-bg 覆盖。
-   * 面板被 portal 到 body 时是 body 的直接子节点，宿主的固定导航一般 z-index < 9999，
-   * 所以这里给一个足够高的层级（面板已经是「弹窗」语义，不应被正文元素盖住）。
+   * 层级给到「弹窗」档，避免被正文元素盖住。
    */
   .emoji-panel {
     background-color: var(--momo-panel-bg, var(--button-hover-bg-color));
     /*
-     * 面板被 portal 到 body，已经不在 `.comment-container` 里：
-     * 自定义属性会随内联样式带过来，但 `color` 是**继承属性**，会从宿主 body 继承
-     * （深色站点常见 body 仍是黑色）。这里显式落一次，颜文字等未单独设色的文字才不会发黑。
+     * portal 到 body 后已不在 `.comment-container` 里：`color` 是继承属性，会从 body 继承，
+     * 这里显式落一次，颜文字等未单独设色的文字才不会发黑。
      */
     color: var(--text-color);
     z-index: 9999;

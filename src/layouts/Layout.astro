@@ -33,31 +33,28 @@ interface Props {
   /** 社交分享图：绝对地址、站内路径或文章目录内的相对图片都可以 */
   image?: string;
   type?: 'website' | 'article';
-  /** 文章发布时间 / 最后修改时间（type="article" 时输出 article:* meta） */
+  /** 发布时间 / 修改时间（type="article" 时输出 article:* meta） */
   publishedTime?: Date | string;
   modifiedTime?: Date | string;
-  /** 文章分类，作为 article:section 与结构化数据的 section */
+  /** 文章分类：article:section 与结构化数据的 section */
   section?: string;
   keywords?: string[];
   /** 不希望被索引的页面（如 404、草稿） */
   noindex?: boolean;
-  /** 额外的 JSON-LD 结构化数据，与站点级 WebSite 一起输出 */
+  /** 额外 JSON-LD，与站点级 WebSite 一起输出 */
   structuredData?: Record<string, unknown> | Record<string, unknown>[];
-  /** 页面是否渲染 Markdown 正文：决定要不要异步加载引用块专用的 LXGW 字体 */
+  /** 是否渲染 Markdown 正文：决定是否加载引用块专用的 LXGW 字体 */
   markdownFont?: boolean;
-  /** 页面正文是否含数学公式：决定要不要挂 KaTeX 样式表（由 remark-has-math 写入 frontmatter） */
+  /** 正文是否含公式：决定是否挂 KaTeX 样式表（由 remark-has-math 写入 frontmatter） */
   mathStyles?: boolean;
-  /**
-   * 首屏 LCP 图片的预加载信息（由 @utils/imagePreload 生成）。
-   * 传了就在 <head> 里输出一条 imagesrcset 预加载，让浏览器在解析正文前就开始下载。
-   */
+  /** 首屏 LCP 图片预加载（由 @utils/imagePreload 生成）：输出一条 imagesrcset 预加载 */
   preloadImage?: {
     href: string;
     srcset?: string;
     sizes?: string;
     type?: string;
   };
-  /** 分页序列：输出 <link rel="prev/next">，让爬虫知道这是系列页 */
+  /** 分页序列：输出 <link rel="prev/next"> */
   pagination?: { prev?: string; next?: string };
 }
 const {
@@ -83,11 +80,9 @@ const pageLang = bcp47(lang || i18n?.defaultLocale || 'zh-cn');
 /** 当前页面语言的界面文案（skip-link 等极少量的布局级文案用） */
 const t = i18nit(lang || i18n?.defaultLocale || 'zh-cn');
 
-// ---- SEO 元信息 ----
 const canonical = absoluteUrl(normalizePath(Astro.url.pathname));
 const alternates = localeAlternates(Astro.url.pathname);
 const descriptionText = pageDescription(description, lang || i18n?.defaultLocale);
-// 只有本页真的带了封面才输出 og:image（社交平台拿不到图时会退化成一行小字卡片）
 const shareImage = image ? absoluteUrl(image) : '';
 const ogLocale = pageLang.replace('-', '_');
 const alternateLocales = alternates
@@ -103,7 +98,6 @@ const schemas = [
 // 转义 < 防止正文里的 </script> 提前闭合标签
 const jsonLd = JSON.stringify(schemas).replace(/</g, '\\u003c');
 
-// ---- 第三方域名预热（统计脚本 / 评论后端）----
 const umamiScript = 'https://umami.motues.top/script.js';
 function originOf(value?: string) {
   if (!value) return '';
@@ -118,32 +112,19 @@ const commentOrigin =
     ? originOf(siteConfig.comments.backendUrl)
     : '';
 
-// ---- 入场动画（自研，见 @utils/reveal）----
-// 只在 <html> 上打一个闸门标记：组件里的 data-reveal 属性可以写死，
-// 样式只在开关打开时生效（关掉开关 = 内容完全不隐藏，不需要改任何组件）。
+// 只在 <html> 上打闸门标记，组件里的 data-reveal 可以写死：关掉开关就完全不隐藏内容
 const revealAttrs = siteConfig.theme.AOS ? { 'data-reveal-on': '' } : {};
 
-// ---- OverlayScrollbars（悬浮滚动条）----
-// 关闭时既不加载它的样式与脚本，也不输出桥接属性，直接回退到浏览器原生滚动条。
-// ⚠️ 样式必须用 ?url 取出后自己挂 <link>，不能在组件里静态 import：
-// 那样 Vite 会无视下面的条件渲染，把样式合并进页面样式表，关掉开关也省不下这 ~4 KB（gzip）。
-// 用的是 scriptingenabled 版本而不是默认的 overlayscrollbars.css：桥接属性会先把原生滚动条
-// 藏掉来消除闪烁，但这以「JS 确实会执行」为前提，否则禁用 JS 的访客会拿到一个没有滚动条的
-// 页面；scriptingenabled.css 把这些样式包进 @media (scripting: enabled)，禁用 JS 时仍走原生滚动条。
-// 它必须是**阻塞样式**（要在首屏之前就位），所以不能用 media="print" 那套异步加载。
+// ⚠️ 样式必须用 ?url 取出后自己挂 <link>，静态 import 会被 Vite 无条件合并进页面样式表、关掉
+// 开关也省不下；且必须用 scriptingenabled 版本并阻塞加载，否则禁用 JS 的访客没有滚动条。
 const osConfig = siteConfig.theme.overlayScrollbars;
 const osEnabled = osConfig?.enable !== false;
-// 桥接属性：OS 初始化要建好几个元素，这段时间里原生滚动条会闪一下，
-// 提前在 <html> / <body> 上打标记，让配套样式先把原生滚动条藏掉。
-// 只在开关打开时输出，否则关掉开关反而会留下一个没有滚动条的页面。
+// 桥接属性：OS 初始化期间先藏掉原生滚动条；只在开关打开时输出，否则会留下没有滚动条的页面
 const osAttrs = osEnabled ? { 'data-overlayscrollbars-initialize': '' } : {};
-// 滚动条粗细走 CSS 变量（见 styles/scrollbar.css 的 .os-theme-momo），
-// 写成内联变量而不是把数值编进样式表，改配置才能即时生效
+// 滚动条粗细走 CSS 变量（见 styles/scrollbar.css 的 .os-theme-momo），改配置即时生效
 const osStyle = osEnabled ? `--os-momo-size: ${osConfig?.size ?? 8}px` : undefined;
 
-// ---- 照片封面 ----
-// 和 OS 的样式表同一个套路：不能 import 进组件，否则每个页面都会背上这份 CSS，
-// 开关关掉时也省不下来。照片层每个页面都有，所以这个 <link> 也是全站生效。
+// 照片封面样式同样用 ?url + 条件 <link>：照片层每页都有，所以这条 <link> 全站生效
 const photoCoverOn = photoCoverEnabled();
 ---
 
@@ -151,8 +132,7 @@ const photoCoverOn = photoCoverEnabled();
 <html lang={pageLang} class="h-full" style={osStyle} {...osAttrs} {...revealAttrs}>
 <head>
     <meta charset="UTF-8">
-    <!-- data-swup-ignore-script：客户端路由（swup）每次换页会把文档里的内联脚本重放一遍，
-         主题初始化只该跑一次（重复执行本身无害，但没必要，也避免以后改动踩坑） -->
+    <!-- data-swup-ignore-script：swup 每次换页会重放内联脚本，主题初始化只该跑一次 -->
     <script is:inline data-swup-ignore-script>
         (function() {
         const savedTheme = localStorage.getItem('theme');
@@ -174,10 +154,8 @@ const photoCoverOn = photoCoverEnabled();
         })();
     </script>
     {siteConfig.theme.AOS && <script is:inline data-swup-ignore-script>
-        // 兜底：入场动画的脚本万一没起来（脚本被拦 / 加载失败 / 初始化抛错），
-        // 把入场闸门摘掉，让内容全部直接可见 —— 绝不能让正文永久停在 opacity: 0。
-        // 计时从 load 之后开始：模块脚本一定在 load 之前执行完，慢网络上不会误判。
-        // data-swup-ignore-script：只该跑一次（swup 会重放内联脚本）。
+        // 兜底：入场脚本没起来（被拦 / 加载失败 / 初始化抛错）就摘掉闸门，正文绝不能在 opacity: 0
+        // 停住；计时从 load 后开始。data-swup-ignore-script：只该跑一次。
         window.addEventListener('load', function () {
             setTimeout(function () {
                 if (!window.__momoReveal) {
@@ -197,7 +175,6 @@ const photoCoverOn = photoCoverEnabled();
     {alternates.map((a) => <link rel="alternate" hreflang={bcp47(a.lang)} href={a.url}>)}
     <link rel="alternate" hreflang="x-default" href={defaultLocaleUrl(Astro.url.pathname)}>
 
-    <!-- Open Graph -->
     <meta property="og:type" content={type}>
     <meta property="og:site_name" content={siteConfig.title}>
     <meta property="og:title" content={title}>
@@ -211,31 +188,29 @@ const photoCoverOn = photoCoverEnabled();
     {type === 'article' && modifiedIso && <meta property="article:modified_time" content={modifiedIso}>}
     {type === 'article' && section && <meta property="article:section" content={section}>}
 
-    <!-- Twitter Card -->
     <meta name="twitter:card" content={shareImage ? "summary_large_image" : "summary"}>
     <meta name="twitter:title" content={title}>
     <meta name="twitter:description" content={descriptionText}>
     {shareImage && <meta name="twitter:image" content={shareImage}>}
 
-    <!-- 分页序列：上一页 / 下一页，帮助爬虫理解系列页的先后关系 -->
     {pagination?.prev && <link rel="prev" href={pagination.prev}>}
     {pagination?.next && <link rel="next" href={pagination.next}>}
 
     <meta name="theme-color" media="(prefers-color-scheme: light)" content="#fbfbfb">
     <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#0a0a0a">
-    <!-- 订阅源按语言分开：/rss.xml 是默认语言，/en/rss.xml 是其它语言（SEO-01） -->
+    <!-- 订阅源按语言分开：/rss.xml 是默认语言，/<lang>/rss.xml 是其它语言 -->
     <link rel="alternate" type="application/rss+xml" title={getSiteTitle()} href={absoluteUrl(withTrailingSlash(getRelativeLocaleUrl(lang || i18n?.defaultLocale || 'zh-cn', '/rss.xml')))} >
     <link rel="icon" href={siteConfig.favicon} type="image/x-icon">
 
-    <!-- OverlayScrollbars 的样式表：必须阻塞（桥接属性要在首屏前把原生滚动条藏掉） -->
+    <!-- OverlayScrollbars 样式：必须阻塞，桥接属性要在首屏前藏掉原生滚动条 -->
     {osEnabled && <link rel="stylesheet" href={osCss}>}
 
-    <!-- 照片封面：同样是阻塞样式，首屏的居中标题、蒙版与淡出都靠它，不能等 -->
+    <!-- 照片封面：同样必须阻塞，首屏的居中标题 / 蒙版 / 淡出都靠它 -->
     {photoCoverOn && <link rel="stylesheet" href={photoCoverCss}>}
 
-    <!-- 正文字体（Noto Serif SC 400 / 700）：两份 CSS 都非阻塞加载。
-         前面的 as="style" preload 不阻塞渲染，但能让请求在解析 <head> 时就以高优先级发出。
-         data-swup-theme 见下方说明（换页时 head 插件不能删也不能重加它）。 -->
+    <!-- 正文字体（Noto Serif SC 400 / 700）：非阻塞加载，前面的 preload 让请求提前发出。
+         ⚠️ data-swup-theme 必须留着，否则换页时标签被移除重插，始终可见的顶栏会闪字体；
+         只给每页都有的字体加，LXGW 与 KaTeX 不能加，否则换页后永远插不进来。 -->
     <link rel="preload" as="style" href={notoSerifSc400}>
     <link rel="preload" as="style" href={notoSerifSc700}>
     <link rel="stylesheet" data-swup-theme href={notoSerifSc400} media="print" onload="this.media='all'">
@@ -243,17 +218,15 @@ const photoCoverOn = photoCoverEnabled();
     <link rel="stylesheet" data-swup-theme href={notoSerifSc700} media="print" onload="this.media='all'">
     <noscript><link rel="stylesheet" href={notoSerifSc700}></noscript>
 
-    <!-- 引用块字体（LXGW Bright Medium）：只有渲染正文的页面才需要，同样非阻塞 -->
+    <!-- 引用块字体（LXGW Bright Medium）：只有渲染正文的页面才需要，非阻塞 -->
     {markdownFont && <link rel="stylesheet" href={lxgwBrightCss} media="print" onload="this.media='all'">}
     {markdownFont && <noscript><link rel="stylesheet" href={lxgwBrightCss}></noscript>}
 
-    <!-- KaTeX：只给真的含公式的页面（remark-has-math 的 frontmatter 标记）。
-         它必须是阻塞样式——公式在正文里可能就在首屏，晚到会先闪一下裸 HTML。 -->
+    <!-- KaTeX：只给含公式的页面（remark-has-math 标记）；必须阻塞，晚到会先闪裸 HTML -->
     {mathStyles && <link rel="stylesheet" href={katexCss}>}
 
-    <!-- 首屏 LCP 图片预加载：imagesrcset + imagesizes 与 <Picture> 的 srcset 完全一致，
-         浏览器会按同一套规则挑档位，不会多下一份。type 写在 preload 上，
-         不支持 AVIF 的浏览器会忽略这条预加载、照常走 <picture> 的回退链。 -->
+    <!-- 首屏 LCP 图片预加载：imagesrcset / imagesizes 必须与正文 srcset 逐字一致，否则会多下一份；
+         type 让不支持 AVIF 的浏览器忽略这条预加载、走 <picture> 的回退链。 -->
     {preloadImage && <link
         rel="preload"
         as="image"
@@ -264,31 +237,22 @@ const photoCoverOn = photoCoverEnabled();
         fetchpriority="high"
     >}
 
-    <!-- 第三方域名连接预热：统计域名随时可能用到，评论后端只在文章页预热 -->
+    <!-- 第三方域名连接预热：统计域名 + 文章页的评论后端 -->
     <link rel="dns-prefetch" href={originOf(umamiScript)}>
     <link rel="preconnect" href={originOf(umamiScript)} crossorigin>
     {commentOrigin && <link rel="dns-prefetch" href={commentOrigin}>}
     {commentOrigin && <link rel="preconnect" href={commentOrigin} crossorigin>}
 
-    <!-- data-swup-ignore-script：umami 的采集脚本只加载一次；
-         换页的 PV 由下面的内联脚本在 astro:page-load 时手动上报 -->
+    <!-- data-swup-ignore-script：umami 只加载一次，换页 PV 由内联脚本在 astro:page-load 上报 -->
     <script defer src={umamiScript} data-hash is:inline data-swup-ignore-script></script>
     <title>{pageTitle}</title>
     <script type="application/ld+json" set:html={jsonLd}></script>
     <script is:inline data-swup-ignore-script>
-        // 换页相关的内联脚本合并成一个：减少解析与执行次数（TODO 第 17 项）。
-        // 这里只注册事件监听，可以安全地在 <head> 里提前执行。
-        //
-        // data-swup-ignore-script 是必须的：swup 的 ScriptsPlugin 每次换页都会把文档里
-        // 所有内联脚本重放一遍（带 src 的 module 因模块表去重不会重跑，内联脚本会），
-        // 这个脚本只该执行一次，否则监听器成倍累积。
+        // 换页相关的内联脚本合并成一个，减少解析 / 执行；data-swup-ignore-script 必须保留，否则监听器成倍累积
         document.addEventListener('astro:before-swap', (e) => {
             const theme = document.documentElement.getAttribute('data-theme');
             const sysTheme = document.documentElement.classList.contains('system-theme');
-            // 事件来源有两种：
-            // - ClientRouter（Astro 的 View Transitions）会给 e.newDocument；
-            // - swup 下 <html> 是持久的，没有「新文档」这个概念，此时回退到当前文档。
-            // 主题本来就在 <html> 上、不需要搬运，这里只是为了两种形态都能跑。
+            // ClientRouter 会给 e.newDocument，swup 下 <html> 持久、没有新文档，回退到当前文档
             const target = (e && e.newDocument ? e.newDocument : document).documentElement;
             if (theme) {
                 target.setAttribute('data-theme', theme);
@@ -296,18 +260,13 @@ const photoCoverOn = photoCoverEnabled();
             if (sysTheme) {
                 target.classList.add('system-theme');
             }
-            // 换页 / 前后退时浏览器会动滚动位置：如果 html 上还留着 scroll-behavior: smooth，
-            // 这些恢复过程会被动画拖慢。这里临时切成 auto，等新页面稳定后再交还给 CSS
-            //（页内锚点仍需要平滑滚动）。
+            // 临时切成 auto：否则浏览器换页 / 前后退时的滚动恢复会被 scroll-behavior: smooth 拖成动画
             document.documentElement.style.scrollBehavior = 'auto';
             target.style.scrollBehavior = 'auto';
         });
 
-        // ---- 前进 / 后退的滚动恢复（自己接管）----
-        // swup 的 scroll 插件在 popstate 时不做任何滚动（默认交给浏览器的原生恢复），
-        // 但客户端换页是异步的：浏览器恢复滚动时文档里还是**旧页面**，
-        // 位置会被旧页面的高度截断（实测：从长文后退到短文再回来，位置直接变成 0）。
-        // 所以这里按历史条目自己记一份，换页内容就位后再恢复，并关掉原生恢复避免互相打架。
+        // 前进 / 后退的滚动位置自己接管：swup 在 popstate 时不做滚动，浏览器原生恢复时文档里
+        // 还是旧页面、位置会被旧高度截断；所以按历史条目记一份，内容就位后再恢复。
         if ('scrollRestoration' in window.history) {
             window.history.scrollRestoration = 'manual';
         }
@@ -321,7 +280,7 @@ const photoCoverOn = photoCoverEnabled();
             window.history.replaceState({ ...state, scrollY: y }, '');
         }
 
-        // 滚动过程中节流写；真正离开当前条目之前（点击链接）再补一次
+        // 滚动中节流写；真正离开当前条目之前（点链接）再补一次
         let scrollWriteTimer;
         window.addEventListener('scroll', () => {
             clearTimeout(scrollWriteTimer);
@@ -335,17 +294,15 @@ const photoCoverOn = photoCoverEnabled();
             rememberScrollPosition();
         });
 
-        // 待恢复的位置：从 popstate 事件自带的 state 里取（不受截断影响）
+        // 待恢复位置：取自 popstate 的 state（不受截断影响）
         let pendingScrollY = null;
         window.addEventListener('popstate', (event) => {
             const y = event.state && typeof event.state.scrollY === 'number' ? event.state.scrollY : null;
             pendingScrollY = y;
         });
 
-        // ---- 锚点目标的入场落位 ----
-        // 正文块在入场动画里带 translateY(120px)（列表项是 32px）。如果直接
-        // scrollIntoView，量到的是「位移后」的位置；动画一结束目标就往上跳一截，
-        // 通常正好钻到固定顶栏后面。所以跳转前先把目标切成已落位、并临时关掉过渡。
+        // 锚点落位：正文块入场带 translateY，直接 scrollIntoView 量到的是位移后的位置，
+        // 动画结束会跳到固定顶栏后面；所以跳转前先把目标切成已落位并临时关掉过渡。
         const REVEAL_TARGET_SELECTOR =
             '.markdown-content > *, .markdown-content > ul > li, .markdown-content > ol > li';
 
@@ -360,8 +317,7 @@ const photoCoverOn = photoCoverEnabled();
             const target = id ? document.getElementById(id) : null;
             if (!target) return null;
 
-            // 顶层块自己带入场位移；脚注 li 这类「块内目标」则由外层 section 带着位移。
-            // 找到真正需要落位的那个元素，再拿原目标去滚动。
+            // 顶层块自带入场位移；块内目标（脚注 li 等）由外层块带着位移，落位的是外层
             let reveal = target;
             if (!target.matches(REVEAL_TARGET_SELECTOR)) {
                 const block = target.closest('.markdown-content > *');
@@ -378,11 +334,7 @@ const photoCoverOn = photoCoverEnabled();
             return target;
         };
 
-        /**
-         * 把目标滚到视口中心。
-         * 目标本身比视口还高（长提示块 / 长列表）时无法完整居中，会退化为
-         * 「顶栏下方」，保证从块首开始读，而不是一进来就落在中间。
-         */
+        /** 把目标滚到视口中心；目标高于视口 75% 时退化为「顶栏下方」，从块首开始读 */
         const alignHashTarget = (hash) => {
             const target = settleRevealForHash(hash);
             if (!target) return null;
@@ -400,21 +352,18 @@ const photoCoverOn = photoCoverEnabled();
                 }
                 expected = documentTop - margin;
             } else {
-                // 目标块的中心对准视口中心
                 expected = documentTop + rect.height / 2 - viewport / 2;
             }
 
             expected = Math.min(Math.max(0, expected), maxScroll);
             if (Math.abs(window.scrollY - expected) > 2) {
-                // 用 instant 而不是 auto：auto 会跟随 CSS 的 scroll-behavior: smooth，
-                // 跟随校正每 300ms 一次时会变成一段一直追不上的动画。
+                // ⚠️ 必须用 instant：auto 会跟随 CSS 的 scroll-behavior: smooth，跟随校正会变成追不上的动画
                 window.scrollTo({ top: expected, behavior: 'instant' });
             }
             return target;
         };
 
-        // swup 用 pushState 改 hash 时浏览器不会重新计算 :target（实测 Chromium），
-        // 所以「跳进来的段落闪一下」不能只靠 CSS :target，必须再打一个临时的 class。
+        // swup 用 pushState 改 hash 时浏览器不会重算 :target，闪烁高亮必须由脚本补 class
         let flashTimer;
         const flashHashTarget = (target) => {
             document.querySelectorAll('.is-search-target').forEach((el) => {
@@ -425,8 +374,8 @@ const photoCoverOn = photoCoverEnabled();
             flashTimer = setTimeout(() => target.classList.remove('is-search-target'), 2400);
         };
 
-        // 锚点跟随：图片 / GitHub 卡片 / 字体晚到会改变目标上方高度，
-        // 跳转后 3 秒内持续对齐；用户一滚动（滚轮 / 触摸 / 拖滚动条 / 键盘）立刻停。
+        // 锚点跟随：图片 / 卡片 / 字体晚到会改变目标上方高度，跳转后 3 秒内持续对齐，
+        // 用户一滚动（滚轮 / 触摸 / 拖滚动条 / 键盘）立刻停
         let activeHashFollow = null;
 
         const stopHashFollow = () => {
@@ -487,8 +436,7 @@ const photoCoverOn = photoCoverEnabled();
             document.fonts?.ready.then(tick).catch(() => {});
         };
 
-        // 同页锚点（搜索结果 / 目录 / 脚注回跳）在 capture 阶段先落位，
-        // 等 swup / TOC 自己的滚动跑完再补一次精确位置。
+        // 同页锚点（搜索结果 / 目录 / 脚注回跳）先在 capture 阶段落位，等 swup / TOC 滚完再精确对齐
         document.addEventListener('click', (event) => {
             if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
             const node = event.target instanceof Element ? event.target : null;
@@ -506,7 +454,7 @@ const photoCoverOn = photoCoverEnabled();
             setTimeout(() => followHash(url.hash), 0);
         }, true);
 
-        // 首屏直接带锚点：浏览器的原生滚动发生在入场样式生效期间，DOM 就绪后跟随校正
+        // 首屏带锚点：原生滚动发生在入场样式生效期间，DOM 就绪后再跟随校正
         const settleInitialHash = () => {
             const hash = window.location.hash;
             if (!hash) return;
@@ -520,8 +468,7 @@ const photoCoverOn = photoCoverEnabled();
         }
 
         document.addEventListener('astro:after-swap', () => {
-            // swup 的 content:scroll 在本事件之后才执行，先让目标落位再让它量位置；
-            // 等 page-load 时再补一次精确偏移（此时新页面的 CSS 通常已经换好了）。
+            // 先让目标落位，再让 swup 的 content:scroll 量位置；page-load 时再补一次精确偏移
             settleRevealForHash(window.location.hash);
             if (pendingScrollY === null) return;
             document.documentElement.style.scrollBehavior = 'auto';
@@ -536,7 +483,8 @@ const photoCoverOn = photoCoverEnabled();
             if (overlay) overlay.style.display = 'none';
         };
 
-        // 1. 开始准备跳转（swup 没有 astro:before-preparation）
+        // 加载遮罩：visit:start 后 500ms 才显示；换页完成（astro:after-swap = content:replace）
+        // 或 page-load 时收起
         document.addEventListener('swup:visit:start', () => {
             stopHashFollow();
             loaderTimeout = setTimeout(() => {
@@ -545,10 +493,8 @@ const photoCoverOn = photoCoverEnabled();
             }, 500);
         });
 
-        // 2. 页面内容交换完成（DOM 已更新）——@swup/astro 把 content:replace 派发成 astro:after-swap
         document.addEventListener('astro:after-swap', hideLoadingOverlay);
 
-        // 3. 兜底方案：本次访问收尾（page:view -> astro:page-load）
         document.addEventListener('astro:page-load', () => {
             hideLoadingOverlay();
             // 内容变高后（图片等）再补一次：after-swap 那一刻可能还没到目标位置
@@ -558,24 +504,16 @@ const photoCoverOn = photoCoverEnabled();
                 pendingScrollY = null;
                 if (Math.abs(window.scrollY - y) > 4) window.scrollTo(0, y);
             } else {
-                // 普通跳转带锚点时，等 swup 自己的滚动跑完，再按顶栏偏移精确对齐
                 followHash(window.location.hash);
             }
-            // 滚动位置恢复完毕，把平滑滚动交还给 CSS（见 before-swap 的说明）。
-            //
-            // ⚠️ 必须晚两帧，不能在这里同步复位：swup 的 ScrollPlugin 是用
-            // requestAnimationFrame 延后执行「回顶部」的，而 astro:page-load 由 page:view
-            // 派发、紧接着 content:scroll 就到了——同一帧里同步复位，插件那次
-            // window.scrollTo(0, 0) 就会带着 CSS 的 scroll-behavior: smooth 执行，
-            // 「瞬时回顶」变成一段几百毫秒的滚动动画（还会跟用户自己的滚动打架）。
-            // 双 rAF：插件先注册、先执行，这里保证它跑完再交还。
+            // ⚠️ 交还 scroll-behavior 必须晚两帧：swup 的 ScrollPlugin 用 rAF 延后回顶部，
+            // 同帧同步复位会让那次 scrollTo(0, 0) 带着 smooth 执行成一段动画。
             requestAnimationFrame(() => requestAnimationFrame(() => {
                 document.documentElement.style.scrollBehavior = '';
             }));
         });
 
-        // 4. 统计：swup 不会整页刷新，umami 的自动 PV 统计不会触发，这里补一次。
-        //    astro:page-load 只在真实访问时派发（首屏不派发），所以首屏不会重复计数。
+        // 统计：swup 不整页刷新，umami 的自动 PV 不会触发，这里补一次；page-load 首屏不派发，不会重复计数
         document.addEventListener('astro:page-load', () => {
             const url = window.location.pathname + window.location.search;
             if (window.__momoUmamiUrl === url) return;
@@ -583,10 +521,8 @@ const photoCoverOn = photoCoverEnabled();
             window.umami?.track?.();
         });
 
-        // 5. 设计规范页（/design）的交互。
-        //    页面自己的 <script> 会被 Astro 提到 </body> 前、在 swup 容器之外，
-        //    从站内跳进来时不会执行；所以统一放在这个只跑一次的全局脚本里：
-        //    重播用事件委托（整行都能点），目录高亮在每次 page-load 后重新收集。
+        // 设计规范页（/design）的交互必须放在这个只跑一次的全局脚本里：页面自己的 <script>
+        // 在 swup 容器之外，从站内跳进来时不会执行
         document.addEventListener('click', (event) => {
             const node = event.target instanceof Element ? event.target : null;
             if (!node) return;
@@ -631,9 +567,7 @@ const photoCoverOn = photoCoverEnabled();
 </head>
 <body class="h-full bg-[var(--bg-color)]" {...osAttrs}>
     
-    <!-- 键盘用户的第一个可聚焦元素：直接跳到正文，不用逐项 Tab 过顶栏与导航。
-         目标 main#swup-container 是 tabindex="-1"（见 MainPageLayout），
-         浏览器才会把焦点一起移过去，而不是只滚动页面。 -->
+    <!-- 键盘用户的第一个可聚焦元素；目标 main#swup-container 必须带 tabindex="-1"，焦点才会一起移过去 -->
     <a href="#swup-container" class="skip-link">{t("a11y.skipToContent")}</a>
 
     {osEnabled && <OverlayScrollbars />}
@@ -648,8 +582,7 @@ const photoCoverOn = photoCoverEnabled();
 </html>
 
 <style is:global>
-  /* 跳到正文：平时完全移出视口，键盘聚焦时从左上角滑下来。
-     它是 body 的第一个子元素，Tab 的第一站就是它（见 body 开头）。 */
+  /* 跳到正文：平时移出视口，键盘聚焦时从左上角滑下来 */
   .skip-link {
     position: fixed;
     top: var(--momo-space-2);
@@ -680,8 +613,6 @@ const photoCoverOn = photoCoverEnabled();
     justify-content: center;
     background-color: rgba(255, 255, 255, 0.7);
     z-index: 9999;
-    /* 这里原本还有 backdrop-filter: blur(2px)：整屏模糊在换页瞬间的合成成本很高，
-       而去掉后观感几乎不变（背景本来就压了一层 70% 的半透明色） */
     animation: fadeIn 0.3s ease-out;
   }
 
@@ -708,9 +639,7 @@ const photoCoverOn = photoCoverEnabled();
     100% { transform: rotate(360deg); }
   }
 
-  /* 页内锚点（脚注、目录）依赖这里的平滑滚动。
-     换页时的滚动由 swup 的 scroll 插件接管（新页面回顶部、前后退交给浏览器恢复），
-     并在 before-swap 里临时切成 auto，不受这里的平滑滚动影响。 */
+  /* 页内锚点（脚注、目录）依赖这里的平滑滚动；换页时由 before-swap 临时切成 auto */
   html {
     scroll-behavior: smooth;
   }

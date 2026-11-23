@@ -1,13 +1,6 @@
 // update.js — pnpm momo update：同步模板新代码并更新依赖
-//
-// 两种数据源：
-// - 默认对比 GitHub 最新 Release（用 package.json 的版本号判断先后），下载该标签的源码包；
-// - 加 --commit <分支/标签/SHA> 时改为同步某个提交的代码（例如 --commit main 取 main 的最新提交），
-//   适合第一时间用上尚未发版的新代码；此时先读远端文件树与本地的文件哈希比对，
-//   --check / --dry-run 不需要下载源码包，也能直接得出「已是最新」。
-//
-// 两种模式都不依赖本地 git，都会保留用户自己的内容（src/content、src/assets、public、src/config.ts 等），
-// 只在覆盖前把旧文件备份到 .backup/update-<时间戳>/overwritten/。
+// 默认对比 GitHub 最新 Release；加 --commit <分支/标签/SHA> 则同步某个提交的代码。
+// 两种模式都不依赖本地 git，用户内容（src/content、src/assets、public、src/config.ts 等）一律保留。
 import { readFile, rm } from 'node:fs/promises'
 import { join } from 'node:path'
 import { tmpdir } from 'node:os'
@@ -48,18 +41,16 @@ import {
 import { BUILTIN_MIRRORS, DIRECT_SOURCE, createSourcePlan } from '../mirrors.js'
 import backupCommand from './backup.js'
 
-// 构建产物与依赖：release 源码包里本来也没有，属于双保险
+// 构建产物与依赖：永远跳过
 const BUILD_SKIP = ['node_modules', 'dist', '.astro', '.backup', '.git']
 
-// 用户自己的仓库配置：release 源码包里带着模板的版本，但覆盖会丢掉自己改过的工作流、
-// 编辑器设置等，因此永远不参与更新（需要新模板内容时请手动对比）
+// 用户自己的仓库配置：永远不参与更新（需要新模板内容时请手动对比）
 const REPO_SKIP = ['.github', '.vscode', '.idea']
 
 const ALWAYS_SKIP = [...BUILD_SKIP, ...REPO_SKIP, '.momo']
 
-// 模板文件清单：记录一次更新后源码包里的文件列表（每次更新后重写）。
-// 下次更新读它来判断「哪些文件在新版本里已经被删掉」，用户自己新增的文件不在清单里，不会被误删。
-// 属于本机的状态，已加入 .gitignore，不进版本库。
+// 模板文件清单：记录一次更新后源码包里的文件列表，用于下次判断哪些文件已被删除
+// （用户自己新增的文件不在清单里，不会被误删）。属于本机状态，已加入 .gitignore。
 const MANIFEST_FILE = '.momo/manifest.json'
 
 // 默认保留的用户内容：文章与图片、用户自己的配置、本地 AI 工具说明与环境变量
@@ -121,7 +112,7 @@ function printPreviousInfo(previous) {
   }
 }
 
-// 下载进度：单行原地刷新，最多每 400ms 一次（慢速镜像下也能看出没卡死）
+// 下载进度：单行原地刷新，最多每 400ms 一次
 const PROGRESS_INTERVAL = 400
 function progressReporter() {
   let last = 0
@@ -174,9 +165,8 @@ async function nextBackupName() {
 }
 
 /**
- * 取「上一版模板」的文件清单，用于判断哪些文件在新版本里被删掉了。
- * 优先读上次更新写下的本地清单；没有清单（第一次用 momo update 的项目）时，
- * 退回读取当前版本 tag 在 GitHub 上的文件树（一次轻量 API 调用，不下载文件内容）。
+ * 取「上一版模板」的文件清单，用于判断哪些文件在新版本里被删掉了：优先读上次更新写下的
+ * 本地清单，没有时退回读取当前版本 tag 在 GitHub 上的文件树（不下载文件内容）。
  */
 async function previousTemplateFiles({ repo, version, releases = [], token, plan, onStatus }) {
   const manifest = await readJson(fromRoot(MANIFEST_FILE), null)
@@ -318,7 +308,7 @@ export default {
     let pending = [] // release 模式：本次跨过的版本（用于打印更新说明）
 
     if (commitRef) {
-      // ---- commit 模式：解析 ref → 比对远端文件树与本地文件哈希，不用下载源码包就能给出结论 ----
+      // ---- commit 模式：解析 ref，比对远端文件树与本地文件哈希 ----
       log.raw()
       log.step(`解析 ${commitRef} …`)
       commit = await resolveCommit({ repo, ref: commitRef, token, plan: sourcePlan, onStatus: status })
@@ -356,7 +346,7 @@ export default {
       }
 
       if (complete && !plannedWrites && !plannedRemovals) {
-        // 记下这次的提交与文件清单，供下次更新判断「哪些文件已被移除」；
+        // 记下提交与文件清单，供下次判断「哪些文件已被移除」；
         // --no-delete 保留下来的文件继续留在清单里，下次更新还会提醒你
         const files = flags.delete ? compared.files : [...new Set([...compared.files, ...compared.removed])].sort()
         await writeManifest({
@@ -384,8 +374,7 @@ export default {
         return
       }
 
-      // 其余情况继续走下面的下载与写入流程（预览与写入都以解压出来的源码包为准）；
-      // 文件树不完整时 --dry-run 也走这条路，好在预览是完整的
+      // 文件树不完整时 --dry-run 也走下面的下载流程（那样预览才是完整的）
       if (complete && !plannedWrites) {
         log.raw()
         log.info(c.gray(`本地代码与该提交一致，只有 ${plannedRemovals} 个文件已被该提交移除`))
@@ -538,8 +527,7 @@ export default {
       return
     }
 
-    // 本次要写进清单的文件：源码包的文件列表；--no-delete 保留下来的文件继续留在清单里，
-    // 这样下次更新还会把它们列出来提醒你，而不是悄悄变成「你自己的文件」
+    // 写进清单的文件；--no-delete 保留下来的文件继续留在清单里，下次更新还会提醒
     const manifestFiles = keptRemovals.length
       ? [...new Set([...plan.files, ...keptRemovals])].sort()
       : plan.files

@@ -1,8 +1,6 @@
 /**
  * SEO 工具集：绝对 URL、canonical、hreflang 多语言对照、结构化数据与社交分享图。
- *
- * 约定：站内路径一律传相对路径（如 `/blog/xxx/`），由 absoluteUrl 统一补上
- * `siteConfig.rootSiteUrl` 与 `import.meta.env.BASE_URL`，避免各处硬编码域名。
+ * 站内路径一律传相对路径，由 absoluteUrl 统一补上站点域名与 BASE_URL。
  */
 import { getImage } from 'astro:assets'
 import { i18n } from 'astro:config/client'
@@ -10,9 +8,7 @@ import { profileConfig, siteConfig } from '@/config'
 
 /**
  * 内容目录里的图片：构建期取出优化后的 URL 作为分享图。
- * caseSensitive: false 只用于“发现”图片：Vite 的 glob 默认大小写敏感，
- * `.JPG` / `.PNG` 这类大写后缀会被整体漏掉，导致这些文章缺 og:image。
- * 下面的查找仍是精确匹配（key 为磁盘真实文件名），大小写不同即不同文件。
+ * caseSensitive: false 只用于「发现」图片，下面的查找仍按 key 精确匹配。
  */
 const contentImages = import.meta.glob<ImageMetadata>(
     '/src/content/blog/**/*.{png,jpg,jpeg,webp,avif,gif}',
@@ -95,9 +91,8 @@ export function clampText(text: string, max = 160): string {
 }
 
 /**
- * 站点描述（按语言解析）。
- * `siteConfig.description` 既可以是单串，也可以是 `{ "zh-cn": "...", en: "..." }`；
- * 缺当前语言时退回默认语言，再退回个人信息里的简介。
+ * 站点描述（按语言解析）：`siteConfig.description` 可为单串或按语言给，
+ * 缺当前语言退回默认语言，再退回个人信息里的简介。
  */
 export function siteDescription(lang?: string): string {
     const value = siteConfig.description
@@ -108,11 +103,7 @@ export function siteDescription(lang?: string): string {
     return value[code] || value[i18n.defaultLocale] || Object.values(value)[0] || profileConfig.description || ''
 }
 
-/**
- * 页面描述：优先使用本页描述，缺省回退站点描述（siteConfig.description），
- * 再回退个人信息里的简介。首页以前没有 description，会退化成 "Life is colorful!"
- * 这种没有信息量的一句话。
- */
+/** 页面描述：本页描述 → 站点描述 → 个人信息简介 */
 export function pageDescription(description?: string, lang?: string): string {
     return clampText(description || siteDescription(lang))
 }
@@ -141,8 +132,7 @@ export function websiteJsonLd(lang?: string): Record<string, unknown> {
         inLanguage: bcp47(lang || i18n.defaultLocale),
         author: owner,
         publisher: owner,
-        // 站内搜索：搜索弹窗支持 `?q=` 深链接，所以这个模板是真的可用地址。
-        // 引擎据此可以在站点信息里直接给出搜索框。
+        // 站内搜索支持 `?q=` 深链接，引擎可据此给出搜索框
         potentialAction: {
             '@type': 'SearchAction',
             target: {
@@ -154,10 +144,7 @@ export function websiteJsonLd(lang?: string): Record<string, unknown> {
     }
 }
 
-/**
- * 文章页的面包屑：首页 › 文章标题。
- * 搜索结果里能显示层级，而不是一串裸链接。
- */
+/** 文章页的面包屑（首页 › 文章标题），用于搜索结果的层级显示 */
 export function articleBreadcrumbJsonLd(opts: {
     title: string
     url: string
@@ -248,10 +235,8 @@ export function articleJsonLd(opts: {
 }
 
 /**
- * 文章封面图 -> 可分享的绝对 URL。
- * - 外链：原样返回
- * - `/` 开头的 public 资源：直接拼绝对地址
- * - 文章目录内的相对图片：构建期转成 1200px 宽的 jpg（社交平台兼容性最好）
+ * 文章封面图 -> 可分享的绝对 URL：外链原样返回，`/` 开头的 public 资源拼绝对地址，
+ * 文章目录内的相对图片转成 1200px 宽的 jpg。
  */
 export async function coverShareImage(image: string, id: string): Promise<string> {
     if (!image) return ''

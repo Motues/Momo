@@ -6,7 +6,7 @@ import { fileURLToPath } from 'node:url'
 import { articles } from './articles.mjs'
 import { preview, katexFonts } from './preview.mjs'
 import { upload } from './upload.mjs'
-// 注意：不能命名为 `meta` —— Vite ssrTransform 有 bug，名为 meta 的绑定会与 import.meta 冲突
+// 不能命名为 `meta`：Vite ssrTransform 会与 import.meta 冲突
 import { meta as metaRouter } from './meta.mjs'
 import { stats } from './stats.mjs'
 import { blogContent } from './blog-content.mjs'

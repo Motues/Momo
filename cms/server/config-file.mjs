@@ -1,13 +1,6 @@
-// config-file.mjs — 博客站点配置（src/config.ts）的读取与写回
-//
-// 可视化编辑有两个矛盾点：既要能读到当前配置的值，又不能在保存时把文件里的
-// 注释、排版和字段顺序全部冲掉（config.ts 是用户需要手工维护的文件）。
-// 这里的做法：
-//   1. 用一套极小的扫描器直接读源码里的对象字面量（不引入任何解析器依赖，
-//      cms/server 由 Node 原生加载，保持零依赖）；
-//   2. 保存时先与当前值做 diff，只替换「真正改动」的那几个值 / 键，
-//      文件其余字节原样保留，注释自然跟着留在原地；
-//   3. 写回后重新解析校验一遍，任何不一致都放弃写入并报错，不会写坏文件。
+// config-file.mjs — 博客站点配置（src/config.ts）的读取与写回。
+// 保存时只替换真正改动的值 / 键，注释、排版与字段顺序原样保留（做法：内置极简扫描器读对象
+// 字面量，零依赖；写回后重新解析校验，任何不一致都放弃写入）。
 import { readFile, writeFile } from 'node:fs/promises'
 import { fileURLToPath } from 'node:url'
 
@@ -48,7 +41,7 @@ function skipString(src, i) {
   return i
 }
 
-// 跳过注释，返回结束后的下标；不在注释处则原样返回
+// 跳过注释，返回结束后的下标（不在注释处时原样返回）
 function skipComment(src, i) {
   if (src[i] === '/' && src[i + 1] === '/') {
     const nl = src.indexOf('\n', i)
@@ -61,7 +54,6 @@ function skipComment(src, i) {
   return i
 }
 
-// 跳过空白与注释
 function skipTrivia(src, i) {
   for (;;) {
     const ch = src[i]
@@ -138,8 +130,7 @@ function findExportValue(src, name) {
   return skipTrivia(src, i + 1)
 }
 
-// 值区间的结束下标：遇到同层的 , } ] 即结束。
-// 注意：行尾注释不属于值的一部分，替换时必须留在原地，因此 end 只推进到值本身之后。
+// 值区间的结束下标：遇到同层的 , } ] 即结束；行尾注释不属于值，必须原地保留
 function findValueEnd(src, start) {
   let i = start
   let end = start
@@ -181,8 +172,7 @@ function readKey(src, i, limit) {
   return { key: src.slice(i, j), after: j }
 }
 
-// 遍历对象 / 数组字面量的顶层成员，返回 [{ key, start, end }]
-// 对象成员：key 为字段名；数组元素：key 为 null（展开元素也视为 null）
+// 遍历对象 / 数组字面量的顶层成员，返回 [{ key, start, end }]；数组元素的 key 为 null
 function iterateMembers(src, start) {
   const close = matchDelim(src, start)
   if (close < 0) return []
@@ -343,14 +333,13 @@ export function serializeValue(value, indent = '', unit = '    ', prefer) {
   return 'null'
 }
 
-// 取某一行开头的缩进
 function lineIndent(src, index) {
   const lineStart = src.lastIndexOf('\n', index) + 1
   return /^[ \t]*/.exec(src.slice(lineStart, index))[0]
 }
 
-// 在对象字面量末尾插入一个新成员（用于「文件里还没有这个字段」的情况）
-// 返回一组插入编辑（可能有两条：逗号 + 新成员，以便行尾注释留在原处）
+// 在对象字面量末尾插入新成员（用于「文件里还没有这个字段」的情况），
+// 返回一组插入编辑：可能两条（逗号 + 新成员），以便行尾注释留在原处
 function insertMember(src, objStart, key, value) {
   const close = matchDelim(src, objStart)
   if (close < 0) return null
@@ -408,8 +397,7 @@ function deepEqual(a, b) {
 }
 
 // 只保留真正变化的叶子；未涉及的字节不会被改写。
-// 数组：长度不变时逐项比较（保住元素里的注释）；仅在末尾追加 / 删除元素，
-// 避免整段重写把数组内部的注释冲掉。
+// 数组只在末尾追加 / 删除元素，避免整段重写把元素里的注释冲掉。
 function diffValues(prev, next, path, ops) {
   if (Array.isArray(prev) && Array.isArray(next)) {
     const common = Math.min(prev.length, next.length)
@@ -548,7 +536,7 @@ export function applyOps(source, ops) {
   }
 
   // 从后往前替换，避免前面的改动导致后面的下标位移；
-  // 正常情况下 diff 产生的区间互不重叠，出现重叠说明定位异常，直接放弃写入
+  // 出现重叠说明定位异常，直接放弃写入
   edits.sort((a, b) => a.start - b.start || a.end - b.end)
   for (let i = 1; i < edits.length; i++) {
     if (edits[i].start < edits[i - 1].end) throw new Error('配置改动区间重叠，已放弃写入')
@@ -565,8 +553,8 @@ export async function readConfig() {
   return { path: CONFIG_REL, source, values: parseConfig(source) }
 }
 
-// 用客户端提交的完整配置值写回 config.ts
-// 返回 { path, source, values, changed }；任何异常都不会留下半成品文件
+// 用客户端提交的完整配置值写回 config.ts，返回 { path, source, values, changed }；
+// 任何异常都不会留下半成品文件
 export async function writeConfig(nextValues) {
   const before = await readConfig()
   const ops = []

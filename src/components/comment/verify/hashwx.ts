@@ -1,14 +1,7 @@
 /**
- * 第一层工作量证明（HashWX）的编排层
- *
- * 职责：
- * 1. 决定用几个 Worker、如何把子挑战分给它们；
- * 2. Worker 不可用时（宿主页面 CSP 未放行 blob: worker、老浏览器）降级到主线程分片求解。
- *    这一步必须存在——评论区组件跑在别人的博客上，CSP 不由我们掌控；
- * 3. 对外只暴露「给挑战 → 拿到 nonces 数组」。
- *
- * 并行度为什么重要：实测 compiled 单线程约 278 KH/s（Node/V8，与 Chrome 同引擎），
- * 默认总难度 1,000,000 意味着单线程约 3.6s、4 线程约 0.9s。
+ * 第一层工作量证明（HashWX）的编排层：分配 Worker 并行求解，
+ * Worker 不可用（宿主页 CSP 未放行 blob: worker、老浏览器）时降级到主线程分片求解。
+ * 对外只暴露「给挑战 → 拿到 nonces 数组」。
  */
 
 import HashwxWorker from './hashwxWorker?worker&inline';
@@ -56,7 +49,7 @@ function defaultCreateWorker(): Worker | null {
 	try {
 		return new HashwxWorker();
 	} catch {
-		// 宿主页面的 CSP 可能不允许 blob: worker
+		// CSP 不允许 blob: worker 时返回 null，由调用方降级
 		return null;
 	}
 }
@@ -83,9 +76,7 @@ interface WorkerJob {
 
 /**
  * 用 Worker 并行求解。
- *
- * 返回 null 表示 Worker 路径不可用（或中途失败），由调用方降级到主线程。
- * 注意：这里刻意不抛出非取消类异常——任何 Worker 侧问题都不该让真人无法评论。
+ * 返回 null 表示 Worker 路径不可用（或中途失败），由调用方降级到主线程；Worker 侧问题不向调用方抛异常。
  */
 async function solveWithWorkers(
 	challenge: PowChallenge,
@@ -215,14 +206,12 @@ async function solveOnMainThread(challenge: PowChallenge, options: SolveOptions)
 }
 
 /**
- * 求解 HashWX 挑战，返回与子挑战一一对应的 nonces 数组。
- *
- * 优先并行 Worker；Worker 不可用或中途异常时降级到主线程分片求解。
+ * 求解 HashWX 挑战，返回与子挑战一一对应的 nonces 数组；Worker 不可用或中途异常时降级到主线程。
  */
 export async function solvePow(challenge: PowChallenge, options: SolveOptions = {}): Promise<string[]> {
 	if (!isHashwxSupported()) throw new PowUnsupportedError();
 
-	// 参数自检：服务端下发的参数必须自洽，否则直接报错而不是空转
+	// 参数自检：服务端下发的参数必须自洽
 	parseChallenge(challenge.c);
 	hashwxTarget(challenge.d);
 	if (!Number.isInteger(challenge.count) || challenge.count < 1) {
@@ -237,8 +226,7 @@ export async function solvePow(challenge: PowChallenge, options: SolveOptions = 
 		typeof navigator !== 'undefined' ? navigator.hardwareConcurrency : undefined
 	);
 
-	// 即使只有 1 个 Worker 也优先走 Worker：单核设备上没有并行收益，
-	// 但能把主线程让出来，页面在解题期间不会卡顿。
+	// 即使只有 1 个 Worker 也优先走 Worker：把主线程让出来，解题期间页面不卡顿
 	const viaWorkers = await solveWithWorkers(
 		challenge,
 		distributeIndexes(challenge.count, workerCount),

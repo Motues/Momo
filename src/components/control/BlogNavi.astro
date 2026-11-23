@@ -14,8 +14,7 @@ const { prev, next } = Astro.props;
 const currentLang = Astro.currentLocale || i18n!.defaultLocale;
 const t = i18nit(currentLang);
 
-// 统一走 blogPostUrl：语言前缀与尾斜杠都由 @utils/urlUtils 决定，
-// 不要再在这里手拼 `/blog/${id}`（线上会 301 到带斜杠的地址）
+// 统一走 blogPostUrl：语言前缀与尾斜杠由 @utils/urlUtils 决定，不要手拼 `/blog/${id}`
 function getPostUrl(id: string) {
   return blogPostUrl(currentLang, id);
 }

@@ -1,6 +1,4 @@
-/* 预览正文样式 —— 与博客 src/styles/markdown.css 保持一致（内联进预览文档）。
-   调色板直接取站点 token 的值（src/styles/variables.css）：预览不是另一套设计，
-   观感、对比度都该和文章页一致。 */
+/* 预览正文样式 —— 与博客 src/styles/markdown.css 保持一致；调色板取 src/styles/variables.css 的站点 token 值。 */
 :root {
   --text: #000000;
   --text-sub: #4c4c4c;
@@ -133,10 +131,8 @@ body {
   text-decoration: none;
 }
 
-/* 新标签页链接（[文字](url){target="_blank"}）后面的右上箭头图标（与博客 markdown.css 一致）：
-   图标在 <a> 外面，链接的下划线不作用到它；悬停链接时用 a:hover + .newtab-icon 单独变色
-   （中间隔着插件插入的 word joiner 文本节点，+ 只算元素兄弟，照样命中）。
-   Remix 的实心箭头，viewBox 已收紧到箭头自身边界，width / height 即箭头实际大小 */
+/* 新标签页链接（[文字](url){target="_blank"}）后的右上箭头（与博客 markdown.css 一致）：
+   图标在 <a> 外面，悬停链接时用 a:hover + .newtab-icon 单独变色；width / height 即箭头实际大小 */
 .markdown-content .newtab-icon {
   display: inline-block;
   width: 0.56em;
@@ -381,8 +377,7 @@ body {
   border-radius: var(--r-sm);
 }
 
-/* 单张正文图片：宽度不超过正文栏并保持原始比例，水平居中（与博客 markdown.css 对应）
-   没有 max-width 时大图会按固有像素宽渲染，直接横向溢出预览 iframe */
+/* 单张正文图片：宽度不超过正文栏、保持原始比例并居中（没有 max-width 时大图会横向溢出预览 iframe） */
 .markdown-content img {
   max-width: 100%;
   height: auto;
@@ -391,8 +386,7 @@ body {
   border-radius: var(--r-md);
 }
 
-/* 连续图片自动拼图（与博客 src/styles/markdown.css 对应）
-   --cols 是每行张数（插件智能选择），--span 让最后一行的图片补满整行 */
+/* 连续图片自动拼图（与博客 src/styles/markdown.css 对应）：--cols 为每行张数，--span 让最后一行补满整行 */
 .markdown-content .image-collage {
   --collage-gap: 8px;
   --collage-row-height: clamp(110px, 16vw, 200px);
@@ -423,8 +417,7 @@ body {
   background: var(--code-bg);
 }
 
-/* 行高由该行最宽的图片决定的那些格子：用 aspect-ratio 撑开（值 = 占列数 / 行高因子）
-   最宽的图片完整显示，同行的其它图片正好也是这个高度 */
+/* 行高由该行最宽的图片决定的格子：用 aspect-ratio 撑开（值 = 占列数 / 行高因子），同行等高 */
 .markdown-content .image-collage .collage-media.collage-ratio {
   height: auto;
   aspect-ratio: var(--ratio);

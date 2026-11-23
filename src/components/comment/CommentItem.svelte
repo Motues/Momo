@@ -41,18 +41,14 @@
   onMount(() => {
     const mql = window.matchMedia('(max-width: 776px)');
     
-    // 初始化
     isMobile = mql.matches;
 
-    // 监听变化
     const listener = (e: MediaQueryListEvent) => {
       isMobile = e.matches;
     };
 
-    // 使用较新的 addEventListener API
     mql.addEventListener('change', listener);
     
-    // 组件销毁时自动清理
     return () => mql.removeEventListener('change', listener);
   });
 
@@ -64,7 +60,6 @@
   let replyContent = '';
   let replyAdminKey = '';
   
-  // 防止重复提交 - 每个回复表单独立的状态
   let replyShowPreview = false;
   let replyPreviewHtml = '';
   let replyMarkdownWarnings: string[] = [];
@@ -89,10 +84,10 @@
     el.setSelectionRange(position, position);
   }
 
-  // 提交中状态由父组件维护，避免子组件状态残留导致回复按钮被永久禁用
+  // 提交中状态由父组件维护
   $: isReplySubmitting = replySubmittingId === c.id;
 
-  // 回复表单被父组件关闭（提交成功或切换到其他评论）后清空内容
+  // 回复表单被父组件关闭后清空内容
   $: if (replyingToId !== c.id && (replyContent || replyAdminKey || replyShowPreview)) {
     replyContent = '';
     replyAdminKey = '';
@@ -119,7 +114,6 @@
   }
 
   function toggleReplyPreview() {
-    // 内容为空时不允许切换预览
     if (!replyContent.trim()) return;
 
     if (!replyShowPreview) {
@@ -131,16 +125,12 @@
   
   const dispatch = createEventDispatcher();
   
-  // 回复框里的表情面板加载出完整集合后，冒泡给 Comments，让整页评论一起水合
-  // （放在 dispatch 声明之后，避免依赖 TDZ 顺序）
+  // 表情面板就绪后冒泡给 Comments；必须放在 dispatch 声明之后（避免 TDZ）
   $: if (replyEmojiSet) dispatch('emojiSetChange', replyEmojiSet);
 
   const avatarUrl = c.avatar;
 
-  /**
-   * 头像加载失败（自定义源不可达 / Gravatar 被墙）时回退到内置默认头像。
-   * 只兜底一次：默认头像是 data URI，本身不会再失败，guard 防止极端情况下死循环。
-   */
+  /** 头像加载失败时回退到内置默认头像；只兜底一次，防止死循环 */
   function handleAvatarError(event: Event) {
     const img = event.currentTarget as HTMLImageElement | null;
     if (!img || img.dataset.avatarFallback === '1') return;
@@ -148,11 +138,7 @@
     img.src = DEFAULT_AVATAR_URL;
   }
 
-  /**
-   * 渲染前校验作者链接的协议：仅放行 http/https/mailto（含相对路径）。
-   * 历史数据中的 javascript: / data: 链接若直接渲染为 href，
-   * 点击后会在宿主页面执行脚本。
-   */
+  /** 作者链接协议白名单：仅放行 http/https/mailto（含相对路径），其余返回空串 */
   function safeUrl(value: any): string {
     if (!value || typeof value !== 'string') return '';
     try {
@@ -169,25 +155,17 @@
   $: commentUrl = safeUrl(c.url);
 
   /**
-   * 休眠链接（doc/link_security.md 第 2.3 节）：`urlDormant === true` 且确实有可跳转的
-   * 个人网址时，昵称与头像不再渲染成 `<a>`，点击只在昵称旁弹一个**小浮窗**告知
-   * 「该评论已经休眠，暂时无法由本站跳转访问」——没有任何继续访问的入口
-   * （管理员可在后台人工确认该链接安全，确认期内不再休眠）。
-   *
-   * 功能关闭 / 该评论没有网址 / 网址不安全（协议被拦）时 `urlDormant` 恒为 false，
-   * 行为与以前完全一致（普通 `<a>`）。
+   * 休眠链接（doc/link_security.md 2.3）：为 true 且网址安全时昵称与头像不再渲染成 `<a>`，
+   * 只弹小浮窗提示「暂时无法由本站跳转访问」，没有任何继续访问的入口。
    */
   $: isDormantUrl = c?.urlDormant === true && commentUrl !== '';
 
-  /** 浮窗是否打开；位置按触发元素的实时位置算（见 toggleDormantTip） */
+  /** 浮窗是否打开；位置按触发元素实时位置算 */
   let showDormantTip = false;
   let dormantTipStyle = '';
   let dormantTipEl: HTMLElement | null = null;
 
-  /**
-   * 用 `position: fixed` + 实测坐标而不是 `absolute`：嵌套回复外面套了 `overflow-hidden`
-   * 的容器，absolute 浮窗会被裁掉，fixed 不受其影响（祖先没有 transform/filter）。
-   */
+  // ⚠️ 必须用 position: fixed + 实测坐标：嵌套回复外层有 overflow-hidden，absolute 会被裁掉
   function toggleDormantTip(event: MouseEvent) {
     if (showDormantTip) {
       showDormantTip = false;
@@ -196,7 +174,7 @@
     const trigger = event.currentTarget as HTMLElement | null;
     if (!trigger) return;
     const rect = trigger.getBoundingClientRect();
-    // 右侧留 8px 边距，避免窄屏上浮窗跑出视口
+    // 右侧留 8px 边距，避免浮窗跑出视口
     const maxLeft = Math.max(8, (window.innerWidth || 0) - 288);
     const left = Math.min(Math.max(8, rect.left), maxLeft);
     dormantTipStyle = `left: ${left}px; top: ${rect.bottom + 6}px;`;
@@ -207,7 +185,7 @@
     showDormantTip = false;
   }
 
-  /** 点浮窗与触发元素之外关闭（触发元素自己负责 toggle，这里跳过） */
+  /** 点浮窗与触发元素之外关闭 */
   function handleDormantWindowClick(event: MouseEvent) {
     if (!showDormantTip) return;
     const target = event.target as Node | null;
@@ -220,19 +198,17 @@
     if (event.key === 'Escape') closeDormantTip();
   }
 
-  /** 滚动/改窗口大小时浮窗会与昵称脱位，直接关掉最不容易出错 */
+  /** 滚动 / 改变窗口大小时直接关闭浮窗（位置会脱位） */
   function handleDormantViewportChange() {
     if (showDormantTip) closeDormantTip();
   }
 
-  // 计算内容字数
   function getWordCount(text: string): { chars: number; words: number } {
     const chars = text.length;
     const words = text.trim() ? text.trim().split(/\s+/).length : 0;
     return { chars, words };
   }
 
-  // 检查字数是否超出限制
   function isContentWithinLimit(text: string): boolean {
     const { chars, words } = getWordCount(text);
     return chars <= 2000 && words <= 1000;
@@ -244,28 +220,22 @@
     const parser = new DOMParser();
     const doc = parser.parseFromString(str, 'text/html');
     
-    // 检查解析过程中是否产生了 parsererror 节点
-    // 或者检查 body 中是否有子节点
     const errorNode = doc.querySelector('parsererror');
     if (errorNode) return false;
 
-    // 只要 body 里面有元素，说明解析出了 HTML 结构
-    // console.log('result', doc.body.childNodes);
     return doc.body.childNodes.length > 0;
   }
 
-  // --- 新增：将嵌套的回复树拍平为一维数组，用于移动端展示 ---
+  /** 将嵌套的回复树拍平为一维数组，供移动端展示 */
   function flattenRepliesWithParent(replies: any[], pName: string, pId: any): any[] {
     if (!replies || !replies.length) return [];
     let res: any[] = [];
     for (const r of replies) {
-      // 保存它所回复的父节点信息
       res.push({
         ...r,
         _parentName: pName,
         _parentId: pId
       });
-      // 递归寻找更深层的回复
       if (r.replies && r.replies.length > 0) {
         res = res.concat(flattenRepliesWithParent(r.replies, r.author, r.id));
       }
@@ -273,7 +243,7 @@
     return res;
   }
 
-  // 响应式变量：只有在顶层评论 (depth === 0) 才会去计算拍平的数组，按时间正序排列
+  // 仅顶层评论（depth === 0）计算拍平数组，按时间正序
   $: mobileFlattenedReplies = (depth === 0 && c.replies) 
     ? flattenRepliesWithParent(c.replies, c.author, c.id).sort((a, b) => new Date(a.pubDate).getTime() - new Date(b.pubDate).getTime())
     : [];
@@ -287,9 +257,7 @@
   $: hasHiddenMobileReplies = hiddenMobileCount > 0;
 </script>
 
-<!-- 只有顶层评论参与滚动入场：整串评论（含所有回复）作为一个整体浮出。
-     回复不单独打 data-reveal —— 否则根评论先入场、回复等各自滚到触发线才一条条出现，
-     看起来就像「先加载完根评论，子评论再慢慢飘出来」。 -->
+<!-- 只有顶层评论参与入场：回复不单独打 data-reveal，整串一起浮出 -->
 <div id="comment-{c.id}" data-reveal={depth === 0 ? 'rise' : undefined} class="flex gap-2 md:gap-3 w-full max-w-full">
   {#if isDormantUrl}
   <button type="button" class="w-10 h-10 shrink-0" data-test="link-dormant-avatar" data-dormant-trigger
@@ -308,7 +276,6 @@
   <div class="flex-1 min-w-0">
     <div class="flex items-center flex-wrap gap-x-2 gap-y-1">
       {#if isDormantUrl}
-        <!-- 徽章已移除：休眠状态改为「点昵称弹小浮窗」告知，不再额外占位 -->
         <button type="button" data-test="link-dormant-author" data-dormant-trigger
           class="font-semibold text-[var(--text-color)] hover:text-[var(--link-color)] transition-colors"
           title={t('comments.linkDormantTip')} aria-expanded={showDormantTip}
@@ -340,11 +307,10 @@
           const target = document.getElementById(`comment-${parentCommentId}`);
           if (target) {
             target.scrollIntoView({
-              behavior: 'smooth', // 平滑滚动
-              block: 'start'      // 对齐到顶部
+              behavior: 'smooth',
+              block: 'start'
             });
 
-            // 添加高亮动画
             target.classList.add('highlight-flash');
             setTimeout(() => target.classList.remove('highlight-flash'), 2000);
           }
@@ -397,7 +363,6 @@
             return;
           }
 
-          // 检查字数限制
           if (!isContentWithinLimit(replyContent)) {
             notify(t('comments.contentTooLong') || '评论内容超出限制：不超过2000汉字或1000单词');
             return;
@@ -584,7 +549,7 @@
 
   </div>
 
-  <!-- 休眠链接的小浮窗：贴在昵称旁、只说明「暂时无法由本站跳转访问」，没有任何继续访问的入口 -->
+  <!-- 休眠链接小浮窗：只说明暂时无法由本站跳转访问，没有继续访问的入口 -->
   {#if showDormantTip && isDormantUrl}
     <span bind:this={dormantTipEl} role="tooltip" data-test="link-dormant-tip"
       class="link-dormant-tip fixed z-50 block w-max max-w-[17rem] rounded-[var(--momo-radius-sm)] px-3 py-2 text-xs leading-relaxed text-[var(--text-color)] shadow-lg"
@@ -680,7 +645,7 @@
     text-decoration: line-through;
     opacity: 0.7;
   }
-  /* 休眠小浮窗底色：只用评论区既有的 CSS 变量，深色模式自动跟随（不新增依赖） */
+  /* 休眠小浮窗底色：沿用既有 CSS 变量，深色模式自动跟随 */
   .link-dormant-tip {
     background-color: var(--momo-panel-bg, var(--button-hover-bg-color));
     border: 1px solid var(--button-border-color);

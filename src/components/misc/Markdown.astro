@@ -1,9 +1,7 @@
 ---
 import { siteConfig } from '@/config'
 import ImageLightbox from './ImageLightbox.astro'
-// KaTeX 样式不在这里静态 import：它只在含公式的页面由 Layout.astro 按需挂载
-// （检测在 src/plugins/remark-has-math.ts，页面通过 MainPageLayout 的 mathStyles 传入）。
-// 静态 import 会让每个正文页都背上一份 23 KB 的阻塞 CSS。
+// KaTeX 样式由 Layout.astro 按需挂载（检测见 src/plugins/remark-has-math.ts），不在这里静态 import
 import '@fontsource-variable/jetbrains-mono'
 import '@fontsource-variable/jetbrains-mono/wght-italic.css'
 import '@styles/markdown.css'
@@ -28,7 +26,6 @@ const noReveal = Astro.props.noReveal ?? false
     
     spoilers.forEach(el => {
       // 幂等守卫：同一个元素只绑定一次
-      // （原实现既在模块顶层调用又监听了 astro:page-load，首屏就会绑两份）
       if (el.dataset.spoilerBound === '1') return;
       el.dataset.spoilerBound = '1';
 
@@ -53,13 +50,12 @@ const noReveal = Astro.props.noReveal ?? false
         const isMobile = window.innerWidth < 776;
 
         if (!isMobile) {
-          // --- 桌面端逻辑：保持原样，3秒后自动模糊 ---
+          // --- 桌面端：3 秒后自动模糊 ---
           timeoutId = setTimeout(() => {
             el.classList.remove('revealed');
           }, 3000);
         } else {
-          // --- 移动端逻辑 (< 776px) ---
-          // 只有满足两个条件：1. 发生滚动 2. 距离点击已过3秒
+          // --- 移动端 (< 776px)：发生滚动且距点击已过 3 秒才收起 ---
           scrollHandler = () => {
             const timeElapsed = Date.now() - clickTime;
             
@@ -78,8 +74,7 @@ const noReveal = Astro.props.noReveal ?? false
   // 首屏 + 每次换页（swup 下首屏不会有 astro:page-load，见 @utils/pageInit）
   registerPageInit(setupSpoilers);
 
-  // LQIP 图片的淡入：关闭 LQIP 时插件不会输出 .lqip-markdown-img，这里自然就是空操作，
-  // 因此不需要再按 siteConfig.theme.LQIP 拆成另一个 <script>（少一个内联脚本）
+  // LQIP 图片淡入：关闭 LQIP 时没有 .lqip-markdown-img，这里是空操作
   function handleLqipImages() {
     const lqipImages = document.querySelectorAll('.lqip-markdown-img');
     lqipImages.forEach(img => {
@@ -100,9 +95,8 @@ const noReveal = Astro.props.noReveal ?? false
 </script>
 
 <style is:global>
-  /* 代码块的复制按钮 / 可折叠段落 / 语法高亮均由 Expressive Code 提供
-     （astro-expressive-code 集成 + src/config.ts 的 expressiveCode 开关与根目录 ec.config.mjs，
-     CSS 与 JS 会随代码块自动注入；关闭 expressiveCode 后代码块回退为 markdown.css 里的纯文本样式） */
+  /* 代码块样式由 Expressive Code 提供（astro-expressive-code + ec.config.mjs + siteConfig.expressiveCode），
+     这里只补横向滚动 */
   pre {
     overflow-x: auto;
   }
@@ -185,10 +179,8 @@ const noReveal = Astro.props.noReveal ?? false
     transform: translateX(-2px);
   }
 
-  /* 脚注跳回来时 :target 那一行闪一下。
-     ⚠️ 0% 必须是**淡**蓝底，不能直接写 var(--link-color)：正文是主题文字色（浅色下是黑），
-     压满蓝底只有 1.85:1，而里面那个回跳链接本身就是 --link-color，压在自家人身上是 1:1
-     ——动画头几百毫秒整行基本看不见。 */
+  /* 脚注跳回时 :target 那一行闪一下。
+     ⚠️ 0% 必须是淡蓝底，满色会让正文黑字只有 1.85:1、内嵌回跳链接与底色同色。 */
   @keyframes highlight-fade {
     0% {
       background-color: color-mix(in srgb, var(--link-color) 16%, transparent);

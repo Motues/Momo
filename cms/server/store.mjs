@@ -9,17 +9,14 @@ export const BLOG_DIR = fileURLToPath(new URL('../../src/content/blog/', import.
 
 export const LANGS = ['zh-cn', 'en']
 
-// 并发读取上限：文章较多时，逐个 await 读取会明显拖慢一次扫描
+// 并发读取上限
 const READ_CONCURRENCY = 32
 
 // ---------- 解析结果缓存 ----------
-// 之前每次请求（列表 / 概览 / 分类 / 字数）都会重新遍历目录、读取并解析所有 markdown，
-// 文章一多就非常慢。这里以 (mtimeMs, size) 作为缓存键：文件没变直接复用解析结果，
-// 只有文件真正变化（CMS 保存、外部编辑、git 切换）时才重新读取。
-// 保存/删除路径同时会主动失效缓存，双保险。
+// 以 (mtimeMs, size) 为键：文件没变直接复用解析结果；保存 / 删除路径还会主动失效
 const parseCache = new Map() // absPath -> { key, data, words }
 
-// 正文字数：忽略 frontmatter（已由 matter 剥离）与代码块/行内代码，中文字符 + 英文单词粗略统计
+// 正文字数：忽略代码块 / 行内代码，中文按字、英文按词粗略统计
 function countWords(content) {
   const body = content.replace(/```[\s\S]*?```/g, '').replace(/`[^`]*`/g, '')
   return {
@@ -87,7 +84,7 @@ export function blogPath(rel) {
   return join(BLOG_DIR, ...rel.split('/'))
 }
 
-// 递归收集目录下所有文件；子目录并发读取，但拼接顺序与串行 DFS 完全一致
+// 递归收集目录下所有文件；子目录并发读取，拼接顺序与串行 DFS 一致
 async function walk(dir) {
   const entries = await readdir(dir, { withFileTypes: true })
   const jobs = []
@@ -117,7 +114,7 @@ export function normalizeData(data) {
   return d
 }
 
-// 每篇文章的“基准语言”：优先 zh-cn，否则取排序后的第一个（与旧实现一致）
+// 每篇文章的“基准语言”：优先 zh-cn，否则取排序后的第一个
 function baseLangOf(files) {
   const langs = Object.keys(files).sort()
   return { langs, baseLang: langs.includes('zh-cn') ? 'zh-cn' : langs[0] }
@@ -140,7 +137,7 @@ async function collectArticleFiles() {
     entry.files[lang] = file
     all.push(file)
   }
-  // 清理已删除文件残留的缓存，避免长期占用内存
+  // 清理已删除文件残留的缓存
   if (parseCache.size) {
     const alive = new Set(all)
     for (const key of parseCache.keys()) if (!alive.has(key)) parseCache.delete(key)
@@ -163,8 +160,7 @@ function toSummary(path, langs, data) {
   }
 }
 
-// 扫描所有文章（按文件夹分组，每个文件夹 = 一篇逻辑文章的多语言版本）
-// 列表只需要基准语言的 frontmatter，因此不再读取其它语言版本的文件
+// 扫描所有文章（每个文件夹 = 一篇逻辑文章）；列表只读基准语言的 frontmatter
 export async function scanArticles() {
   const { byPath } = await collectArticleFiles()
   const paths = [...byPath.keys()]
@@ -208,7 +204,7 @@ export async function saveArticle(path, lang, payload) {
   if (!newRel) return { error: '无效的 slugId' }
   data.slugId = newRel
 
-  // 读取当前文件已有的 slugId，用于判断是否真的发生了 slugId 修改
+  // 当前文件已有的 slugId，用于判断是否真的改了 slugId
   const raw = await readFile(join(blogPath(rel), `${lang}.md`), 'utf-8').catch(() => null)
   const oldSlug = raw ? String(matter(raw).data?.slugId ?? '') : ''
 
@@ -304,7 +300,6 @@ export async function categoryStats() {
 }
 
 // 概览统计：文章元数据 + 正文字数（需读取全部文件内容）
-// 单次遍历目录、每个文件只读取一次；旧实现扫描了 3 遍目录并重复读取了全部文件
 export async function overviewStats() {
   const { byPath, all } = await collectArticleFiles()
   const parsed = await mapLimit(all, READ_CONCURRENCY, loadParsed)

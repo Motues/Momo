@@ -16,26 +16,19 @@ interface Props {
     height?: number;
     /** 首屏关键图片（文章封面 / 首张卡片封面）：eager + 高优先级，避免被 lazy 拖成 LCP */
     priority?: boolean;
-    /**
-     * 响应式宽度档位（只对 src/ 下的本地图片生效）。
-     * 不传就退化成「一张原图」——卡片封面 1920px 原图有 400 KB，而实际显示宽度不到 776px。
-     */
+    /** 响应式宽度档位（只对 src/ 下的本地图片生效）；不传就退化成一张原图 */
     widths?: number[];
     /** 配合 widths 的 sizes，决定浏览器挑哪一档 */
     sizes?: string;
     /** 输出质量，默认交给 Astro/sharp */
     quality?: number;
-    /**
-     * 多格式输出（如 ['avif', 'webp']）：会渲染成 <picture>，浏览器按顺序挑第一个支持的格式。
-     * 只对 src/ 下的本地图片生效（public / 远程图片不经过构建期转换）。
-     */
+    /** 多格式输出（如 ['avif', 'webp']）：渲染成 <picture>；只对 src/ 下的本地图片生效 */
     formats?: ('avif' | 'webp')[];
 }
 
 const { src, alt, id, width, height, priority = false, widths, sizes, quality, formats } = Astro.props;
 const className = Astro.props.class;
 
-// 非首屏图片保持 lazy（Astro 的 <Image> 默认就是 lazy）
 const loadingAttrs = priority
     ? { loading: 'eager' as const, fetchpriority: 'high' as const, decoding: 'async' as const }
     : { loading: 'lazy' as const, decoding: 'async' as const };
@@ -50,30 +43,24 @@ let lqipGradient = "";
 const enableLQIP = siteConfig.theme.LQIP;
 
 if (isLocal) {
-  // 统一的 glob 与解析在 @utils/localImages（预加载也要用同一份，键写法不能各写一套）。
-  // caseSensitive: false 只影响 glob 的“发现”阶段：Vite 默认大小写敏感，
-  // 相机导出的 .JPG / .PNG 这类大写后缀会整个漏掉，封面直接变成 undefined。
-  // 查找仍然严格区分大小写：写错大小写会走下面的「找不到文件」分支，不会静默换成另一个文件。
+  // glob 与解析统一走 @utils/localImages（预加载必须用同一份）；caseSensitive: false 只影响「发现」阶段，
+  // 查找仍严格区分大小写，写错大小写会走下面的「找不到文件」分支。
   imageLoad = await getLocalImage(src);
 
   if (!imageLoad) {
     console.error(`\n[ERROR] Image file not found: ${src}`);
   } else if (enableLQIP) {
-    // 使用封装好的函数
     lqipGradient = await getLqipGradient(imageLoad.fsPath);
   }
 }
 
-// 响应式档位：超过原图宽度的档位要去掉（sharp 的 withoutEnlargement 不会放大，
-// 留着只会生成一个「标称 1080w、实际 811px」的错误描述符）；
-// 过滤后一个不剩（原图本来就很小）就退回单张，不要传空数组
+// 超过原图宽度的档位要去掉（sharp 不会放大，描述符会标错宽度）；过滤后为空就退回单张，不要传空数组
 const filteredWidths =
   widths && imageLoad ? widths.filter((w) => w <= imageLoad.width) : widths;
 const safeWidths = filteredWidths && filteredWidths.length > 0 ? filteredWidths : undefined;
 
-// 多格式：手工拼 <picture>（AVIF 单独用 AVIF_QUALITY，见 @utils/responsiveImage 的说明——
-// Astro 的 <Picture> 会把同一个 quality 传给所有格式，AVIF 反而比 WebP 大）。
-// 预加载用的是同一个函数，srcset 因此逐字一致。
+// 多格式：手工拼 <picture>，AVIF 单独用 AVIF_QUALITY（见 @utils/responsiveImage）；
+// 预加载用同一个函数，srcset 逐字一致。
 const picture = formats && formats.length > 0 && imageLoad
   ? await buildPicture(imageLoad, { widths: safeWidths, quality })
   : null;
@@ -146,8 +133,7 @@ const pictureSources = picture
     display: block;
 }
 
-/* <picture> 是行内元素：不显式撑满的话，里面的 img 用 100% 高会失去参照，
-   卡片封面会从「固定高度裁切」退化成按原图比例撑开。 */
+/* <picture> 是行内元素：不显式撑满的话，内部 img 的 100% 高度会失去参照 */
 .image-wrapper picture {
     display: block;
     width: 100%;
@@ -162,12 +148,8 @@ const pictureSources = picture
     bottom: 0;
     background: var(--lqip);
     z-index: 0;
-    /* LQIP 淡出：t-slow 是标尺里最长的一档，再长就盖不住图片本身的解码抖动 */
+    /* LQIP 淡出：用标尺里最长的一档 t-slow */
     transition: opacity var(--momo-t-slow) var(--momo-ease-out);
-    /* 这里原本还有 filter: blur(40px) 与 transform: scale(1.2)：
-       --lqip 本身就是多条 radial-gradient（过渡是平滑的），再叠 40px 模糊观感几乎无差别，
-       代价却是每张卡片常驻一个全尺寸模糊合成层（首页 6 张 = 6 个），滚动时纯属白烧填充率。
-       正文图片的 .lqip-markdown-img（markdown.css）本来就没有 blur，这里与它对齐。 */
 }
 
 .image-wrapper img {
@@ -182,14 +164,13 @@ const pictureSources = picture
     transition: opacity var(--momo-t-slow) var(--momo-ease-out);
 }
 
-/* 图片加载完成后 */
 .image-wrapper[data-loaded="true"] img {
     opacity: 1;
 }
 
 .image-wrapper[data-loaded="true"][data-lqip-enabled="true"] .lqip-bg {
-    opacity: 0; /* 加载完后隐藏背景层 */
-    /* 淡出结束后真正移出合成树：visibility 延迟一个 t-slow 再翻，不打断上面的淡出 */
+    opacity: 0;
+    /* 淡出结束后移出合成树：visibility 延迟一个 t-slow 再翻 */
     visibility: hidden;
     transition:
         opacity var(--momo-t-slow) var(--momo-ease-out),
@@ -197,10 +178,10 @@ const pictureSources = picture
 }
 
 .image-wrapper[data-lqip-enabled="false"] .lqip-bg {
-    display: none; /* 禁用 LQIP 时不显示模糊背景 */
+    display: none;
 }
 
 .image-wrapper[data-lqip-enabled="false"] img {
-    opacity: 1; /* 禁用 LQIP 时直接显示图片 */
+    opacity: 1;
 }
 </style>

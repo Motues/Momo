@@ -21,7 +21,6 @@ export function customFigurePlugin() {
         });
       }
 
-      // 用 figure 替换原有的 img
       parent.children[index] = {
         type: 'element',
         tagName: 'figure',

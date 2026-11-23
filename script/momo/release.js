@@ -1,15 +1,5 @@
-// release.js — momo update 的数据源：从 GitHub Release 或某个 commit 获取模板新代码
-//
-// 设计要点：
-// - 不依赖本地 git 仓库，直接读 https://github.com/<repo>/releases（版本对比）与源码包；
-//   也可以按分支 / 标签 / commit SHA 同步（`--commit`），此时按不可变的 SHA 下载，
-//   并先用 git/trees 拿到的 blob 哈希与本地文件比对，不下载源码包就能判断是否需要更新；
-// - 只使用 Node 内置模块（全局 fetch / node:zlib），下载 tar.gz 后自己解析 tar（不引入解压依赖）；
-// - 访问 GitHub 时优先走「自动探测出来的最快镜像」（见 mirrors.js），直连不可用也能更新；
-// - 解压出来的文件先落到临时目录，再由 update 命令比对、保留用户内容后逐个覆盖。
-//
-// 仓库默认取 Motues/Momo，可用环境变量 MOMO_REPO 或 --repo 覆盖（便于测试或使用自己的 fork）；
-// 下载源用 --mirror / MOMO_MIRROR 指定（默认 auto：直连 + 公共镜像里自动选最快的）。
+// release.js — momo update 的数据源：从 GitHub Release 或某个 commit 取模板新代码，不依赖本地 git，只用 Node 内置模块
+// 仓库默认取 Motues/Momo，可用 MOMO_REPO 或 --repo 覆盖；下载源用 --mirror / MOMO_MIRROR 指定（默认 auto）
 import { gunzip } from 'node:zlib'
 import { promisify } from 'node:util'
 import { createHash } from 'node:crypto'
@@ -51,11 +41,7 @@ function allSourcesFailed(what, errors) {
   )
 }
 
-/**
- * 请求 GitHub API（会自动换源）。
- * @param {string} path API 路径，如 /repos/owner/name/releases
- * @param {{token?: string, plan?: object, probeUrl?: string, onStatus?: Function}} options
- */
+/** 请求 GitHub API（自动换源）。path 形如 /repos/owner/name/releases */
 async function apiGet(path, { token, plan, probeUrl, onStatus = () => {} } = {}) {
   const target = `${API_ROOT}${path}`
   const planner = plan ?? createSourcePlan({ onStatus })
@@ -166,10 +152,7 @@ export async function findRelease({ repo = DEFAULT_REPO, version, releases, toke
 }
 
 /**
- * 拉取某个 ref（tag / 分支 / commit SHA）下的文件树。
- * git/trees 一次就能拿到全部路径与每个文件的 blob 哈希（不下载文件内容），因此既能用来
- * 推断「上一版模板有哪些文件」，也能和本地文件的哈希逐个比对来判断是否需要更新。
- *
+ * 拉取某个 ref（tag / 分支 / commit SHA）下的文件树：git/trees 一次给出全部路径与 blob 哈希，不下载文件内容。
  * @returns {Promise<{entries: {path: string, sha: string, size: number}[], files: string[], truncated: boolean, sha: string|null}>}
  */
 export async function fetchTree({ repo = DEFAULT_REPO, ref, token, plan, onStatus } = {}) {
@@ -188,14 +171,8 @@ export async function listTreeFiles(options) {
 }
 
 /**
- * 把 ref（分支名 / 标签 / 完整或短 commit SHA）解析成一个具体的提交。
- * 用于 `momo update --commit <ref>`：分支名会解析成它当前的最新提交，
- * 之后一律按这个不可变的 SHA 下载源码包，避免「比对与下载之间分支又前进了」。
- *
- * ⚠️ 这里带一个每次都变的时间戳：公共镜像普遍会缓存 API 响应（实测刚推送完，
- * gh.catmak.name 仍然回上一次的 SHA），而分支名要的恰恰是「此刻的最新提交」。
- * GitHub 会忽略不认识的查询参数，所以加了也不影响直连。
- *
+ * 把 ref（分支名 / 标签 / 完整或短 commit SHA）解析成一个具体提交，供 `momo update --commit <ref>` 使用。
+ * ⚠️ URL 带每次都变的时间戳：公共镜像会缓存 API 响应，而分支名要的正是「此刻的最新提交」。
  * @returns {Promise<{ref: string, sha: string, shortSha: string, subject: string, date: string|null, htmlUrl: string}>}
  */
 export async function resolveCommit({ repo = DEFAULT_REPO, ref, token, plan, onStatus } = {}) {
@@ -206,7 +183,6 @@ export async function resolveCommit({ repo = DEFAULT_REPO, ref, token, plan, onS
     data = await apiGet(path, { token, plan, probeUrl, onStatus })
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error)
-    // 所有源都回 404/422：不是网络问题，而是远端根本没有这个 ref（GH 对不存在的 ref 回 422）
     if (missingRef(message)) {
       throw new Error(
         `远端仓库 ${repo} 里找不到 ${ref}：请确认分支 / 标签名是否写对，或这个 commit 是否已经推送到 GitHub` +
@@ -226,7 +202,7 @@ export async function resolveCommit({ repo = DEFAULT_REPO, ref, token, plan, onS
   }
 }
 
-/** 直连 GitHub 回了 404/422：说明不是网络问题，而是远端没有这个 ref（GH 对不存在的 ref 回 422） */
+/** 直连 GitHub 回了 404/422：说明远端没有这个 ref（GH 对不存在的 ref 回 422） */
 function missingRef(message) {
   const line = String(message)
     .split('\n')
@@ -328,13 +304,8 @@ async function extractTar(tar, dir) {
 }
 
 /**
- * 源码包的几种下载地址（同一个源依次尝试）：
- * 1. github.com/<repo>/archive/... —— 公开镜像普遍支持，也是探测用的地址
- * 2. codeload.github.com/... —— 直连与部分镜像只认这个
- * 3. api.github.com/repos/.../tarball/... —— Release 接口给的原始地址
- *
- * target.kind === 'commit' 时 ref 是不可变的 commit SHA（不加 refs/tags 前缀）；
- * 否则按标签取包，先试镜像支持最广的 refs/tags 形式，再退回通用形式。
+ * 源码包的几种下载地址（同一个源依次尝试）：github.com/archive → codeload.github.com → api tarball。
+ * target.kind === 'commit' 时 ref 是不可变 SHA（不加 refs/tags）；否则先试 refs/tags 再退回通用形式。
  */
 function archiveForms(source, repo, target) {
   const ref = encodeURIComponent(target.ref)
@@ -352,14 +323,8 @@ function archiveForms(source, repo, target) {
 }
 
 /**
- * 下载 release（或某个 commit）的源码包并解压到 dir。
- * 会自动选择可用的镜像：先按一小时内的记录（没有则先探测），失败就换下一个源、
- * 再试同源的备用地址；沿用缓存失败时立刻重新探测一遍，仍失败才报错。
- *
- * @param {{kind?: 'release'|'commit', ref: string, tag?: string|null, version?: string|null, label?: string}} target
- *   要下载的目标：release 模式传标签，commit 模式传 SHA（见 update 命令）
- * @param {(dir: string) => Promise<string|null>} [verify]
- *   解压后的额外校验：返回一段问题描述即视为内容不可信，自动换下一个源（commit 模式用它核对文件哈希）
+ * 下载 release（或某个 commit）的源码包并解压到 dir，自动换源与换同源的备用地址。
+ * verify 返回问题描述即视为内容不可信、自动换下一个源。
  * @returns {Promise<{files:number, bytes:number, version:string|null, source:string, url:string, ms:number}>}
  */
 export async function downloadRelease({ target, repo = DEFAULT_REPO, token, dir, mirror, plan, onStatus = () => {}, onProgress, verify } = {}) {
@@ -381,7 +346,7 @@ export async function downloadRelease({ target, repo = DEFAULT_REPO, token, dir,
             onProgress,
           })
           if (!looksLikeArchive(buffer.subarray(0, 96))) throw new SourceError('内容不是源码包（镜像可能已失效）', { kind: 'content' })
-          // 镜像若自己开了 gzip 压缩，fetch 已经解压过，所以按内容判断而不是按 URL
+          // 镜像可能自己解压过 gzip，所以按内容判断而不是按 URL
           const tar = isGzip(buffer) ? await gunzipAsync(buffer) : buffer
           const version = readArchiveVersion(tar)
           if (!version) throw new SourceError('源码包里没有 package.json（镜像返回了错误内容）', { kind: 'content' })
@@ -418,7 +383,7 @@ export async function downloadRelease({ target, repo = DEFAULT_REPO, token, dir,
         } catch (error) {
           const note = error instanceof Error ? error.message : String(error)
           errors.push(`${source.name}${i ? `（备用地址 ${i + 1}）` : ''}：${note}`)
-          // HTTP 错误说明该地址不被这个镜像支持，换它的下一种形式；超时/网络错误直接换源
+          // HTTP 错误说明该地址不被这个镜像支持，换它的下一种形式；超时 / 网络错误直接换源
           const retryForm = error instanceof SourceError && error.kind === 'http' && i + 1 < forms.length
           if (retryForm) continue
           onStatus(`${source.name} 下载失败（${note}）${stopEarly ? '' : '，换下一个源…'}`)
@@ -453,11 +418,7 @@ export function isPreserved(rel, preserve) {
   return preserve.some((entry) => rel === entry || rel.startsWith(`${entry}/`))
 }
 
-/**
- * 生成「哪些相对路径不参与更新」的判断函数（构建产物、仓库配置等）。
- * planChanges（读源码包目录）与 compareTree（读远端文件树）共用同一套规则，
- * 两条路径的结论才会一致。
- */
+/** 生成「哪些相对路径不参与更新」的判断函数；planChanges 与 compareTree 共用同一套规则，结论才会一致 */
 function makeSkipFilter(skip) {
   const set = new Set([...skip, '.momo-release.json'])
   return (rel) => {
@@ -513,9 +474,8 @@ export async function collectFiles(dir, { skip = new Set() } = {}) {
 }
 
 /**
- * 把远端文件树（fetchTree 的结果）与本地项目逐个文件比对。
- * 只读本地文件、逐个算哈希即可判断「新增 / 修改 / 相同 / 保留 / 删除」，不需要下载源码包。
- * 返回结构与 planChanges 一致，两者可以共用同一套打印逻辑。
+ * 把远端文件树（fetchTree 的结果）与本地项目逐个文件比对：只读本地文件算哈希，不下载源码包。
+ * 返回结构与 planChanges 一致，两者可共用同一套打印逻辑。
  */
 export async function compareTree(entries, { root, preserve = [], skip = [], previous = [] }) {
   const isSkipped = makeSkipFilter(skip)
@@ -557,10 +517,8 @@ export async function compareTree(entries, { root, preserve = [], skip = [], pre
 }
 
 /**
- * 校验解压出来的源码包：每个远端 blob 都要在解压目录里找到且哈希一致。
- * 用来挡住「镜像缓存了旧内容」「镜像返回了别的分支」这类问题——
- * 返回问题描述时下载会自动换下一个源。
- * @returns {Promise<string|null>} null 表示通过
+ * 校验解压出来的源码包：每个远端 blob 都要在解压目录里找到且哈希一致（挡住镜像缓存旧内容等问题）。
+ * @returns {Promise<string|null>} 问题描述；null 表示通过
  */
 export async function verifyTree(dir, entries) {
   for (const entry of entries) {
@@ -594,9 +552,8 @@ export async function planChanges(sourceDir, { root, preserve = [], skip = [], p
     else same.push(rel)
   }
 
-  // 删除：只认 previous（上一版模板的文件清单）里有、而新版本已经移除的路径。
-  // 用户自己新增的文件不在任何模板清单里，因此永远不会被这条规则删掉；
-  // 保留目录（文章、图片、src/config.ts 等）与不参与更新的目录也一律跳过。
+  // 删除：只认 previous（上一版模板的文件清单）里有、新版本已移除的路径，用户自己新增的文件永远不会被删；
+  // 保留目录与不参与更新的目录也一律跳过。
   const current = new Set(paths)
   const removed = []
   for (const rel of previous) {

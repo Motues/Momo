@@ -1,12 +1,6 @@
-/* ============================================================================
- * Momo 组件基类
- * ----------------------------------------------------------------------------
- * 从现有界面里抽出的可复用写法：卡片、按钮、标签、表单、面板、提示。
- * 组件模板只负责「用哪个类」，颜色 / 圆角 / 阴影 / 动效全部走 variables.css。
- *
- * 放在 @layer components 里：Tailwind 的 utilities 仍然可以按需覆盖单点样式
- * （例如 mt-6、w-full），不会被这里的默认值压住。
- * ========================================================================== */
+/* Momo 组件基类：卡片 / 按钮 / 标签 / 表单 / 面板 / 提示
+ * 颜色 / 圆角 / 阴影 / 动效全部走 variables.css
+ * 放在 @layer components 里，Tailwind 的 utilities 仍可覆盖单点样式 */
 
 @layer components {
   /* ---------------- 卡片 ---------------- */
@@ -19,8 +13,7 @@
     overflow: hidden;
   }
 
-  /* 不上底色的卡片：文章卡片这类「直接排在页面上」的条目，只留描边与阴影，
-     底色由页面自己透出来（深色模式也不会多出一块灰面）。 */
+  /* 不上底色的卡片：只留描边与阴影，底色由页面透出 */
   .momo-card--plain {
     background-color: transparent;
   }
@@ -88,8 +81,7 @@
   }
 
   .momo-btn--primary:hover {
-    /* 压深用 --text-color 而不是 #000：浅色模式下它是黑（变暗），
-       深色模式下它是白（变亮）——同一行代码在两种主题里都朝「更醒目」的方向走。 */
+    /* 压深混 --text-color 而不是 #000：浅色下变暗、深色下变亮，两种主题都更醒目 */
     background-color: color-mix(in srgb, var(--accent-bg) 88%, var(--text-color));
     border-color: color-mix(in srgb, var(--accent-bg) 88%, var(--text-color));
   }
@@ -257,8 +249,7 @@
   }
 
   /* ---------------- 工具提示 ----------------
-   * 用 data-tooltip 承载文案；图标按钮 / 页脚链接共用。
-   * pointer-events: none 保证不遮挡鼠标，和站内 tooltip 的行为一致。 */
+   * 用 data-tooltip 承载文案；pointer-events: none 保证不遮挡鼠标 */
   .momo-tooltip {
     position: relative;
   }

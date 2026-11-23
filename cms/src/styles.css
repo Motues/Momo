@@ -194,7 +194,7 @@ body {
   text-overflow: ellipsis;
 }
 
-/* 箭头用两条边框画，颜色跟着 currentColor 走，深浅色都不用另配一套图标 */
+/* 箭头用两条边框画，深浅色共用一套变量 */
 .cms-select-arrow {
   flex: none;
   width: 7px;
@@ -512,7 +512,7 @@ body {
 .table-wrap {
   border: 1px solid var(--border);
   border-radius: var(--radius);
-  /* 列宽由脚本按内容分配；窗口过窄时保持最小列宽并横向滚动，避免内容被压扁 */
+  /* 列宽由脚本按内容分配；过窄时保持最小列宽并横向滚动 */
   overflow-x: auto;
   overflow-y: hidden;
   background: var(--bg);
@@ -539,7 +539,7 @@ body {
   padding: 10px 12px;
   border-bottom: 1px solid var(--border);
   vertical-align: middle;
-  /* 列宽按内容自动分配，超长内容用省略号截断，保证每行高度一致 */
+  /* 超长内容用省略号截断，保证每行高度一致 */
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -594,7 +594,6 @@ body {
 
 .article-table td .badge + .badge { margin-left: 4px; }
 
-/* 行内操作按钮 */
 .article-table th.actions,
 .article-table td.actions {
   text-align: right;
@@ -1182,8 +1181,7 @@ body {
   gap: 12px 16px;
 }
 
-/* 按语义分组的字段（目前只有「主题与动效」用）：
-   每组内部仍是两列网格，组与组之间一条浅色横线 */
+/* 按语义分组的字段（目前只有「主题与动效」用），组与组之间一条浅色横线 */
 .cfg-groups { display: flex; flex-direction: column; }
 
 .cfg-group {
@@ -1281,11 +1279,8 @@ body {
 
 /* ---------- 网站配置页：悬浮目录栏（src/pages/config-toc.ts） ---------- */
 .cfg-toc {
-  /* 贴住内容那一侧：表单 900px 居中，目录的**左边缘**落在表单字段右侧
-     --toc-gap 处（--toc-inset 是 .cms-main 的 padding，字段相对主容器还要再内缩）。
-     锚点取左边缘（朝向表单的那一侧），所以收起 / 展开都贴得住，空地全留在最右边。
-     窗口不够宽时 calc 会偏出视口，用 min() 与 --toc-guard（视口右边缘留白，
-     即自身宽度 + 12px 边距）兜住，不会整块跑到屏幕外。 */
+  /* 贴住内容那一侧：目录左边缘落在表单字段右侧 --toc-gap 处（--toc-inset = .cms-main 的 padding）。
+     窗口不够宽时用 min() 与 --toc-guard（自身宽度 + 12px 边距）兜住，不会整块跑到屏幕外 */
   --toc-gap: 16px;
   --toc-inset: 24px;
   --toc-width: 176px;
@@ -1370,7 +1365,7 @@ body {
 
 /* 收起状态：只剩顶部一颗「目录 ▸」按钮 */
 .cfg-toc[data-open='0'] {
-  /* 收起时窄得多，兜底留白也相应收小（74px 左右的实际宽度 + 12px 边距） */
+  /* 收起时窄得多，兜底留白相应收小 */
   --toc-guard: 86px;
   width: auto;
 }
@@ -1587,7 +1582,7 @@ body {
   .media-grid { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); }
   .media-dir-label { display: none; }
   #media-dir { min-width: 130px; }
-  /* 窄屏内容几乎铺满，目录改从视口右边缘向左展开（不再按表单位置兜底） */
+  /* 窄屏时目录改从视口右边缘向左展开 */
   .cfg-toc {
     top: 68px;
     left: auto;

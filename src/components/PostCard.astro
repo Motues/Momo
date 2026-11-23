@@ -39,9 +39,7 @@ const { remarkPluginFrontmatter } = await render(entry);
 // 首页文章卡片封面图模式："background" 将图片作为卡片背景，从右向左渐隐
 const isBgMode = siteConfig.theme.postCard.imageMode === "background";
 
-// ⚠️ 只有开启动画时才输出 data-reveal：global.css 里 [data-reveal='pop'] 的初始态是
-// opacity: 0，而给它加 .is-revealed 的是 @utils/reveal —— 关掉开关时这些属性本身
-// 也不会被样式命中，但少输出一份更干净。
+// ⚠️ 只有开启 AOS 时才输出 data-reveal：它的初始态是 opacity: 0，靠 @utils/reveal 加 .is-revealed 才显现
 const revealAttrs = siteConfig.theme.AOS
     ? { 'data-reveal': 'pop', 'data-reveal-delay': String(delay) }
     : {};
@@ -52,7 +50,7 @@ const revealAttrs = siteConfig.theme.AOS
         <>
         {isBgMode ? (
             <div class="bg-image">
-                {/* width 与 widths 最大档一致：不传的话 Astro 会按原图尺寸再生成一张全尺寸 src 兜底，有 srcset 的浏览器不会用它。档位与文章页封面共用，避免两套 widths 取并集。 */}
+                {/* ⚠️ width 必须与 widths 最大档一致，否则 Astro 会多生成一张全尺寸 src 兜底图；档位与文章页封面共用 */}
                 <ImageModule src={image} alt={title} class="w-full h-full" priority={priority} width={1080} widths={CONTENT_COVER.widths} sizes={CONTENT_COVER.sizes} quality={CONTENT_COVER.quality} formats={['avif', 'webp']} />
             </div>
         ) : (
@@ -104,8 +102,7 @@ const revealAttrs = siteConfig.theme.AOS
 </div>
 
 <style is:global>
-/* 悬停放大：慢一点、幅度小一点，收尾用不过冲的曲线。
-   1.05/300ms 配默认 ease 会显得「急」，1.035/460ms 更像有惯性的镜头推近。 */
+/* 悬停放大：1.035 倍 / 460ms，曲线不过冲 */
 @media (hover: hover) {
   .hover-scale {
     transition: transform 460ms var(--momo-ease-out);
@@ -117,7 +114,7 @@ const revealAttrs = siteConfig.theme.AOS
 }
 
 .category-tag {
-  /* 原来写的是 transition: all —— 会把 text-shadow 之类也一起插值，而且 all 永不过时地危险 */
+  /* ⚠️ 不要用 transition: all：会把 text-shadow 等一起插值 */
   transition: color var(--momo-t-fast) var(--momo-ease-out),
               background-color var(--momo-t-fast) var(--momo-ease-out),
               text-shadow var(--momo-t-fast) var(--momo-ease-out);
@@ -173,7 +170,6 @@ const revealAttrs = siteConfig.theme.AOS
             mask-image: linear-gradient(to bottom, #000 0%, #000 30%, rgba(0,0,0,0.85) 40%, rgba(0,0,0,0.5) 48%, rgba(0,0,0,0.15) 55%, transparent 60%, transparent 100%);
   }
 
-  /* 顶部留白区域展示图片，文字从下方开始，卡片更高 */
   .postcard-bg-mode.has-image > .content {
     padding-top: 6rem;
   }

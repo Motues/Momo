@@ -9,7 +9,7 @@ const batch = new Hono()
 const MAX_BATCH = 500
 const ACTIONS = new Set(['category', 'pin', 'unpin', 'draft', 'publish'])
 
-// 把单个动作应用到 frontmatter；分类 / 置顶只改字段，绝不因此移动文件夹
+// 把动作应用到 frontmatter；分类 / 置顶只改字段，不会移动文件夹
 function applyAction(data, action, value) {
   if (action === 'category') {
     data.category = typeof value === 'string' ? value.trim() : ''
@@ -165,7 +165,7 @@ batch.get('/export', async (c) => {
     for (const lang of LANGS) {
       const buf = await readFile(join(blogPath(path), `${lang}.md`)).catch(() => null)
       if (!buf) continue
-      // frontmatter 与正文原样导出，不经过 gray-matter 重新序列化
+      // 原样导出 frontmatter 与正文（不经 gray-matter 重新序列化）
       entries.push({ name: `${path}/${lang}.md`, data: buf })
     }
   }

@@ -43,7 +43,7 @@ export const getStaticPaths = (async ({ paginate }) => {
     };
   }
 
-  // 如果启用了国际化，为每个语言环境生成分页路径
+  // 每个语言环境各生成一套分页路径
   const paths = [];
   for (const locale of i18n.locales) {
     const localeCode = typeof locale === 'string' ? locale : locale.path;
@@ -54,7 +54,6 @@ export const getStaticPaths = (async ({ paginate }) => {
       params: { locale: localeParam }
     });
     
-    // 将生成的路径添加到总路径列表中
     paths.push(...paginatedPaths);
   }
   
@@ -64,15 +63,14 @@ export const getStaticPaths = (async ({ paginate }) => {
 
 
 const indexPage = getRelativeLocaleUrl(locale, '/');
-// 副标题为空时标签栏只显示主标题；分页页追加页码，避免第 2 页起的标题完全重复
+// 分页页追加页码，避免第 2 页起的标题完全重复
 const pageTitle = page.currentPage > 1
     ? `${getSiteTitle()} (${page.currentPage})`
     : getSiteTitle();
 
-// 照片封面只在首页第 1 页启用：翻页时再闪一次全屏大图反而吵。
-// 内页也会有一层很淡的照片背景，但那是 MainPageLayout 里 PhotoCover 的默认状态。
+// 照片封面只在首页第 1 页启用；内页的淡照片背景由 MainPageLayout 的 PhotoCover 提供
 const usePhotoCover = page.currentPage === 1 && photoCoverEnabled();
-// 社交分享图用这张照片；放在 src/ 下的图片构建后地址不可知，只在站内 / 绝对地址时生效
+// 分享图直接用这张照片；src/ 下的图片构建后地址不可知，只在站内 / 绝对地址时生效
 const coverImage = siteConfig.theme.photoCover.image;
 const shareImage = usePhotoCover && (coverImage.startsWith('/') || /^https?:\/\//.test(coverImage))
     ? coverImage
@@ -86,9 +84,7 @@ const pagination = {
     next: page.currentPage < page.lastPage ? listUrl(page.currentPage + 1) : undefined,
 };
 
-// ---- 首屏 LCP 预加载 ----
-// 第 1 页有照片封面时，LCP 是那张整屏照片（预加载它，别再和第一张卡片抢带宽）；
-// 其它情况预加载第一张卡片的封面。
+// ---- 首屏 LCP 预加载：照片封面优先，否则预加载第一张卡片的封面 ----
 const firstEntry = page.data[0] as CollectionEntry<'blog'> | undefined;
 const firstCover = firstEntry ? blogCoverUrl(firstEntry.data.image, firstEntry.id) : '';
 const preloadImage = usePhotoCover
@@ -103,7 +99,7 @@ const preloadImage = usePhotoCover
     <Cover title={t("cover.title.home")} subTitle={t("cover.subTitle.home")} photo={usePhotoCover} />
     <PostPage page={page} />
     <Navi page={page} />
-    <!-- fixed 浮层：留在 swup 容器内，但在淡入淡出元素之外（见 MainPageLayout 的说明） -->
+    <!-- fixed 浮层：在 swup 容器内、淡入淡出元素之外 -->
     <div slot="overlay">
         <FabMenu showBackBottom={true} />
     </div>

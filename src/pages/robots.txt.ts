@@ -1,6 +1,4 @@
-/**
- * /robots.txt —— 爬虫规则（动态生成，站点地址始终跟随 src/config.ts 的 rootSiteUrl）
- */
+/** /robots.txt —— 爬虫规则，站点地址跟随 src/config.ts 的 rootSiteUrl */
 import type { APIContext } from 'astro';
 import { absoluteUrl } from '@utils/seo';
 import { baseUrl } from '@utils/urlUtils';

@@ -28,7 +28,7 @@
   // 提交给后端的蜜罐值：真人始终为空，自动填表脚本往往会填入内容
   let honeypotValue = '';
 
-  // 定位一次后不再重复验证
+  // 已验证过的文章 slug：同一篇文章不重复验证
   const verifiedSlugs = new Set<string>();
 
   let currentSlug = '';
@@ -41,10 +41,8 @@
   }
 
   /**
-   * 挑战参数是否构成一个可解的 v2 挑战。
-   *
-   * 只有 c 合法而 d/n/count 缺失（或非正整数）时，说明后端下发的是不完整/旧协议数据，
-   * 这类情况必须与「答案算错」区分开：前者重试无用，后者才值得让用户点重试。
+   * 挑战参数是否构成一个可解的 v2 挑战：c 合法而 d/n/count 缺失（或非正整数）
+   * 说明后端下发的是旧协议数据，与「答案算错」必须区分开——前者重试无用。
    */
   function isValidPowChallenge(pow: any): boolean {
     if (!pow || typeof pow !== 'object') return false;
@@ -78,12 +76,11 @@
       const challengeRes = await fetch(`${apiUrl}/api/verify/challenge`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        // post_url 与浏览器自动带上的 Origin/Referer 一起参与服务端来源校验：
-        // 开启「来源域名绑定」时，后端要求三者全部落在 allow_origin 白名单内。
+        // post_url 与浏览器自动带上的 Origin/Referer 一起参与服务端来源校验：开启「来源域名绑定」时三者都必须落在 allow_origin 白名单内
         body: JSON.stringify({ post_slug: slug, post_url: location.href }),
       });
       if (!challengeRes.ok) {
-        // 域名未授权：后端拒绝签发挑战，重试无用（需要博主把当前域名加进白名单）
+        // 域名未授权：后端拒绝签发挑战，重试无用（需要博主把域名加进白名单）
         const failure = await challengeRes.json().catch(() => null);
         if (failure?.reason === 'DOMAIN_NOT_ALLOWED') {
           fail('domainBlocked');
@@ -104,8 +101,7 @@
       }
 
       const pow = challenge.pow;
-      // 协议 v2 的挑战参数在 data.pow 里。字段缺失或不合法说明后端不是 v2 实现，
-      // 此时不能按「验证失败」笼统处理——真人再点也没用，必须提示升级。
+      // 协议 v2 的挑战参数在 data.pow 里；字段缺失或不合法说明后端不是 v2 实现，重试无用，必须提示升级
       if (!isValidPowChallenge(pow)) {
         fail('backendOutdated');
         return;
@@ -118,13 +114,11 @@
         count: Number(pow.count),
       };
 
-      // 第二层（Instrumentation 质询）：先跑程序再挖矿。
-      // 提前执行的理由是失败快 —— 程序执行只要几毫秒，没必要先烧掉几秒的算力再发现环境不可用。
+      // 第二层（Instrumentation 质询）：先跑程序再挖矿——程序只要几毫秒，失败比烧完算力才发现环境不可用更快
       let instrAnswer: unknown = undefined;
       if (challenge.instr !== undefined && challenge.instr !== null) {
         const ops = challenge.instr?.ops;
-        // 下发了 instr 但程序结构不合法，同样属于「前后端协议不配套」，
-        // 不能当成普通失败让用户白点重试
+        // 下发了 instr 但程序结构不合法，同样属于「前后端协议不配套」，重试无用
         if (!Array.isArray(ops) || ops.length === 0 || ops.length % 3 !== 0) {
           fail('backendOutdated');
           return;
@@ -187,10 +181,8 @@
         return;
       }
 
-      // 来源域名绑定（comment_verify_domain_enabled）：
-      // - DOMAIN_NOT_ALLOWED / domain mismatch：域名未授权或挑战来自别的域名，重试无用；
-      // - domain required：挑战签发时该开关还没打开，重新验证一次即可拿到带域名的挑战，
-      //   因此归入可重试的失败态。
+      // 域名绑定（comment_verify_domain_enabled）：DOMAIN_NOT_ALLOWED / domain mismatch 重试无用；
+      // domain required 是签发挑战时开关还没打开，重新验证即可，归入可重试
       if (solutionData?.reason === 'DOMAIN_NOT_ALLOWED' || solutionData?.reason === 'domain mismatch') {
         fail('domainBlocked');
         return;
@@ -225,8 +217,7 @@
   }
 
   function handleClick() {
-    // 只有「验证失败」值得重试；浏览器不支持、后端协议过旧这两类重试无用，
-    // 按钮同时设为 disabled，避免用户点了没反应又反复点。
+    // 只有「验证失败」值得重试；不支持 / 后端过旧这两类重试无用，按钮同时设为 disabled
     if (status === 'error' && failureKind === 'failed') retry();
   }
 
@@ -253,7 +244,7 @@
     return () => mql.removeEventListener('change', listener);
   });
 
-  // 切换文章时重新验证（同一文章的刷新不缓存，符合「每次刷新都重新验证」）
+  // 切换文章时重新验证（同一篇文章的刷新不缓存）
   $: if (initialized && postSlug && postSlug !== currentSlug) {
     start(postSlug);
   }
@@ -326,10 +317,7 @@
 {/if}
 
 <style>
-  /*
-   * 蜜罐字段：对真人不可见，但不能用 display:none / visibility:hidden，
-   * 否则简单的自动填表脚本可以直接识别并跳过。
-   */
+  /* 蜜罐字段：对真人不可见，但不能用 display:none / visibility:hidden（自动填表脚本会识别并跳过） */
   .verify-honeypot {
     position: absolute;
     left: -9999px;
@@ -341,20 +329,13 @@
     z-index: -1;
   }
 
-  /*
-   * 「验证成功」的绿色：取值来自 `--verify-success-*`（定义在 style/main.css 的
-   * `.comment-container` 上，浅色 / 深色 / 系统深色各一套），与博主徽章同一个颜色口径；
-   * 这里只做兜底 —— 组件被挂在 `.comment-container` 之外时也不会退回写死的单一颜色。
-   */
+  /* 「验证成功」的绿色：取值来自 --verify-success-*（定义在 style/main.css 的 .comment-container 上），这里只做兜底 */
   .verify-success {
     color: var(--verify-success-color, #047857);
     border-color: var(--verify-success-border-color, rgba(4, 120, 87, 0.45));
   }
 
-  /*
-   * 「验证失败」的红色：同样走 `--verify-error-*` 主题变量，刻意压低饱和度以匹配上面的绿。
-   * 只有可重试的「验证失败」才有 hover 底色；其余失败态是 disabled，不该显示成可点击。
-   */
+  /* 「验证失败」的红色：同样走 --verify-error-* 主题变量；只有可重试的失败态才有 hover 底色 */
   .verify-error {
     color: var(--verify-error-color, #a85757);
     border-color: var(--verify-error-border-color, rgba(168, 87, 87, 0.55));

@@ -1,12 +1,7 @@
 ---
 /**
- * ImageLightbox —— 自研图片灯箱（替代 photoswipe 依赖）
- *
- * 支持：点击全屏、滚轮 / 按钮 / 双击 / 双指缩放（50% - 800%，100% 为适应屏幕）、拖拽平移、
- *       前后切换（按钮 / 方向键 / 左右滑动 / 点击两侧）、Esc 关闭、说明文字与计数。
- * 基准比例按设备区分：桌面端打开时默认 86%，移动端（≤776px）保持 100%（适应屏幕）；
- * 切图 / 双击复位 /「默认比例」按钮都回到该基准（见 baseScale / DESKTOP_BASE_SCALE）。
- * 只作用于 .markdown-content 里的正文图片（链接内的图片除外）。
+ * ImageLightbox —— 自研图片灯箱（无第三方依赖，由 siteConfig.theme.PhotoSwipe 控制）
+ * 缩放 50% - 800%（100% 为适应屏幕；桌面端基准 86%，移动端 100%）；只作用于 .markdown-content 的正文图片（链接内图片除外）。
  */
 import { i18n } from 'astro:config/client';
 import i18nit from '@i18n/translation';
@@ -54,8 +49,7 @@ const t = i18nit(currentLang);
   .lightbox {
     position: fixed;
     inset: 0;
-    /* 必须高于 FabMenu 容器（z-1000）与目录面板（z-1001），
-       否则灯箱打开时右下角悬浮按钮会浮在遮罩之上 */
+    /* 必须高于 FabMenu（z-1000）与目录面板（z-1001），否则悬浮按钮会压在遮罩上 */
     z-index: var(--momo-z-lightbox);
     display: flex;
     align-items: center;
@@ -142,7 +136,6 @@ const t = i18nit(currentLang);
   .lightbox-btn:not([disabled]):hover,
   .lightbox-nav:not([disabled]):hover { background: rgba(255, 255, 255, 0.26); }
 
-  /* 缩小到 50% / 放大到 800%、或已经在 100% 时，对应按钮置灰 */
   .lightbox-btn[disabled] { opacity: 0.3; cursor: default; }
 
   .lightbox-btn svg { width: 18px; height: 18px; }
@@ -191,20 +184,14 @@ const t = i18nit(currentLang);
   import { registerPageInit } from '@utils/pageInit'
   import { lockPageScroll, unlockPageScroll } from '@utils/scrollLock'
 
-  // 100% = 图片适应屏幕（灯箱里的基准大小）：缩小最多到 50%，放大最多到 800%
-  // 桌面端打开时默认缩到 86%（比「适应屏幕」略小一点），移动端保持 100%
+  // 100% = 图片适应屏幕：缩小最多到 50%，放大最多到 800%；桌面端打开时默认 86%
   const DESKTOP_BASE_SCALE = 0.86
   const MIN_SCALE = 0.5
   const MAX_SCALE = 8
   const DOUBLE_TAP_SCALE = 2.5
 
-  // 双指缩放（移动端）：
-  // PINCH_DEAD_ZONE 是死区——双指间距变化在这个像素数以内当作手指抖动 / 按压变形，完全不缩放；
-  // PINCH_GAIN 是死区之外的对数域阻尼，1 表示「手指张合多少就缩放多少」，
-  // 小于 1 时同样的手指位移换来的缩放更少（移动端尤其明显：图片本来就按屏幕宽高比铺满，
-  // 1:1 会让轻轻一捏直接冲到 300% 以上）；
-  // PINCH_MIN_SPAN 是参与计算的最小起始间距——两根手指挨得很近时，同样 20px 的位移
-  // 会算出很大的比例（20 -> 40 就是 200%），按这个下限归一化后才不会「一碰就炸」。
+  // 双指缩放：PINCH_DEAD_ZONE 内视为抖动、完全不缩放；PINCH_GAIN 是死区外的对数域阻尼（<1 更缓）；
+  // PINCH_MIN_SPAN 是参与计算的最小起始间距，两指挨太近时按它归一化才不会「一碰就炸」
   const PINCH_DEAD_ZONE = 10
   const PINCH_GAIN = 0.8
   const PINCH_MIN_SPAN = 48
@@ -212,15 +199,14 @@ const t = i18nit(currentLang);
   const SWIPE_MIN_DISTANCE = 60
   const SWIPE_DOMINANCE = 1.2
 
-  // 移动端判定与样式的 @media (max-width: 776px) 对齐（777px 起算桌面端）
+  // 必须与样式的 @media (max-width: 776px) 对齐（777px 起算桌面端）
   const isMobileViewport = () => window.matchMedia('(max-width: 776px)').matches
-  // 基准比例：打开、切换上/下一张、双击复位、「默认比例」按钮都回到这里
+  // 基准比例：打开 / 切图 / 双击复位 /「默认比例」按钮都回到它
   const baseScale = () => (isMobileViewport() ? 1 : DESKTOP_BASE_SCALE)
 
   interface LbItem { src: string; alt: string; caption: string }
 
-  // 正文里可放大的图片（链接里的图片保持原有跳转行为）
-  // 每次打开都遍历全文太浪费：按页面缓存一次，换页时失效
+  // 正文里可放大的图片（链接内图片除外）：按页面缓存一次，换页时失效
   let imagesCache: HTMLImageElement[] | null = null
 
   function contentImages(): HTMLImageElement[] {
@@ -241,7 +227,7 @@ const t = i18nit(currentLang);
     return {
       src: img.currentSrc || img.getAttribute('src') || '',
       alt: img.getAttribute('alt') || '',
-      // 拼图（image-collage）不再输出 figcaption，图注改从图片自己的 title 上取
+      // 拼图（image-collage）不输出 figcaption，图注改从图片自己的 title 上取
       caption:
         figure?.querySelector('figcaption')?.textContent?.trim() ||
         img.getAttribute('title')?.trim() ||
@@ -250,7 +236,6 @@ const t = i18nit(currentLang);
   }
 
   function initLightbox() {
-    // 换页后正文图片列表已经不同，缓存作废
     imagesCache = null
 
     const root = document.getElementById('momo-lightbox') as HTMLElement | null
@@ -275,14 +260,12 @@ const t = i18nit(currentLang);
     let open = false
     let lastFocus: HTMLElement | null = null
     let transitionSeq = 0
-    // 拖拽 / 双指手势状态
     const pointers = new Map<number, { x: number; y: number }>()
     let dragging = false
     let moved = false
-    // 本次手势里是否出现过第二根手指：一旦出现，这一轮就只可能是缩放 / 平移，
-    // 抬手时既不能切图，也不能被当成双击 / 点击空白关闭（见 endPointer）
+    // 本次手势出现过第二根手指：这一轮只可能是缩放 / 平移，抬手时不切图、不算双击
     let pinched = false
-    // 上一次单击的时间戳（双击判定），双指手势开始时就清零
+    // 上一次单击的时间戳（双击判定）
     let lastTap = 0
     let startX = 0
     let startY = 0
@@ -291,8 +274,7 @@ const t = i18nit(currentLang);
 
     const clamp = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value))
 
-    // 缩放是乘除算出来的浮点数（0.86 * 1.6 / 1.6 并不精确等于 0.86），
-    // 判断「是否处于基准比例」都要留一点误差，否则按钮置灰、双击复位会失灵
+    // 缩放是浮点乘除算出来的，判断「是否处于基准比例」必须留误差，否则按钮置灰 / 双击复位会失灵
     const SCALE_EPSILON = 0.001
     const atBase = () => Math.abs(scale - baseScale()) < SCALE_EPSILON
 
@@ -302,10 +284,8 @@ const t = i18nit(currentLang);
       })
     }
 
-    // 打开灯箱时锁定页面滚动；统一走 @utils/scrollLock：它锁的是 <html>
-    // （OverlayScrollbars 开启时真正的滚动容器），并且自带计数器，抽屉与灯箱叠加时不会互相解开。
-    // 这里是计数式的，所以必须只在状态翻转时加减——cleanup() 里 close() 已经解过一次，
-    // 紧跟着再解一次会把计数打穿，导致并存的抽屉锁被误开。
+    // 锁页面滚动统一走 @utils/scrollLock：它锁 <html>（OverlayScrollbars 下的滚动容器），计数式。
+    // ⚠️ 必须只在状态翻转时加减：cleanup() 里 close() 已解过一次，再解一次会打穿计数、误开并存的抽屉锁
     let scrollLocked = false
 
     function lockScroll() {
@@ -320,7 +300,6 @@ const t = i18nit(currentLang);
       unlockPageScroll()
     }
 
-    // 缩放后的图片不能拖出可视区域
     function clampPan() {
       const maxX = Math.max(0, (img.clientWidth * scale - stage.clientWidth) / 2)
       const maxY = Math.max(0, (img.clientHeight * scale - stage.clientHeight) / 2)
@@ -330,7 +309,7 @@ const t = i18nit(currentLang);
 
     function render(animate = false) {
       stage.classList.toggle('is-animating', animate)
-      // 只有比基准比例更大时才有可平移的内容，缩小状态下光标保持默认（grab 用于左右滑动切换）
+      // 只有大于基准比例时才有可平移内容，缩小状态光标保持默认
       stage.classList.toggle('is-zoomed', scale > baseScale() + SCALE_EPSILON)
       img.style.transform = transformOf()
       zoomLabel.textContent = `${Math.round(scale * 100)}%`
@@ -340,7 +319,6 @@ const t = i18nit(currentLang);
       }
     }
 
-    // 让缩放边界（50% / 800%）和「回到默认比例」在按钮上可见
     function syncZoomButtons() {
       if (zoomOutBtn) zoomOutBtn.disabled = scale <= MIN_SCALE
       if (zoomInBtn) zoomInBtn.disabled = scale >= MAX_SCALE
@@ -380,11 +358,8 @@ const t = i18nit(currentLang);
       return `translate3d(${dx}px, ${dy}px, 0) scale(${clamp(ratio, 0.05, 8)})`
     }
 
-    // 动画里的起点 / 终点必须用「没有缩放、没有平移」的原始框来算：
-    // getBoundingClientRect() 会把当前的 scale 与位移算进去（桌面端基准是 86%，不再等于 1，
-    // 直接拿它算 FLIP 会让飞入/飞回的目标尺寸和位置都对不上）。
-    // 变换以元素中心为原点（transform-origin: center center），所以反推：
-    //   原始尺寸 = 渲染尺寸 / scale，原始中心 = 渲染中心 - 位移
+    // 起止必须用「未缩放、未平移」的原始框：getBoundingClientRect() 含当前 scale 与位移。
+    // 变换以中心为原点，故 原始尺寸 = 渲染尺寸 / scale，原始中心 = 渲染中心 - 位移
     function baseRect(): DOMRect {
       const rect = img.getBoundingClientRect()
       const width = rect.width / scale
@@ -397,20 +372,14 @@ const t = i18nit(currentLang);
       )
     }
 
-    // 关闭时飞回「当前正在看的这一张」在正文里的缩略图，而不是打开时点击的那张：
-    // 切过图之后 index 已经变了，飞回目标也必须跟着变。
-    // items 正是 contentImages() 的映射（顺序一一对应），所以按 index 取即可。
+    // 飞回目标是当前 index 对应的缩略图（items 与 contentImages() 顺序一一对应），不能固定用打开时那张
     function currentThumb(): HTMLImageElement | null {
       const thumb = contentImages()[index]
       return thumb && thumb.isConnected ? thumb : null
     }
 
-    // 关闭动画的飞回目标框。
-    // ⚠️ 缩略图滚出视口时（切过图、或灯箱打开期间页面被滚动过）不能直接交出 null：
-    // 调用方拿到 null 会退化成「立刻隐藏」，观感就是灯箱**直接闪退**、没有飞回动画。
-    // 正确做法是把缩略图中心夹回视口内再算 FLIP —— 方向仍指向缩略图那一侧
-    // （缩略图在视口上方就朝上飞、下方就朝下飞），位移被限制在一屏内，
-    // 观感是「朝缩略图缩小着飞出去」。
+    // 飞回目标框：⚠️ 缩略图滚出视口时不能返回 null（调用方会退化成「立刻隐藏」、直接闪退），
+    // 而是把中心夹回视口内再算 FLIP，方向仍朝向缩略图那一侧、位移限制在一屏内
     function sourceRect(): DOMRect | null {
       const source = currentThumb()
       if (!source) return null
@@ -419,7 +388,6 @@ const t = i18nit(currentLang);
       if (rect.width < 8 || rect.height < 8) return null
       const centerX = rect.left + rect.width / 2
       const centerY = rect.top + rect.height / 2
-      // 留一点边距，飞回的终点不贴死在屏幕边缘
       const margin = 12
       const clampedX = clamp(centerX, margin, Math.max(margin, window.innerWidth - margin))
       const clampedY = clamp(centerY, margin, Math.max(margin, window.innerHeight - margin))
@@ -459,8 +427,7 @@ const t = i18nit(currentLang);
       scale = baseScale()
       x = 0
       y = 0
-      // 新图先按住不显示，等飞入 / 淡入动画来驱动 opacity：
-      // 否则图片还没解码完时它会以不透明状态短暂出现在最终位置（切图时会闪一下）
+      // 新图先设为透明，等飞入 / 淡入动画驱动 opacity，避免未解码时闪现在最终位置
       img.style.opacity = '0'
       img.src = item.src
       img.alt = item.alt
@@ -469,8 +436,7 @@ const t = i18nit(currentLang);
       render(false)
     }
 
-    // 打开：从缩略图平滑放大到全屏
-    // source 只用于飞入起点；飞回目标由 currentThumb() 按当时的 index 现取（见 sourceRect）
+    // 打开：从缩略图飞入；飞回目标由 currentThumb() 按当时的 index 现取
     async function openAt(position: number, source: HTMLImageElement) {
       items = contentImages().map(itemOf)
       if (!items.length) return
@@ -492,9 +458,7 @@ const t = i18nit(currentLang);
       await waitForImage()
       if (!open || seq !== transitionSeq) return
       playOpenAnimation(thumbRect)
-      // preventScroll：浏览器把焦点移到关闭按钮时会尝试把它滚进视口，
-      // 而灯箱是 fixed、页面此时已锁滚动——这一下会把页面顶走几十像素，
-      // 点开的那张缩略图可能因此滑出视口（关闭时就没有飞回目标了）
+      // preventScroll：焦点滚进视口会顶走已锁定滚动的页面，缩略图可能因此滑出视口
       ;(root.querySelector('.lightbox-close') as HTMLElement)?.focus({ preventScroll: true })
     }
 
@@ -502,9 +466,8 @@ const t = i18nit(currentLang);
       const reduced = reducedMotion()
       // 清掉上一次快速开关残留的动画（尤其是 fill: backwards 的工具栏动画）
       cancelAnimations([img, root, bar, caption])
-      // 交回给动画驱动 opacity（见 applyImage）：没有动画时（reduced / 未知尺寸）要把新图显示出来
+      // 交回给动画驱动 opacity；没有动画时（reduced / 未知尺寸）要当场显示新图
       img.style.opacity = ''
-      // 用原始框算 FLIP（见 baseRect）：桌面端基准 86% 时它才是缩略图的放大目标
       const to = baseRect()
       const duration = reduced || !to.width ? 0 : 380
 
@@ -514,7 +477,7 @@ const t = i18nit(currentLang);
             { transform: flipTransform(thumbRect, to), opacity: 0.65 },
             { transform: transformOf(), opacity: 1 },
           ],
-          // 放大不回弹：只做单纯的减速收尾（过冲会让图片先冲过头再缩回来）
+          // 放大不回弹：过冲会让图片先冲过头再缩回来
           { duration, easing: 'cubic-bezier(0.22, 0.61, 0.36, 1)' },
         )
       }
@@ -538,8 +501,7 @@ const t = i18nit(currentLang);
     }
 
     // 关闭：整层淡出 + 图片飞回缩略图
-    // 关键点：动画必须带 fill: 'forwards'，且在动画真正结束之后才隐藏 / 还原滚动，
-    // 否则动画一结束状态就回弹成不透明，隐藏前会闪一帧全黑遮罩
+    // ⚠️ 动画必须 fill: 'forwards'，且等它真正结束后才隐藏 / 还原滚动，否则会闪一帧全黑遮罩
     function close() {
       if (!open) return
       open = false
@@ -553,7 +515,7 @@ const t = i18nit(currentLang);
       const finish = () => {
         // 关闭动画期间又被重新打开（动画被取消也会让 finished 结束），此时不要隐藏
         if (seq !== transitionSeq) return
-        // 先隐藏再取消动画：取消 fill 效果时页面已完成隐藏，不会出现回弹闪烁
+        // ⚠️ 先隐藏再取消动画：取消 fill 效果时页面已完成隐藏，不会回弹闪烁
         root.hidden = true
         root.setAttribute('aria-hidden', 'true')
         root.style.opacity = ''
@@ -573,7 +535,6 @@ const t = i18nit(currentLang);
 
       // 起点是当前画面（含放大 / 平移），终点用原始框算，飞回缩略图才精确
       const natural = baseRect()
-      // 关闭要「脆」：比打开短，且不做过冲（飞回去时过冲会显得拖泥带水）
       const duration = 260
       animations.push(
         img.animate(
@@ -589,7 +550,7 @@ const t = i18nit(currentLang);
           fill: 'forwards',
         }),
       )
-      // 两个动画时长一致，等全部结束再隐藏；元素被移除时动画会被取消，allSettled 同样能兜底
+      // 两个动画时长一致，等全部结束再隐藏；元素被移除时动画被取消，allSettled 同样兜底
       Promise.allSettled(animations.map((animation) => animation.finished)).then(finish)
     }
 
@@ -599,9 +560,7 @@ const t = i18nit(currentLang);
       const seq = ++transitionSeq
       const next = (index + delta + items.length) % items.length
       const reduced = reducedMotion()
-      // 注意：这里不能先把 scale / x / y 复位成基准比例，
-      // 否则下面第一帧 transformOf() 会变成「默认比例」，画面会先从当前缩放突跳一下再开始切换。
-      // 复位统一交给 applyImage（换成新图时）。
+      // ⚠️ 不能先把 scale / x / y 复位：第一帧 transformOf() 会突跳，复位统一交给 applyImage
       const outScale = scale * 0.97
 
       if (!reduced) {
@@ -617,7 +576,7 @@ const t = i18nit(currentLang);
         if (seq !== transitionSeq || !open) return
       }
 
-      // 换图：applyImage 会把缩放 / 平移复位到基准比例，新图从基准比例滑入
+      // 换图：applyImage 复位缩放 / 平移，新图从基准比例滑入
       index = next
       applyImage(items[index])
       await waitForImage()
@@ -690,11 +649,10 @@ const t = i18nit(currentLang);
     )
 
     // ---- 指针手势：拖拽平移 / 双指缩放 / 左右滑动切换 ----
-    // 双指缩放的目标比例：扣掉死区后在对数域阻尼（见 PINCH_DEAD_ZONE / PINCH_GAIN）。
-    // 用「相对 pinch 起点」的绝对值而不是逐帧累加，这样越过 MAX_SCALE 后再往回捏不会「先空转一段」。
+    // 双指缩放目标比例：扣掉死区后在对数域阻尼；用相对起始值的绝对值，越界后往回捏不会空转
     function pinchScaleOf(distance: number) {
       if (!pinchStart) return pinchScale
-      // 起始间距过近时按 PINCH_MIN_SPAN 归一化（见常量注释）
+      // 起始间距过近时按 PINCH_MIN_SPAN 归一化
       const span = Math.max(pinchStart, PINCH_MIN_SPAN)
       const delta = distance - pinchStart
       if (Math.abs(delta) <= PINCH_DEAD_ZONE) return pinchScale
@@ -713,9 +671,7 @@ const t = i18nit(currentLang);
     stage.addEventListener('pointerdown', (event) => {
       pointers.set(event.pointerId, { x: event.clientX, y: event.clientY })
       if (pointers.size >= 2) {
-        // 第二根手指一落下，这一轮手势就定死为缩放：
-        // 越位切图、双击复位、点击空白关闭全部作废（以前双指捏合后抬起，很容易凑够 60px
-        // 的横向位移被当成左右滑动，刚缩完就翻了页）
+        // ⚠️ 第二根手指一落下，这一轮手势就定死为缩放：越位切图、双击复位、点击空白关闭全部作废
         pinched = true
         moved = true
         dragging = false
@@ -765,10 +721,8 @@ const t = i18nit(currentLang);
       if (pointers.size > 0) return
 
       stage.classList.remove('is-dragging')
-      // 没有放大（基准比例或更小）时，左右滑动用来切换上/下一张。
-      // 但必须是「从按下到抬起始终单指」的手势：pinched 一旦置位就只认缩放，
-      // 否则双指缩放结束时残留那根手指的横向位移会被误判成滑动。
-      // cancelled（系统手势抢走指针）时一律不算，此时事件坐标不可信。
+      // 未放大时左右滑动切图，但必须「从按下到抬起始终单指」：pinched 一旦置位就只认缩放；
+      // cancelled（系统手势抢走指针）时坐标不可信，一律不算
       if (!cancelled && dragging && !pinched && scale <= baseScale() + SCALE_EPSILON) {
         const dx = event.clientX - startX
         const dy = event.clientY - startY
@@ -799,12 +753,11 @@ const t = i18nit(currentLang);
     }
 
     stage.addEventListener('pointerup', (event) => {
-      // pinched：双指缩放结束时的抬手不算单击，否则「捏两下」会被读成双击缩放
+      // pinched：双指缩放结束的抬手不算单击，否则会被读成双击
       if (pointers.size > 0 || pinched || moved || !isInsideImage(event)) return
       const now = Date.now()
       if (now - lastTap < 320) {
         lastTap = 0
-        // 只要不是基准比例（放大过或缩小过），双击都先回到基准比例
         if (!atBase()) {
           scale = baseScale()
           x = 0
@@ -855,18 +808,16 @@ const t = i18nit(currentLang);
       // resize 必须一起解绑：换页后是全新的 DOM，旧闭包会一直留在 window 上
       window.removeEventListener('resize', onResize)
       if (open) close()
-      // 页面切换时不再等待关闭动画，立即还原滚动锁定
+      // 换页时不等待关闭动画，立即还原滚动锁定
       restoreScroll()
     }
-    // 换页时先拆掉：旧的灯箱 DOM 会被 swup 整段替换掉。
-    // swup 会派发 astro:before-swap（@swup/astro 把 content:replace 映射成了它）；
-    // once 保证同一个实例只清理一次，initLightbox 再次执行会重新注册。
+    // 换页时先拆掉旧灯箱：@swup/astro 把 content:replace 映射成 astro:before-swap，
+    // once 保证同一个实例只清理一次（initLightbox 再次执行会重新注册）
     document.addEventListener('astro:before-swap', cleanup, { once: true })
 
     bindImages()
   }
 
-  // 首屏 + 每次换页（swup 下首屏不会有 astro:page-load，见 @utils/pageInit）：
-  // 灯箱 DOM 在替换容器内、每页都是新的，所以每次都要重新绑定
+  // 首屏 + 每次换页都要重新绑定：灯箱 DOM 在替换容器内、每页都是新的
   registerPageInit(initLightbox)
 </script>

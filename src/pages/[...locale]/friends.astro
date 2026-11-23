@@ -27,8 +27,7 @@ const pageTitle = t("header.friends") + " - " + siteConfig.title;
 // SEO：用该页 Cover 文案作为描述，避免多个页面共用同一段描述
 const pageDescription = `${t("cover.title.friends")} - ${t("cover.subTitle.friends")}`;
 
-// 友链卡片与首页文章卡片同一套入场：只有开启动画时才输出 data-reveal，
-// 每张按顺序错峰 50ms（最多累积到第 6 张）。
+// 友链卡片与首页文章卡片同一套入场：只有开启动画时输出 data-reveal，每张错峰 50ms（最多到第 6 张）
 const revealAttrs = (index: number) => siteConfig.theme.AOS
     ? { 'data-reveal': 'pop', 'data-reveal-delay': String(Math.min(index, 5) * 50) }
     : {};
@@ -38,8 +37,7 @@ const revealAttrs = (index: number) => siteConfig.theme.AOS
     <div class="mx-auto w-full max-w-[var(--page-width)]">
         <Cover title={t("cover.title.friends")} subTitle={t("cover.subTitle.friends")} />
 
-        <!-- data-reveal 放在卡片外层：卡片自己的 transition-colors 不能被入场规则里的
-             transition-property 覆盖，否则悬停换底色会变成硬切。 -->
+        <!-- data-reveal 放在卡片外层：卡片自己的 transition-colors 不能被入场规则覆盖，否则悬停换底色会变成硬切 -->
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6 text-[var(--text-color)] mb-12">
             {
                 friendLinkConfig.map((friend, index) => (
@@ -92,9 +90,8 @@ const revealAttrs = (index: number) => siteConfig.theme.AOS
 import { registerPageInit } from '@utils/pageInit';
 import { DEFAULT_AVATAR_URL } from '@utils/avatar';
 
-// 头像加载失败 -> 内置的本地默认头像（data URI，不依赖外网）。
-// 走 registerPageInit：从站内点进友链页时页面脚本是被 swup 换进来的，
-// 只靠模块顶层执行不会重跑（模块表去重）。
+// 头像加载失败时换成内置的本地默认头像（data URI，不依赖外网）。走 registerPageInit：
+// swup 换页时模块不会重跑
 function initFriendAvatars() {
     document.querySelectorAll<HTMLImageElement>('img[data-friend-avatar]').forEach((img) => {
         if (img.dataset.avatarBound === '1') return;

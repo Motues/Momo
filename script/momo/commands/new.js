@@ -11,7 +11,7 @@ function yaml(value) {
   return /^[\w\u4e00-\u9fff][\w\u4e00-\u9fff .\-/]*$/.test(text) ? text : JSON.stringify(text)
 }
 
-/** 未指定路径时按日期生成 YYYY/YYYY-MM-DD（与 CMS 一致），避免路径重复 */
+/** 未指定路径时的默认路径：YYYY/YYYY-MM-DD（与 CMS 一致） */
 function autoPath(date = new Date()) {
   const p = (n) => String(n).padStart(2, '0')
   const y = date.getFullYear()

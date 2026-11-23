@@ -20,7 +20,7 @@ export function AdmonitionComponent(
 
   let label: Element | null = null;
   if (properties['has-directive-label']) {
-    // 第一个子节点是指令标签，原本是 <p>，这里换成 <div>
+    // 指令标签是 children[0]，原本是 <p>，换成 <div>
     label = children[0] as Element;
     children = children.slice(1);
     label.tagName = 'div';

@@ -26,7 +26,6 @@ interface DirectiveNode extends Parent {
 export function parseDirectiveNode() {
   return (tree: Root) => {
     visit(tree, (node) => {
-      // mdast 的类型里没有指令节点，先按字符串比较再断言
       const type: string = node.type;
       if (
         type !== 'containerDirective' &&

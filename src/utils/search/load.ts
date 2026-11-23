@@ -1,8 +1,5 @@
 /**
- * 按语言加载搜索索引。
- *
- * 索引文件由构建脚本写到 `dist/search-index/<lang>.json`，同一个语言在一个
- * 会话里只请求一次；失败时把缓存删掉，下次输入还能重试。
+ * 按语言加载搜索索引：同一语言一个会话只请求一次，失败时清缓存以便下次重试
  */
 
 import type { SearchIndexFile } from '@/types/search';

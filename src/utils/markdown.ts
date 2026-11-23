@@ -18,13 +18,11 @@ export function parseMarkdown(content: string): string {
 export function validateMarkdown(content: string): string[] {
   const warnings: string[] = [];
 
-  // Check for unclosed code fences (```)
   const fenceMatches = content.match(/```/g);
   if (fenceMatches && fenceMatches.length % 2 !== 0) {
     warnings.push('codeFence');
   }
 
-  // Check for unclosed inline code (single backtick, but not inside code fences)
   const lines = content.split('\n');
   let inFence = false;
   let backtickCount = 0;

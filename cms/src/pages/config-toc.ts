@@ -1,8 +1,5 @@
 // 网站配置页的悬浮目录栏（贴在表单右侧）
-//
-// 只列分区（站点信息 / 主题与动效 / …），点击平滑滚动到位，滚动时自动高亮当前分区。
-// 元素挂在 #app 里 + position: fixed（不参与表单布局，路由换页时随 #app 一起销毁）；
-// renderBody 每次重建表单后调一次 setSections() 换分区列表，滚动监听只注册一次。
+// renderBody 每次重建表单后调一次 setSections()；滚动监听只注册一次
 import { el } from '../dom'
 
 export interface TocSection {
@@ -75,7 +72,7 @@ export function createConfigToc(): ConfigToc {
       if (on) item.setAttribute('aria-current', 'true')
       else item.removeAttribute('aria-current')
     }
-    // 让高亮项在目录里可见：算 offsetTop 自己滚，不用 scrollIntoView——那会把整页也滚了
+    // 只滚目录自身，不能用 scrollIntoView（会把整页一起滚）
     const item = items.find((i) => i.dataset.id === id)
     if (!item) return
     const top = item.offsetTop
@@ -132,7 +129,7 @@ export function createConfigToc(): ConfigToc {
     update()
   }
 
-  // 注意：目录项不能是真的 `#anchor` 链接——CMS 是 hash 路由，改 hash 会直接换页
+  // ⚠️ 目录项不能用 `#anchor` 链接：CMS 是 hash 路由，改 hash 会直接换页
   function go(id: string) {
     const node = document.getElementById(`cfg-${id}`)
     if (!node) return

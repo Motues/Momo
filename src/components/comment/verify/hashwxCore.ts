@@ -1,19 +1,6 @@
 /**
- * HashWX 客户端核心（compiled 模式）
- *
+ * HashWX 客户端核心（compiled 模式），不依赖 Worker，可在主线程与 Worker 中复用。
  * 算法来自 tevador/hashwx v1.0.0（LGPL-3.0，见 vendor/hashwx/README.md）。
- *
- * 为什么不是「把 wasm 塞进去直接调 hashwx_exec」：
- * 解释模式实测只有约 48 KH/s，compiled 模式约 278 KH/s（Node/V8，单线程）。
- * compiled 模式的真实机制（依据作者公开的浏览器 glue，该文件声明为公有领域）：
- *   1. hashwx_alloc(HASHWX_COMPILED)
- *   2. hashwx_make(ctx, seed) 之后，用 hashwx_module / hashwx_module_size
- *      取出为本函数生成的内层 WASM 模块，运行时 new WebAssembly.Module 编译，
- *      以 { env: { memory: 主模块内存 } } 实例化
- *   3. 执行时 hashwx_exec_begin(ctx, nonce) -> 内层 exports.exec(reg, mem)
- *      -> hashwx_exec_final(ctx)
- *
- * 本模块不依赖 Worker，便于在主线程与 Worker 中复用，也便于单元测试。
  */
 
 import { sha256 } from './sha256';
@@ -69,12 +56,7 @@ export function isHashwxSupported(): boolean {
 
 let cachedModule: WebAssembly.Module | null = null;
 
-/**
- * 编译主模块（每个执行环境只做一次）。
- *
- * base64 由调用方注入而不是在本模块内 import：本模块要同时被 Worker 与主线程使用，
- * 若在这里 import 内联数据，Worker bundle 会再复制一份 16.7KB 的 base64。
- */
+/** 编译主模块（每个执行环境只做一次）；base64 由调用方注入，避免 Worker bundle 重复内联 16.7KB */
 export function getHashwxModule(base64: string): WebAssembly.Module {
 	if (cachedModule) return cachedModule;
 	cachedModule = new WebAssembly.Module(decodeBase64(base64));
@@ -86,10 +68,7 @@ export function __resetHashwxModuleCache(): void {
 	cachedModule = null;
 }
 
-/**
- * 第 index 个子挑战、第 block 个函数的种子：SHA256(c ‖ u8le(index) ‖ u64le(block))
- * 必须与三端后端逐字节一致。
- */
+/** 第 index 个子挑战、第 block 个函数的种子：SHA256(c ‖ u8le(index) ‖ u64le(block))，必须与三端后端逐字节一致 */
 export function hashwxBlockSeed(challenge: Uint8Array, index: number, block: bigint): Uint8Array {
 	if (challenge.length !== HASHWX_CHALLENGE_SIZE) {
 		throw new Error(`挑战必须为 ${HASHWX_CHALLENGE_SIZE} 字节`);
@@ -123,11 +102,7 @@ export function hashwxTarget(d: number): bigint {
 	return U64_MAX / BigInt(d);
 }
 
-/**
- * 一个 HashWX 上下文，负责「生成函数 → 编译内层模块 → 执行」。
- * 注意内层模块每个 block 都要重新编译，这是编译开销的来源；
- * 协议里的 n（每个函数覆盖的 nonce 数）就是用来摊薄这笔开销的。
- */
+/** 一个 HashWX 上下文：生成函数 → 编译内层模块 → 执行；内层模块每个 block 都要重新编译 */
 export class HashwxSolver {
 	private imports: HashwxExports;
 	private ctx: number;

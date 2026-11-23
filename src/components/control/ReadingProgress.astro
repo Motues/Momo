@@ -1,12 +1,7 @@
 ---
 /**
- * 文章页顶部的阅读进度条（2px 细线）。
- *
- * 与右下角 FAB 的进度环是两件事：FAB 要滚过一段距离才出现、且只在有目录/回到顶部按钮时才有；
- * 顶条从文章页第一屏就存在，滚到底整条填满。
- *
- * 只在 article 页渲染，由 `siteConfig.theme.readingProgress` 控制开关（见博客页）。
- * 它是 fixed 元素，所以挂在页面的 overlay 插槽里（不能待在淡入淡出容器内）。
+ * 文章页顶部 2px 阅读进度条，只在 article 页由 `siteConfig.theme.readingProgress` 控制开关。
+ * fixed 元素，必须挂在页面 overlay 插槽（不能待在淡入淡出容器内）。
  */
 ---
 
@@ -22,10 +17,7 @@
   import { registerPageInit } from '@utils/pageInit';
   import { subscribeScroll } from '@utils/scrollBus';
 
-  /**
-   * 进度 = 已滚动距离 / 可滚动距离。
-   * 每帧只写一次 transform 的 scaleX（合成层，不触发布局）。
-   */
+  /** 进度 = 已滚动距离 / 可滚动距离，每帧只写一次 transform 的 scaleX（合成层，不触发布局） */
   function initReadingProgress() {
     const scope = window as Window & {
       __momoReadingProgress?: { cleanup?: () => void };
@@ -46,10 +38,10 @@
 
     function update(y) {
       const percent = maxScroll > 0 ? Math.min(1, Math.max(0, y / maxScroll)) : 0;
-      // 变化小于 0.2% 不写样式：滚动到底部时每帧都会回来一次，没必要反复触碰 DOM
+      // 变化小于 0.2% 不写样式，避免滚动到底部时逐帧触碰 DOM
       if (Math.abs(percent - lastPercent) >= 0.002 || (percent === 1 && lastPercent !== 1)) {
         lastPercent = percent;
-        // scaleX 而不是 width：宽度变化会让该层逐帧重排，scale 只在合成阶段生效
+        // ⚠️ 用 scaleX 而不是 width：宽度变化会逐帧重排
         if (bar) bar.style.transform = `scaleX(${percent.toFixed(4)})`;
       }
     }
@@ -94,11 +86,11 @@
     background-color: var(--link-color);
     transform: scaleX(0);
     transform-origin: left center;
-    /* 进度跟滚动 1:1，没有过渡；这里只是让「换页回来」时不会整条闪一下 */
+    /* 进度跟滚动 1:1，没有过渡；will-change 只为避免换页回来时整条闪一下 */
     will-change: transform;
   }
 
-  /* 系统要求减弱动画：进度条不再跟手（仍会更新，只是不做过渡） */
+  /* 减少动画偏好下不再保留合成层提示 */
   @media (prefers-reduced-motion: reduce) {
     .reading-progress-bar {
       will-change: auto;

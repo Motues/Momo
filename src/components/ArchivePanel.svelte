@@ -13,15 +13,12 @@
   export let defaultLocale = "zh-cn";
 
   let selectedCategories = [];
-  // 首次渲染的列表参与入场动画；用户开始筛选后就不再给新行打 data-reveal，
-  // 让 Svelte 自己的 fade / flip 接管（否则「切换分类」也会整页重新浮一遍）。
+  // 首次渲染参与入场动画；筛选后由 Svelte 的 fade / flip 接管，不再打 data-reveal
   let interacted = false;
   const t = i18nit(currentLang);
 
-  // 提取所有分类并去重
   $: categories = [...new Set(sortedPosts.map(post => post.data.category || 'undefined'))].sort();
 
-  // 响应式过滤逻辑 - 特殊处理 undefined 情况
   $: filteredPosts = selectedCategories.length > 0
     ? sortedPosts.filter(post => {
         const postCat = post.data.category || 'undefined';
@@ -29,7 +26,6 @@
       })
     : sortedPosts;
 
-  // 按年份分组逻辑
   $: postsByYear = filteredPosts.reduce((acc, post) => {
     const year = new Date(post.data.pubDate).getFullYear();
     if (!acc[year]) acc[year] = [];
@@ -40,18 +36,16 @@
   $: years = Object.keys(postsByYear).sort((a, b) => b - a);
 
   onMount(() => {
-    // 获取初始 URL 参数 - 特殊处理 undefined
     const params = new URLSearchParams(window.location.search);
     const categoryParam = params.get('category');
     
-    // 当参数为 'undefined' 时，专门用于显示未分类文章
+    // category=undefined 表示只看未分类文章
     if (categoryParam === 'undefined') {
       selectedCategories = ['undefined'];
     } else if (categoryParam && categoryParam !== 'null') {
       selectedCategories = categoryParam.split(',');
     }
 
-    // 处理浏览器前进/后退
     const handlePopState = () => {
       interacted = true;
       const params = new URLSearchParams(window.location.search);
@@ -71,7 +65,7 @@
       }
     };
 
-    // 使用 setTimeout 确保 DOM 已完全渲染（特别是异步加载内容时）
+    // 等 DOM 渲染完再量高度（含异步加载的内容）
     setTimeout(syncAsideHeight, 0);
 
     let resizeTimer;
@@ -86,9 +80,9 @@
     if (mainContent) {
       mutationObserver = new MutationObserver(syncAsideHeight);
       mutationObserver.observe(mainContent, {
-        childList: true,    // 监听子节点增删
-        subtree: true,      // 监听后代节点
-        attributes: false,  // 不需要监听属性变化（性能优化）
+        childList: true,
+        subtree: true,
+        attributes: false,
         characterData: false
       });
     }
@@ -104,22 +98,19 @@
     }
   });
 
-  // 筛选点击逻辑
   function toggleCategory(cat) {
     interacted = true;
     if (cat === null) {
-      selectedCategories = []; // 点击“全部”则清空
+      selectedCategories = []; // cat 为 null 表示「全部」
     } else {
       if (selectedCategories.includes(cat)) {
-        // 如果已选中，则移除
         selectedCategories = selectedCategories.filter(c => c !== cat);
       } else {
-        // 如果未选中，则添加
         selectedCategories = [...selectedCategories, cat];
       }
     }
 
-    // 更新 URL，方便分享和刷新
+    // 同步地址栏参数，便于分享与刷新
     const url = new URL(window.location);
     if (selectedCategories.length > 0) {
       url.searchParams.set('category', selectedCategories.join(','));

@@ -2,10 +2,7 @@ import type { APIContext, GetStaticPaths } from 'astro';
 import { i18n } from 'astro:config/client';
 import { buildFeed } from '../../utils/rss';
 
-/**
- * 其它语言的订阅源：/en/rss.xml。
- * 静态输出不能靠查询参数切语言，所以每种语言（除默认语言）各生成一个路由。
- */
+/** 其它语言的订阅源：/en/rss.xml，除默认语言外每种语言各生成一个路由 */
 export const getStaticPaths = (() => {
     const defaultLocale = i18n!.defaultLocale;
     return i18n!.locales

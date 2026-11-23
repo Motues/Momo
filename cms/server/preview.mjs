@@ -35,8 +35,7 @@ import { normalizeData, BLOG_DIR } from './store.mjs'
 import { CONFIG_PATH, readConfig } from './config-file.mjs'
 
 // ---------- 代码高亮：Expressive Code（官方实现，与博客共用根目录 ec.config.mjs） ----------
-// 开关类配置（Expressive Code 的开关与主题、图片拼图）都来自 src/config.ts 的 siteConfig，
-// 统一按文件修改时间缓存，因此改完配置无需重启 CMS 就能在预览里生效
+// 开关类配置（EC 开关与主题、图片拼图）取自 src/config.ts 的 siteConfig，按文件 mtime 缓存
 let runtime
 async function getRuntime() {
   const info = await stat(CONFIG_PATH).catch(() => null)
@@ -46,11 +45,11 @@ async function getRuntime() {
   const parsed = await readConfig().catch(() => null)
   const site = parsed?.values?.siteConfig ?? {}
 
-  // Expressive Code：关闭时预览退化为纯文本代码块（与博客侧关闭语法高亮的行为一致）
+  // Expressive Code：关闭时预览退化为纯文本代码块
   const ecSettings = site.expressiveCode ?? {}
   const options = { ...ecConfig, ...ecThemeOptions(ecSettings) }
   const enabled = ecSettings.enable !== false
-  // 单例渲染器：shiki 主题解析与基础样式生成只做一次，否则每次预览都要重新加载主题
+  // 单例渲染器：shiki 主题解析与基础样式生成只做一次
   const renderer = enabled ? createRenderer(options) : null
 
   // 图片拼图：默认值与博客 astro.config.mjs 中保持一致
@@ -122,7 +121,7 @@ const proseCss = await readFile(join(dirname(fileURLToPath(import.meta.url)), 'p
 const PUBLIC_DIR = fileURLToPath(new URL('../../public/', import.meta.url))
 
 // ---------- 主管线：remark 阶段（与 astro.config.mjs 顺序一致） ----------
-// unified 的 processor 一旦 process 就会被冻结，因此每个请求都新建
+// processor 一旦 process 就会被冻结，因此每个请求都新建
 function createProcessor(base, locale, ec, collage) {
   const processor = unified()
     .use(remarkParse)
@@ -139,9 +138,8 @@ function createProcessor(base, locale, ec, collage) {
     .use(customFigurePlugin)
     // [文字](url){target="_blank"}：新标签页打开 + 右上箭头图标（与博客同一插件）
     .use(rehypeLinkTarget)
-    // 连续放置的多张图片自动拼图（与博客使用同一插件与同一份配置）
-    // 预览没有真正的 markdown 文件路径，图片目录由 base（文章目录）推出来，
-    // /xxx.png 按 public 目录定位；插件才能读到宽高比（网络图片抓头部）
+    // 连续放置的多张图片自动拼图（与博客同一插件与配置）；预览没有真实文件路径，
+    // baseDir 由 base（文章目录）推出，/xxx.png 按 public 目录定位
     .use(rehypeImageCollage, {
       ...collage,
       baseDir: base ? join(BLOG_DIR, ...base.split('/')) : BLOG_DIR,
@@ -160,12 +158,11 @@ function createProcessor(base, locale, ec, collage) {
       },
     })
     .use(rewriteImageSrcs(base))
-  // Expressive Code：与博客同一个渲染器与配置，输出包含样式与交互脚本
-  // getBlockLocale 让代码块内的提示文案跟随文章语言（siteConfig.expressiveCode.enable 为 false 时跳过）
+  // Expressive Code：与博客同一个渲染器与配置；getBlockLocale 让代码块文案跟随文章语言
   if (ec.enabled) {
     processor.use(rehypeExpressiveCode, { ...ec.options, getBlockLocale: () => locale })
   }
-  // 与博客一致的搜索锚点；预览里不影响展示，只为保持插件链与最终 HTML 结构一致
+  // 与博客一致的搜索锚点，只为保持插件链与最终 HTML 结构一致
   processor.use(rehypeSearchAnchor)
   return processor.use(rehypeStringify, { allowDangerousHtml: true })
 }
@@ -207,12 +204,7 @@ preview.post('/', async (c) => {
 })
 
 // 预览内脚本：与父窗口（编辑器）按滚动比例双向同步
-// （代码块的复制按钮与折叠交互由 Expressive Code 自己的脚本提供）
-// 三个要点：
-// 1. 发送走 rAF 节流，每帧最多一条，避免滚动事件比屏幕刷新更密时预览慢半拍；
-// 2. 父窗口驱动的滚动（cms-scroll-to）不回传，否则两边会互相回写；
-// 3. 文档就绪后先通知父窗口（cms-preview-ready）——实时预览每次输入都会重建本文档，
-//    父窗口收到后按重建前的比例恢复滚动位置，否则每次输入预览都会跳回顶部。
+// 父窗口驱动的滚动（cms-scroll-to）不回传；文档就绪后先发 cms-preview-ready，父窗口再按比例恢复位置
 const PREVIEW_SYNC_SCRIPT = `<script>
 (function () {
   var root = document.documentElement

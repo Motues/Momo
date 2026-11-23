@@ -18,10 +18,7 @@ const { lang = 'zh' } = Astro.props;
 const isEn = lang === 'en';
 const currentLang = isEn ? 'en' : 'zh-cn';
 
-/* --------------------------------------------------------------------------
- * 直接从 variables.css 读 token 值：规范页展示的永远是「正在生效的那一份」，
- * 改 token 不需要回来改文案。深色值从 [data-theme="dark"] 块里单独取。
- * ----------------------------------------------------------------------- */
+/* 直接从 variables.css 读 token 值：展示的永远是正在生效的那一份；深色值取自 [data-theme="dark"] 块 */
 function blockOf(source: string, pattern: RegExp) {
   return source.match(pattern)?.[1] ?? '';
 }
@@ -40,8 +37,7 @@ const darkVars = parseTokens(blockOf(tokensCss, /\[data-theme="dark"\]\s*\{([\s\
 const token = (name: string, dark = false) =>
   (dark ? darkVars[name] ?? lightVars[name] : lightVars[name]) ?? '—';
 
-/* 文章卡片示例：取当前语言首页会展示的那一篇，链接与首页完全一致。
-   注意用 getBlogEntrySort 而不是 getCollection：前者的 id 已经去掉语言后缀
+/* 文章卡片示例：取当前语言首页展示的那一篇。必须用 getBlogEntrySort——它的 id 已去掉语言后缀
    （markdown 而不是 markdown/zh-cn），直接塞给 PostCard 才是真实文章地址。 */
 const posts = await getBlogEntrySort(currentLang);
 const sampleEntry = posts.find((post) => post.id === 'markdown') ?? posts[0];
@@ -51,8 +47,7 @@ const sampleSpec = await getSpec(currentLang, 'design');
 const sampleRender = sampleSpec ? await render(sampleSpec) : null;
 const ProseSample = sampleRender?.Content ?? null;
 
-/* 自定义语法示例：直接渲染真实指令，卡片里的数据由插件内置脚本实时请求，
-   与文章页完全一致。换仓库 / 换歌曲只改 src/content/spec/design/{github,music}/。 */
+/* 自定义语法示例：直接渲染真实指令，卡片数据由插件脚本实时请求；换仓库 / 歌曲只改 src/content/spec/design/{github,music}/ */
 const githubCardSpec = await getSpec(currentLang, 'design/github');
 const githubRender = githubCardSpec ? await render(githubCardSpec) : null;
 const GithubCardSample = githubRender?.Content ?? null;
@@ -1230,9 +1225,7 @@ const structureRows = t.structure.rows as unknown as string[][];
           </div>
           <p>{t.sections.structure.desc}</p>
           <div class="ds-prose-demo">
-            <!-- 这层是手写的「长得像正文」的表，同样要退出入场动画：
-                 Layout 的入场动画只作用于第一个 .markdown-content 的直接子元素，
-                 不写 data-no-reveal 的话这张表会从 opacity: 0 开始、要滚进视口才淡入。 -->
+            <!-- 手写的「长得像正文」的表，必须带 data-no-reveal 退出入场动画，否则会停在 opacity: 0 -->
             <div class="markdown-content" data-no-reveal>
               <table>
                 <thead>

@@ -2,22 +2,17 @@ import { getCollection, getEntry } from 'astro:content';
 import type { CollectionEntry } from 'astro:content';
 import { i18n } from "astro:config/client";
 
-/**
- * 获取排序后的博客条目
- * @param filter 过滤函数，可选，默认过滤掉生产环境中的草稿文章
- * @param sort 排序函数，可选，默认按发布日期降序排列
- * @returns 排序后的博客条目数组
- */
-// 1. 定义一个扩展类型，包含 fallback 状态
+/** 带回退标记的博客条目：isFallback 表示该语言缺失、回退到了默认语言 */
 export type BlogEntryWithLocaleStatus = CollectionEntry<'blog'> & {
   isFallback?: boolean;
 };
 
+/** 获取排序后的博客条目：默认过滤生产环境草稿、按发布日期降序排列 */
 export async function getBlogEntrySort(
   lang: string,
   filter?: (entry: CollectionEntry<'blog'>) => boolean | undefined,
   sort?: (a: CollectionEntry<'blog'>, b: CollectionEntry<'blog'>) => number
-): Promise<BlogEntryWithLocaleStatus[]> { // 修改返回类型
+): Promise<BlogEntryWithLocaleStatus[]> {
   
   const defaultFilter = ({ data }: CollectionEntry<'blog'>) => {
     return import.meta.env.PROD ? data.draft !== true : true;
@@ -48,13 +43,12 @@ export async function getBlogEntrySort(
   
   for (const [id, translations] of grouped.entries()) {
     let selectedPost: CollectionEntry<'blog'> | undefined;
-    let isFallback = false; // 默认为 false
+    let isFallback = false;
     
     if (lang && lang !== defaultLanguage) {
       if (translations[lang]) {
         selectedPost = translations[lang];
       } else if (translations[defaultLanguage]) {
-        // --- 关键修改点：触发回退逻辑 ---
         selectedPost = translations[defaultLanguage];
         isFallback = true; 
       }
@@ -68,7 +62,7 @@ export async function getBlogEntrySort(
       selectedEntries.push({
         ...selectedPost,
         id: id,
-        isFallback: isFallback // 将状态注入对象
+        isFallback: isFallback
       });
     }
   }

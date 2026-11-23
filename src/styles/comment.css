@@ -1,6 +1,4 @@
-/*
- * 评论组件（src/components/comment）的宿主样式契约。
- */
+/* 评论组件（src/components/comment）的宿主样式契约 */
 .comment-container {
   --button-hover-bg-color: var(--button-hover-color);
   --verify-success-color: var(--verify-success-color);

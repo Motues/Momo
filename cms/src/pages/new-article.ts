@@ -40,7 +40,6 @@ export function openNewModal(root: HTMLElement, categories: string[]) {
   pathInput.focus()
 
   async function submit() {
-    // 路径留空时自动生成 yyyy/yyyy-mm-dd（按年份分目录，日期为文件名）
     let path = pathInput.value.trim()
     if (!path) path = autoPath()
     const lang = langSelect.value

@@ -7,21 +7,17 @@ interface Props {
     title?: string;
     subTitle?: string;
     /**
-     * 照片封面模式（siteConfig.theme.photoCover）：
-     * 前面插入一整屏占位把正文顶到首屏之外，标题则绝对定位在占位上方，
-     * 随滚动从屏幕正中平滑滑回占位末尾——也就是它自己的正常位置。
-     * 样式与滚动脚本都在 @components/PhotoCover.astro 里。
+     * 照片封面模式（siteConfig.theme.photoCover）：插入一整屏占位，标题绝对定位并随滚动落回正常位置。
+     * 样式与滚动脚本见 @components/PhotoCover.astro。
      */
     photo?: boolean;
 }
 
 const { title, subTitle, photo = false } = Astro.props;
 const currentLang = Astro.currentLocale || i18n?.defaultLocale || 'zh-cn';
-// 箭头只是无障碍标签，页面每次导航都会重建，语言切换后自然跟着更新
 const scrollDownLabel = i18nit(currentLang)("button.scrollDown");
 ---
 
-<!-- 非照片模式时 section 只是个普通容器，样式全靠类名 -->
 <section class:list={[photo && "photo-cover-hero"]}>
     { photo && (
         <div class="photo-cover-spacer">
@@ -33,7 +29,6 @@ const scrollDownLabel = i18nit(currentLang)("button.scrollDown");
         </div>
     ) }
 
-    <!-- Cover -->
     <div
         id={ photo ? "photo-cover-text" : undefined }
         class:list={[

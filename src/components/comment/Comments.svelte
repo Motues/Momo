@@ -41,7 +41,7 @@
   let adminKey = '';
   let isAdminEmail = false;
 
-  // 无感验证（Turnstile 风格）：默认关闭，由后端 verify_enabled 决定是否渲染
+  // 无感验证（Turnstile 风格）：由后端 verify_enabled 决定是否渲染
   let verifyEnabled = false;
   let verifyHoneypot = '';
   let verifyTicket: string | null = null;
@@ -58,10 +58,7 @@
     isAdminEmail = false;
   }
 
-  /**
-   * 管理员邮箱哈希列表：优先用 `admin_email_hashes` 数组（契约 1.8.0），
-   * 数组缺失/为空时回落到旧的单哈希 `admin_email_hash`，保证旧后端照常工作。
-   */
+  /** 管理员邮箱哈希列表：优先 `admin_email_hashes`，缺失/为空时回落旧字段 `admin_email_hash` */
   function resolveAdminEmailHashes(data: any): string[] {
     const list = data?.admin_email_hashes;
     if (Array.isArray(list)) {
@@ -72,10 +69,7 @@
     return typeof legacy === 'string' && legacy !== '' ? [legacy] : [];
   }
 
-  /**
-   * 表情来源地址列表：优先用 `emoji_cdn_urls` 数组（契约 v3），
-   * 数组缺失/为空时回落到旧的单地址 `emoji_cdn_url`，保证旧后端照常工作。
-   */
+  /** 表情来源地址列表：优先 `emoji_cdn_urls`，缺失/为空时回落旧字段 `emoji_cdn_url` */
   function resolveEmojiCdnUrls(data: any): string[] {
     const list = data?.emoji_cdn_urls;
     if (Array.isArray(list)) {
@@ -94,11 +88,9 @@
   let url = '';
   let content = '';
 
-  // 防止重复提交
   let submitting = false;
   let contentEl: HTMLTextAreaElement | undefined;
 
-  // 当前正在回复的评论ID
   let replyingToId: number | null = null;
   let replySubmittingId: number | null = null;
 
@@ -121,12 +113,10 @@
     return Array.from(new Uint8Array(hash)).map(b => b.toString(16).padStart(2, '0')).join('');
   }
 
-  // 本地存储键名
   const STORAGE_KEY = 'comment_user_info';
   const STORAGE_KEY_DRAFT = 'momo_comment_draft';
   let loaded = false;
 
-  // 从本地存储加载用户信息
   function loadUserInfoFromStorage() {
     try {
       const stored = localStorage.getItem(STORAGE_KEY);
@@ -141,7 +131,6 @@
     }
   }
 
-  // 保存用户信息到本地存储
   function saveUserInfoToStorage() {
     try {
       const userInfo = { author, email, url };
@@ -151,7 +140,7 @@
     }
   }
 
-  /** 清除草稿；浏览器禁用站点存储时忽略异常，不能因此影响输入框清空 */
+  /** 清除草稿：存储被禁用时忽略异常 */
   function clearDraft() {
     try {
       localStorage.removeItem(STORAGE_KEY_DRAFT);
@@ -160,10 +149,8 @@
     }
   }
 
-  // Auto-save user info and content draft on every change
   $: if (loaded) {
-    // 存储被禁用（隐私模式 / 站点数据被屏蔽）时 setItem 会抛错，
-    // 这里必须吞掉，否则异常会中断本次渲染，导致输入框清空等更新不生效
+    // ⚠️ 存储被禁用时 setItem 会抛错，必须吞掉，否则异常会中断本次渲染
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify({ author, email, url }));
       if (content) {
@@ -176,41 +163,28 @@
     }
   }
 
-  // 计算内容字数
   function getWordCount(text: string): { chars: number; words: number } {
     const chars = text.length;
     const words = text.trim() ? text.trim().split(/\s+/).length : 0;
     return { chars, words };
   }
 
-  // 检查字数是否超出限制
   function isContentWithinLimit(text: string): boolean {
     const { chars, words } = getWordCount(text);
     return chars <= 2000 && words <= 1000;
   }
 
-   /**
-   * 表情是否可用：后端关闭表情（`emoji_enabled = "false"`）或地址列表为空时，
-   * 既不渲染表情按钮，也不水合、不拉取任何地址（`emoji_set` 视为空）。
-   *
-   * 注意这里用普通函数而不是直接读 `$:` 变量：`$:` 是**批量刷新**的，
-   * `loadComments` 里刚赋值就调用 `refreshEmojiHydration()` 时读到的还是旧值。
-   */
+   /** 表情是否可用：后端关闭表情或地址列表为空都算不可用；必须用普通函数读取（`$:` 批量刷新） */
   function emojiUsable(enabled: boolean, cdnUrls: string[]): boolean {
     return enabled && cdnUrls.length > 0;
   }
 
   $: emojiAvailable = emojiUsable(emojiEnabled, emojiCdnUrls);
 
-  /** 短代码 → 图片地址；表情不可用时恒为 null（水合器只做跳过的空操作） */
+  /** 短代码 → 图片地址；表情不可用时为 null */
   $: emojiImages = emojiAvailable ? emojiSet?.images ?? null : null;
 
-
-   /**
-   * 首屏水合（第一层）：**同步、零请求**，只读本地缓存（7 天可用期，键是**整个地址列表**的 JSON）。
-   * 缓存命中时打开页面立刻就是表情；缺失/过期时先保留 `:name:` 文本，
-   * 由 `scheduleEmojiPrefetch()` 在空闲时补齐（见下）。
-   */
+   /** 首屏水合（第一层）：同步、零请求，只读本地缓存（7 天可用期，键为整个地址列表的 JSON） */
   function refreshEmojiHydration() {
     emojiSet = emojiUsable(emojiEnabled, emojiCdnUrls) ? getCachedEmojiSet({ cdnUrls: emojiCdnUrls }) : null;
   }
@@ -234,24 +208,15 @@
     return false;
   }
 
-   /**
-   * 首屏水合（第二层）：缓存缺失/过期时补齐，命中缓存但「到点」时后台校验。
-   *
-   * - 没有可用缓存 + 正文里有短代码 → 空闲时段拉一次（原有预取行为）；
-   * - 有缓存 + 正文里有短代码 + 缓存超过 `EMOJI_REVALIDATE_MS`（6 小时）→ 空闲时段静默校验，
-   *   owo.json 内容变了才替换（`revalidateEmojiSet` 返回新集合时才赋值），没变/失败保持原样；
-   * - 正文里**没有**短代码时什么都不做：纯阅读页仍是零第三方请求，等用户打开面板时再刷新；
-   * - 与面板共用 `loadEmojiSet` / `revalidateEmojiSet` 的模块级缓存与并发去重，不会重复请求。
-   */
+   /** 首屏水合（第二层）：缓存缺失时空闲拉取，命中缓存但到点（6 小时）时静默校验；正文没有短代码时什么都不做。
+    * 与表情面板共用 loadEmojiSet / revalidateEmojiSet 的缓存与并发去重。 */
   function scheduleEmojiPrefetch() {
     if (!emojiUsable(emojiEnabled, emojiCdnUrls)) return;
-    // 正文里没有短代码：不为「正文水合」拉第三方文件（面板打开时会自己刷新）
     if (!commentsUseShortcode(comments)) return;
 
     const key = JSON.stringify(emojiCdnUrls);
     if (emojiRefreshKey === key) return;
 
-    // 有缓存 → 只有到点才校验；没有缓存（含已过 7 天可用期）→ 正常拉一次
     const mode: 'load' | 'revalidate' | null =
       (emojiSet?.images.size ?? 0) > 0
         ? emojiCacheNeedsRevalidation({ cdnUrls: emojiCdnUrls })
@@ -266,7 +231,7 @@
       if (mode === 'load') {
         loadEmojiSet({ cdnUrls: emojiCdnUrls })
           .then((set) => {
-            // 期间用户可能已打开面板：只接受图片不少于当前的结果，避免覆盖更全的集合
+            // 面板可能已打开：只接受图片数不少于当前的结果
             if (set.images.size >= (emojiSet?.images.size ?? 0)) emojiSet = set;
           })
           .catch(() => {
@@ -276,7 +241,7 @@
       }
       revalidateEmojiSet({ cdnUrls: emojiCdnUrls })
         .then((next) => {
-          // null = 内容没变或有来源失败：保持当前界面（缓存里的表情照常显示）
+          // null = 内容没变或部分来源失败：保持当前界面
           if (next) emojiSet = next;
         })
         .catch(() => {
@@ -284,7 +249,7 @@
         });
     };
 
-    // 放到首屏渲染后的空闲时段，避免和评论首屏/LCP 抢带宽
+    // 放到首屏空闲时段，避免和评论首屏 / LCP 抢带宽
     if (typeof window.requestIdleCallback === 'function') {
       window.requestIdleCallback(run, { timeout: 1500 });
     } else {
@@ -303,9 +268,7 @@
     return count;
   }
 
-  /**
-   * 把加载异常翻译成**单一语言**的提示文案。
-   */
+  /** 把加载异常翻译成单一语言的提示文案 */
   function describeLoadError(err: any): string {
     const status = typeof err?.status === 'number' ? err.status : null;
     // 状态码是协议标识（各语言都原样保留），文案部分始终取自当前语言
@@ -313,14 +276,7 @@
     return t('comments.networkError');
   }
 
-  /**
-   * 拉取评论。
-   * @param loadMore 是否为「加载更多」（决定使用 loadingMore 还是 loading 状态）
-   * @param targetPage 目标页码（默认当前页）；成功后才会推进 page，保证失败可重试
-   * @param silent 静默刷新：不切换 loading 状态（列表不会整块被「正在加载评论...」顶掉），
-   *               仅在请求成功后替换列表数据。提交评论后的刷新走这条路径。
-   * @returns 是否成功
-   */
+  /** 拉取评论：成功后推进 page（失败可重试）；silent 时不切换 loading 状态，仅在成功后替换列表 */
   async function loadComments(loadMore = false, targetPage: number = page, silent = false): Promise<boolean> {
     const showLoading = !silent;
     if (loadMore) {
@@ -332,7 +288,7 @@
       const res = await fetch(
         `${apiUrl}/api/comments?post_slug=${encodeURIComponent(postSlug)}&nested=true&page=${targetPage}&limit=${limit}`
       );
-      // 只抛出 HTTP 状态，避免与渲染处的「加载失败」文案重复
+      // 只抛出 HTTP 状态，文案交给 describeLoadError
       if (!res.ok) throw Object.assign(new Error(`HTTP ${res.status}`), { status: res.status });
       const data = await res.json();
       const newComments = data?.data?.comments || [];
@@ -355,16 +311,14 @@
       if (!adminCommentKeyConfigured) adminKey = '';
       verifyEnabled = parseBool(data?.data?.verify_enabled);
       verifyHoneypot = data?.data?.verify_honeypot || '';
-      // 成功后必须重置错误态：否则一次失败会让评论区在本次会话内再也不显示
+      // ⚠️ 成功后必须重置错误态，否则一次失败后评论区本次会话内不再显示
       error = '';
       page = targetPage;
       refreshEmojiHydration();
       scheduleEmojiPrefetch();
       return true;
     } catch (err: any) {
-      // 静默刷新失败时保留已渲染的列表与原有错误态，不把界面切成错误页
-      // 错误态只保存**当前语言**的文案：绝不把浏览器抛出的英文原文（Failed to fetch 等）
-      // 拼在中文提示后面，否则会出现中英文混排
+      // 静默刷新失败时保留列表与错误态；文案只取当前语言，不拼浏览器英文原文
       if (!silent) error = describeLoadError(err);
       return false;
     } finally {
@@ -376,27 +330,24 @@
     }
   }
 
-  /** 加载下一页：只有请求成功才推进页码，失败时保持原页码可重试 */
+  /** 加载下一页：只有请求成功才推进页码 */
   async function loadMoreComments() {
     if (loadingMore) return;
     await loadComments(true, page + 1);
   }
 
   async function submitComment(parentId: number | null = null, replyData: any = null) {
-    // 防止重复提交
     if (submitting) return;
     
     let submitAuthor, submitEmail, submitUrl, submitContent, submitAdminKey;
     
     if (replyData) {
-      // 处理回复评论
       submitAuthor = replyData.author;
       submitEmail = replyData.email;
       submitUrl = replyData.url;
       submitContent = replyData.content;
       submitAdminKey = replyData.admin_key;
     } else {
-      // 处理顶层评论
       submitAuthor = author;
       submitEmail = email;
       submitUrl = url;
@@ -409,17 +360,15 @@
       return;
     }
 
-    // 检查字数限制
     if (!isContentWithinLimit(submitContent)) {
       notify(t('comments.contentTooLong') || '评论内容超出限制：不超过2000汉字或1000单词');
       return;
     }
 
-    // 只有在提交顶层评论时才设置 submitting 状态
+    // 顶层评论用 submitting，回复用 replySubmittingId（由父组件统一管理，避免按钮永久禁用）
     if (!parentId) {
       submitting = true;
     } else {
-      // 回复表单的提交状态由父组件统一管理，避免子组件状态残留导致按钮被永久禁用
       replySubmittingId = parentId;
     }
     
@@ -434,7 +383,7 @@
           url: submitUrl || null,
           content: submitContent,
           parent_id: parentId,
-          post_url: window.location.href, // 添加当前页面的URL
+          post_url: window.location.href,
           post_title: postTitle,
           admin_key: submitAdminKey || undefined,
           verify_ticket: verifyTicket || undefined,
@@ -442,7 +391,7 @@
       });
       const data = await res.json().catch(() => null);
 
-      // 人机验证票据失效：重置状态并让验证框重新验证（不清空输入，用户可直接重试）
+      // 验证票据失效：重置状态并让验证框重新验证（不清空输入）
       if (res.status === 403 && (data?.reason === 'VERIFY_REQUIRED' || data?.code === 'VERIFY_REQUIRED')) {
         verifyTicket = null;
         verifyComponent?.retry();
@@ -450,17 +399,15 @@
         return;
       }
 
-      // 只有真正提交成功才清空输入框；失败时保留用户已输入的内容，避免丢失
+      // 只有真正提交成功才清空输入框；失败时保留已输入内容
       const succeeded = res.ok && (data?.code === undefined || data.code === 200);
       if (!succeeded) {
         notify(data?.message || t('comments.submitFailed'));
         return;
       }
 
-      // 重置表单
       if (!replyData) {
         content = '';
-        // 保存用户信息到本地存储
         previewHtml = '';
         markdownWarnings = [];
         showPreview = false;
@@ -475,12 +422,10 @@
         notify(data?.message || t('comments.submitSuccess'));
       }
       
-      // 重新加载评论
       await loadComments(false, 1, true);
     } catch (err) {
       notify(t('comments.submitFailed') || '提交失败，请稍后再试');
     } finally {
-      // 只有在提交顶层评论时才重置 submitting 状态
       if (!parentId) {
         submitting = false;
       } else if (replySubmittingId === parentId) {
@@ -489,7 +434,7 @@
     }
   }
 
-  /** 把表情插入到输入框光标处（没有输入框时追加到末尾），并保持焦点与光标位置 */
+  /** 在光标处插入表情（没有输入框时追加到末尾），并保持焦点与光标位置 */
   async function insertEmoji(text: string) {
     const el = contentEl;
     if (!el) {
@@ -519,8 +464,6 @@
 </script>
 
 <div class="comment-container mt-4 max-w-3xl mx-auto border-t border-[var(--button-border-color)]" id="comments">
-  <!-- <div class="my-6 border border-[var(--text-color)]/70"></div> -->
-  <!-- 评论输入 -->
   <div data-reveal="rise" class="mt-4">
     <form on:submit|preventDefault={() => submitComment()} class="space-y-4">
       <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
@@ -582,7 +525,7 @@
       </div>
 
       <div class="relative flex flex-wrap justify-between items-center gap-3">
-        <!-- 表情按钮固定在输入框下方左侧；后端关闭表情或地址列表为空时整体不渲染 -->
+        <!-- 表情按钮：后端关闭表情或地址列表为空时不渲染 -->
         {#if emojiAvailable}
           <EmojiPicker {language} cdnUrls={emojiCdnUrls} disabled={showPreview}
             bind:emojiSet onPick={insertEmoji} />
@@ -616,7 +559,6 @@
     </form>
   </div>
 
-  <!-- 评论区 -->
   <div class="" id="comments-content">
     {#if !loadingMore && loading}
       <div data-reveal="rise" data-test="comments-loading"
@@ -637,8 +579,7 @@
 
       <div class="space-y-6">
         {#each comments as c}
-          <!-- 入场交给 CommentItem 自己的 data-reveal（整串评论一起浮出）。
-               这里不要再套 in:fly：一外层飞入、一内层上浮，两段动画会叠在一起。 -->
+          <!-- 入场交给 CommentItem 自己的 data-reveal，这里不要再套 in:fly（两段动画会叠加） -->
           <CommentItem {c} {postSlug} {author} {email} {url} {language} {apiUrl}
             {bloggerBadgeEnabled} {bloggerBadgeText} {adminCommentKeyConfigured} {adminEmailHashes}
             emojiImages={emojiImages} {emojiCdnUrls} {emojiEnabled}

@@ -1,11 +1,5 @@
 // media.mjs — 媒体库 API：统一管理 src/content/blog/** 与 public/** 下的图片
-//
-// 设计要点：
-// - 列表按「文章目录」（blog）或「目录」（public）分组，方便前端分区展示；
-// - 宽高优先用 sharp 读文件头，sharp 不可用时退化为内置的图片头解析，绝不因为
-//   一个原生依赖没装好就让整个媒体库打不开；
-// - 上传先压缩再按内容 sha256 去重，命中重复不写盘，直接把已有图片返回给前端复用；
-// - 所有路径都经过 safeRel + 根目录边界双重校验，禁止目录穿越。
+// 所有路径都必须经 safeRel + 根目录边界双重校验，禁止目录穿越。
 import { Hono } from 'hono'
 import { createHash } from 'node:crypto'
 import { readdir, readFile, writeFile, mkdir, stat, unlink, rename } from 'node:fs/promises'
@@ -38,7 +32,7 @@ const LONG_EDGE = 2400
 const QUALITY = 82
 const IO_CONCURRENCY = 8
 
-// sharp 是原生依赖，只在媒体库里用；加载失败就退化（上传不压缩、宽高走文件头解析）
+// sharp 是原生依赖，加载失败时退化：上传不压缩、宽高走文件头解析
 let sharp = null
 try {
   sharp = (await import('sharp')).default
@@ -61,7 +55,7 @@ function dirOf(rel) {
   return dir === '.' || dir === '' ? '.' : dir
 }
 
-// 把相对路径拼到根目录下，并确认结果仍在根目录内（safeRel 已挡住 `..`，这里再兜一层）
+// 把相对路径拼到根目录下并确认结果仍在根目录内（safeRel 已挡住 `..`，这里再兜一层）
 function inside(root, rel) {
   const base = resolve(root)
   const abs = resolve(base, ...rel.split('/').filter(Boolean))

@@ -8,25 +8,21 @@
 	let { headings = [], language,} = $props();
 	const t = $derived(i18nit(language));
 
-	// 内部状态
 	let tocVisible = $state(false);
 	let activeIndex = $state(-1);
 	let tocListElement = $state(null);
 
-	// 弹簧动画：处理索引位置的连续过渡
+	// 弹簧：索引位置连续过渡
 	const focusSpring = spring(-1, {
 		stiffness: 0.12,
 		damping: 0.7
 	});
 
-	// 同步动画索引
-	// 注意：Svelte 5 的 spring 没有 jump()，要「瞬间到位」得用 set(value, { instant: true })。
-	// 这里保持原有的弹簧过渡，不做减弱动画的特殊分支（全局降级已移除，见 global.css 说明）
+	// 同步动画索引（Svelte 5 的 spring 没有 jump()，瞬间到位要用 set(value, { instant: true })）
 	$effect(() => {
 		focusSpring.set(activeIndex);
 	});
 
-	// 基础逻辑计算
 	let minDepth = $derived(headings.length > 0 ? Math.min(...headings.map(h => h.depth)) : 0);
 	let maxDepth = $derived(minDepth + (siteConfig?.toc?.depth || 2));
 	let filteredHeadings = $derived(headings.filter(h => h.depth < maxDepth));
@@ -65,12 +61,8 @@
 		}
 	}
 
-	// 动态样式算法：基于弹簧数值计算透明度
-	// 透明度取两位小数：数值不变时字符串也不变，Svelte 会跳过这次 DOM 写入。
-	//
-	// ⚠️ 这里只写 opacity，不再写 font-weight：弹簧动画期间每帧都会给所有条目重写 style，
-	// 而 font-weight 变化会让整列文字重新排版（列表宽度一帧一变），滚动时最容易掉帧。
-	// 字重改由 .active 类承担，只在选中项切换时生效一次。
+	// 动态样式：按弹簧距离算透明度，两位小数让数值不变时字符串也不变（Svelte 跳过 DOM 写入）
+	// ⚠️ 只写 opacity、不写 font-weight：字重变化会让整列重新排版，滚动时掉帧；字重交给 .active
 	function getSpringStyle(index, currentSpring) {
 		const distance = Math.abs(index - currentSpring);
 		// 距离当前激活项越近，越明显
@@ -80,7 +72,7 @@
 	}
 
 	onMount(() => {
-		// ---- 滚动：统一走全局调度器 + 迟滞，避免在阈值附近反复切换显示状态 ----
+		// ---- 滚动：全局调度器 + 迟滞（SHOW_AT / HIDE_AT），避免阈值附近反复切换 ----
 		const SHOW_AT = 200;
 		const HIDE_AT = 150;
 
@@ -98,15 +90,14 @@
 			observer.disconnect();
 			document.removeEventListener('astro:before-swap', teardown);
 		};
-		// Astro 换页时兜底解绑（Svelte 卸载时也会再调用一次，重复调用是安全的）
+		// Astro 换页时兜底解绑（与 Svelte 卸载重复调用是安全的）
 		document.addEventListener('astro:before-swap', teardown);
 
 		return teardown;
 	});
 </script>
 
-<!-- 不再用 {#if} 挂载/卸载：改成常驻 + CSS 透明度切换，避免阈值附近反复重建整个目录。
-     visibility 参与过渡，因此淡出结束后才会真正隐藏。 -->
+<!-- 常驻 + CSS 透明度切换（不用 {#if}），避免阈值附近反复重建目录；visibility 参与过渡 -->
 <aside
 	aria-hidden={!tocVisible}
 	class="fixed top-20 w-[var(--toc-width)] left-[var(--toc-offset-left)] z-10 hidden lg:block text-[var(--text-color)] transition-[opacity,visibility] duration-300 {tocVisible ? 'opacity-100 visible' : 'opacity-0 invisible pointer-events-none'}"
@@ -155,7 +146,7 @@
 		text-overflow: ellipsis;
 	}
 
-	/* 选中项的字重由类承担（原来是弹簧每帧写 inline style，会带动整列重排） */
+	/* 选中项字重由类承担，避免弹簧每帧写 inline style 带动整列重排 */
 	a.active {
 		font-weight: 700;
 	}

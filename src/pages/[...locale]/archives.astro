@@ -17,13 +17,9 @@ export async function getStaticPaths() {
 	return i18n?.locales.map(locale => ({ params: { locale: locale == i18n?.defaultLocale ? undefined : (locale as string) } }));
 }
 
-// 获取所有博客文章并按发布日期降序排序
 const allBlogPosts = await getBlogEntrySort(currentLang);
 
-// ⚠️ 只把**归档列表真正用到的字段**传给客户端组件。
-// CollectionEntry 上挂着构建期 render() 缓存下来的 rendered.html（单篇可达 75 KB）
-// 和 body（markdown 原文），直接传整个 entry 会被 Svelte 序列化进 HTML 的 props 里
-// ——实测归档页 431 KB 中有 370 KB 是这份 props。这里收窄成最小 DTO 后约 2 KB。
+// ⚠️ 只传归档列表真正用到的字段：CollectionEntry 自带的 rendered.html 与 body 会被序列化进 HTML
 const archiveItems = allBlogPosts.map((post) => ({
     id: post.id,
     isFallback: post.isFallback ?? false,
@@ -46,7 +42,7 @@ const pageDescription = `${t("cover.title.archive")} - ${t("cover.subTitle.archi
         currentLang={currentLang}
         defaultLocale={i18n!.defaultLocale}
     />
-    <!-- fixed 浮层：留在 swup 容器内，但在淡入淡出元素之外（见 MainPageLayout 的说明） -->
+    <!-- fixed 浮层：在 swup 容器内、淡入淡出元素之外 -->
     <div slot="overlay">
         <FabMenu showBackBottom={true} />
     </div>

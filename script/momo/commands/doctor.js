@@ -15,7 +15,7 @@ import {
   readJson,
 } from '../lib.js'
 
-// Astro 7 要求 Node >= 22（见 doc/release_zh-cn.md 的 26.8.15 说明）
+// Astro 7 要求 Node >= 22
 const MIN_NODE_MAJOR = 22
 const LANGS = ['zh-cn', 'en']
 
@@ -56,23 +56,19 @@ export default {
     const checks = []
     const add = (level, title, detail = '') => checks.push({ level, title, detail })
 
-    // Node
     const nodeMajor = Number(process.versions.node.split('.')[0])
     if (nodeMajor >= MIN_NODE_MAJOR) add('ok', `Node.js ${process.version}`)
     else add('fail', `Node.js ${process.version} 过低`, `需要 >= ${MIN_NODE_MAJOR}（Astro 7 要求）`)
 
-    // pnpm
     const pnpm = pnpmVersion()
     if (pnpm) add('ok', `pnpm ${pnpm}`)
     else add('warn', '未检测到 pnpm', '执行 npm install -g pnpm 安装')
 
-    // 依赖
     for (const [dir, label] of [['node_modules', '根项目依赖'], ['cms/node_modules', 'CMS 依赖']]) {
       if (await pathExists(fromRoot(dir))) add('ok', `${label}已安装`, dir)
       else add('fail', `${label}未安装`, `执行 pnpm install`)
     }
 
-    // 配置与内容
     const missing = []
     for (const rel of CONFIG_PATHS) {
       if (!(await pathExists(fromRoot(rel)))) missing.push(rel)
@@ -86,7 +82,7 @@ export default {
     if (await pathExists(fromRoot('dist'))) add('ok', '已有构建产物 dist/', formatBytes(await pathSize(fromRoot('dist'))))
     else add('warn', '还没有构建产物', '可执行 pnpm build')
 
-    // git（只有 backup 的版本信息会用到；update 已改为基于 GitHub Release，不再依赖本地 git）
+    // git 只用于 backup 的版本信息；update 基于 GitHub Release，不依赖本地 git
     if (!hasCommand('git')) add('warn', '未检测到 git', 'pnpm momo backup 不会记录提交信息（update 不受影响）')
     const git = gitInfo()
     if (git) {
@@ -96,12 +92,11 @@ export default {
       add('warn', '当前目录不是 git 仓库', '仍可用 pnpm momo update（它按 GitHub Release 更新）')
     }
 
-    // 版本信息：顺便提示是否有新版本（离线时静默跳过）
+    // 项目版本；--check 时再查最新 Release（离线静默跳过）
     const pkg = await readJson(fromRoot('package.json'), {})
     if (pkg.version) add('ok', `项目版本 ${pkg.version}`)
 
-    // 客户端路由（swup）：只在 package.json 里声明了这个依赖时才检查，
-    // 免得给「还没执行 pnpm momo update」的旧站点报无意义的警告
+    // 客户端路由用 @swup/astro：只在 package.json 声明了该依赖时才检查，避免给旧站点报警告
     const deps = { ...(pkg.dependencies ?? {}), ...(pkg.devDependencies ?? {}) }
     if (deps['@swup/astro']) {
       if (await pathExists(fromRoot('node_modules/@swup/astro'))) {
@@ -128,7 +123,6 @@ export default {
       }
     }
 
-    // 输出
     log.title('环境检查')
     for (const item of checks) {
       const icon = item.level === 'ok' ? c.green('✓') : item.level === 'warn' ? c.yellow('⚠') : c.red('✗')

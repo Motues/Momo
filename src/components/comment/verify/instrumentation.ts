@@ -1,30 +1,6 @@
 /**
- * Instrumentation 质询的客户端执行（第二层验证）
- *
- * 服务端下发一段随机程序（整数运算 + DOM 元素树操作），这里在浏览器里真实执行它，
- * 并额外采集环境向量与布局探针，一起回传由服务端判定。
- *
- * ## 与 Cap 的有意偏离（重要）
- *
- * Cap 的做法是在 iframe 里跑一段**内联脚本**，用 postMessage 把结果传回来。
- * 但内联脚本会被绝大多数博客的 CSP（`script-src` 没有 `unsafe-inline`）拦下，
- * 那会让验证在这些站点上直接不可用 —— 而我们这个组件正是跑在别人的博客上。
- *
- * 所以这里改为：创建一个 `sandbox="allow-same-origin"`（**不含 allow-scripts**）的 iframe，
- * 由父页面直接操作该 iframe 的文档来执行程序。收益保留：
- * - 独立的文档与层叠样式上下文：宿主页面的 `* { font-size: 0 }`、`display:none` 之类
- *   不会破坏布局探针；
- * - 不向宿主页面插入任何节点，执行完即销毁；
- * - 不需要执行内联脚本，因此不受宿主页面 CSP 的 script-src 限制。
- * 代价：程序不在 iframe 的独立 JS realm 中执行，因此拿不到「主 realm 被打了补丁」这个信号。
- * 该信号本身也不可靠（CDP 的 addScriptToEvaluateOnNewDocument 会作用于所有新文档）。
- *
- * ## 环境向量从哪里采集
- *
- * navigator / screen / 窗口几何一律从**顶层 window** 读取：
- * iframe 里的 `outerWidth/outerHeight` 是框架自身的尺寸，不是浏览器窗口尺寸，
- * 从 iframe 读会让「窗口高于屏幕」这条规则彻底失真。
- * 只有需要隔离 CSS 的 DOM/文字度量走 iframe 文档。
+ * Instrumentation 质询的客户端执行（第二层验证）：跑服务端下发的随机程序，并采集环境向量与布局探针。
+ * 隔离 iframe 只给 allow-same-origin、不执行内联脚本，因此不受宿主页面 CSP 的 script-src 限制。
  */
 
 /** 操作码表：必须与 nodejs/src/utils/instrumentation.ts 的 InstrOp 完全一致 */
@@ -105,8 +81,8 @@ export interface EnvVector {
 	sw: number;
 	sh: number;
 	/**
-	 * screen.isExtended：1=是，0=否，-1=浏览器不支持该 API（Gecko / WebKit / 老 Chromium）。
-	 * 服务端只在能自证扩展屏的引擎（Blink）上按「窗口超出屏幕」拦截，其余只记风险标记。
+	 * screen.isExtended：1=是，0=否，-1=浏览器不支持该 API。
+	 * 服务端只在 Blink 上按「窗口超出屏幕」拦截，其余只记风险标记。
 	 */
 	ex: number;
 	mob: number;
@@ -134,12 +110,7 @@ interface IsolatedContext {
 	cleanup: () => void;
 }
 
-/**
- * 创建隔离的执行上下文。
- *
- * 优先用 iframe（独立样式上下文）；任何失败都退化为宿主页面里的隐藏容器，
- * 宁可在不理想的上下文里完成验证，也不要让真人无法评论。
- */
+/** 创建隔离的执行上下文；失败时退化为宿主页面里的隐藏容器 */
 function createIsolatedContext(): IsolatedContext {
 	try {
 		const iframe = document.createElement('iframe');
@@ -147,10 +118,8 @@ function createIsolatedContext(): IsolatedContext {
 		iframe.setAttribute('sandbox', 'allow-same-origin');
 		iframe.setAttribute('aria-hidden', 'true');
 		iframe.tabIndex = -1;
-		// 必须真正参与布局（不能用 display:none），否则几何尺寸恒为 0。
-		// 这里刻意**不加 visibility:hidden**：离屏定位已经足够隐藏，
-		// 而加可见性隐藏会引入「某些浏览器跳过该 iframe 布局」的风险 ——
-		// 一旦布局探针因此返回 0，开了 blockAutomated 的站点会把所有真人都拦掉。
+		// ⚠️ 必须真正参与布局（不能 display:none，也不要加 visibility:hidden），
+		// 否则几何尺寸恒为 0，开 blockAutomated 的站点会把所有真人拦掉
 		iframe.style.cssText =
 			'position:absolute;left:-10000px;top:0;width:600px;height:400px;border:0';
 		document.body.appendChild(iframe);
@@ -198,9 +167,7 @@ function createIsolatedContext(): IsolatedContext {
 
 /**
  * 在给定文档里执行程序，返回最终寄存器。
- *
- * 整数语义必须与服务端影子模型逐位一致：全部按 32 位有符号整数运算，
- * 乘法用 Math.imul，移位/旋转按 JS 的 32 位语义。
+ * 整数语义必须与服务端影子模型逐位一致：32 位有符号运算，乘法用 Math.imul。
  */
 export function runProgram(doc: Document, container: HTMLElement, ops: number[]): number[] {
 	if (!Array.isArray(ops) || ops.length === 0 || ops.length % INSTR_OP_STRIDE !== 0) {
@@ -290,8 +257,7 @@ export function runProgram(doc: Document, container: HTMLElement, ops: number[])
 				break;
 			case InstrOp.DOM_WALK_UP: {
 				if (!top) throw new InstrumentationError('DOM_WALK_UP 时栈为空');
-				// 必须与服务端一致：从栈顶开始累加最多 b+1 个节点，
-				// 到我们自己的容器为止（容器之外属于宿主页面，不能算进来）
+				// 必须与服务端一致：从栈顶累加最多 b+1 个节点，到自己容器为止
 				let node: Element | null = top;
 				let acc = 0;
 				for (let k = 0; k <= b && node && node !== container; k++) {
@@ -338,9 +304,7 @@ export function measureFonts(doc: Document): number[] {
 		for (const stack of FONT_STACKS) {
 			ctx.font = `16px ${stack}`;
 			const width = ctx.measureText(PROBE_TEXT).width;
-			// 刻意**不做小数位取整**：把 159.9999999 吸附成 160 会让服务端的
-			// 「字宽被整数量化」判定虚增计数，可能误伤真实浏览器。
-			// 这里的原始浮点数本身就足够短（JSON 只输出可往返的最短表示）。
+			// ⚠️ 不做小数位取整：把 159.9999999 吸附成 160 会让服务端的「字宽被整数量化」判定虚增
 			metrics.push(Number.isFinite(width) ? width : 0);
 		}
 	} catch {
@@ -350,14 +314,8 @@ export function measureFonts(doc: Document): number[] {
 }
 
 /**
- * 布局探针：必须由真实渲染引擎给出正的几何尺寸。
- *
- * jsdom / happy-dom 之类没有布局引擎，`getBoundingClientRect()` 恒为 0，
- * 因此这是「计算是否真的发生在浏览器里」最便宜也最可靠的一条判据。
- *
- * 同时读 `getBoundingClientRect()` 与 `offsetWidth/Height` 并取较大值：
- * 两条独立路径都返回 0 才判定为「没有布局引擎」，避免某一套 API 被实现成桩
- * 就误判真人（开 blockAutomated 时这个误判的代价是把所有访客拦在门外）。
+ * 布局探针：必须由真实渲染引擎给出正的几何尺寸（jsdom 之类 `getBoundingClientRect()` 恒为 0）。
+ * 同时读 getBoundingClientRect 与 offsetWidth/Height 取较大值，两条路径都为 0 才判定没有布局引擎。
  */
 export function measureLayout(doc: Document, container: HTMLElement): { lw: number; lh: number } {
 	try {
@@ -400,12 +358,7 @@ function detectEngine(win: Window): number {
 	return 0;
 }
 
-/**
- * 原生方法被改写的位掩码：1=canvas，2=webgl，4=permissions。
- *
- * 这条只作为风险标记，**永不拦截**：隐私扩展（Canvas Blocker / Chameleon / Trace 等）
- * 会改写同一批方法，把它们拦掉会误伤大量真实用户。
- */
+/** 原生方法被改写的位掩码：1=canvas，2=webgl，4=permissions。只作风险标记，永不拦截 */
 function detectNativeTamper(): number {
 	let flags = 0;
 	const isPatched = (target: any, method: string): boolean => {
@@ -443,12 +396,7 @@ function detectNativeTamper(): number {
 	return flags;
 }
 
-/**
- * 采集环境向量。
- *
- * navigator / screen / 窗口几何从**顶层 window** 读取（理由见文件头注释）；
- * 字体度量传入隔离文档，避免宿主页面样式干扰。
- */
+/** 采集环境向量：navigator / screen / 窗口几何从顶层 window 读，字体度量用隔离文档 */
 export function collectEnv(win: Window, isolatedDoc: Document): EnvVector {
 	const nav = win.navigator ?? navigator;
 	const scr = win.screen ?? screen;
@@ -481,19 +429,14 @@ export function collectEnv(win: Window, isolatedDoc: Document): EnvVector {
 		oh: Number(win.outerHeight) || 0,
 		sw: Number(scr?.width) || 0,
 		sh: Number(scr?.height) || 0,
-		// 三态：undefined = 浏览器没有实现 screen.isExtended（Firefox / Safari 等）。
-		// 这时服务端无法区分「扩展屏」与「真的被 CDP 缩了 screen」，只能记为风险，不能拦截。
+		// 三态：undefined = 浏览器没实现 screen.isExtended，服务端只能记风险、不能拦截
 		ex: (scr as any)?.isExtended === undefined ? -1 : (scr as any)?.isExtended ? 1 : 0,
 		mob: /Mobi|Android|iPhone|iPad|iPod/i.test(String(nav.userAgent ?? '')) ? 1 : 0,
 		nt: detectNativeTamper(),
 	};
 }
 
-/**
- * 执行一次完整的第二层质询：跑程序 + 采环境 + 量布局。
- *
- * 无论成功失败都会销毁隔离上下文，绝不在宿主页面留下节点。
- */
+/** 执行一次完整的第二层质询：跑程序 + 采环境 + 量布局。无论成败都会销毁隔离上下文 */
 export function runInstrumentation(ops: number[]): InstrumentationAnswer {
 	const context = createIsolatedContext();
 	try {

@@ -1,14 +1,4 @@
-<!--
-  fa6-solid:hashtag 的内联版本。
-
-  原来归档页用 `@iconify/svelte` 的 <Icon>：它**不打包图标数据**，运行时去
-  api.iconify.design 拉取，SSR 出来的只是一个空占位（构建产物里就是一串注释），
-  要等一次跨公网请求回来图标才出现；顺带把 iconify 运行时（约 8 KB）也带进了 chunk。
-
-  这里直接把 path 内联进来：图标随 SSR 一起到达，没有第三方请求。
-  图形数据取自本地 devDependency @iconify-json/fa6-solid（viewBox 512×512，fill=currentColor，
-  所以 class 传颜色 / 尺寸的行为与原来一致）。
--->
+<!-- fa6-solid:hashtag 的内联版本：path 取自 @iconify-json/fa6-solid（viewBox 512×512，fill=currentColor），随 SSR 一起到达，无第三方请求 -->
 <script>
   let { class: className = '' } = $props();
 </script>

@@ -10,8 +10,7 @@
   contain-intrinsic-size: auto 16rem;
 }
 
-/* 正文标题字号：h1 / h3 / h4 / h6 复用界面字号标尺，
-   h2 取 3xl（28px），h5 取 lg（18px）。 */
+/* 正文标题：h1 / h3 / h4 / h6 复用字号标尺，h2 取 3xl，h5 取 lg */
 .markdown-content h1 {
   padding: 0.5rem 0;
   font-size: var(--momo-font-size-4xl);
@@ -61,13 +60,8 @@
   color: var(--text-color);
 }
 
-/* 正文链接：文字下方常显细实线下划线（固定 1px，比浏览器默认的线宽更细；下划线也上提了一些），
-   颜色用 inherit 跟随所在容器的文字色：普通正文就是 --text-color，而自带颜色的语法
-   （引用块 #666 / 暗色 #aaa、彩虹文字 transparent、admonition 标题等）会自然生效，
-   不会被这里的规则覆盖；悬停时整条链接连同下划线变为主题蓝并略微透明。
-   用 text-decoration 实现（不用伪元素）：下划线随文字换行自然断开，字号变化也跟着走。
-   注：脚注引用 / 回跳等自身带 !important 的链接不受影响（见 Markdown.astro）；
-   卡片类链接（.card-github / .card-music）带 .no-styling，不在下面的选择器范围内。 */
+/* 正文链接：细实线下划线，颜色用 inherit 跟随所在容器（否则引用块、彩虹文字、admonition 标题等
+   自带颜色的语法会被覆盖）；悬停变主题蓝。脚注里带 !important 的链接与 .no-styling 卡片不受影响。 */
 .markdown-content p a,
 .markdown-content li a,
 .markdown-content blockquote a,
@@ -106,24 +100,19 @@
   opacity: 0.8;
 }
 
-/* 彩虹文字里的链接：文字必须保持透明才能露出渐变，所以下划线单独给主题蓝，避免整条链接
-   看起来跟旁边的普通文字一样（这条要放在上面链接规则之后，两者优先级相同靠顺序取胜） */
+/* 彩虹文字里的链接：文字保持透明露出渐变，下划线单独给主题蓝；须排在上面的链接规则之后 */
 .markdown-content .rainbow-text a {
   text-decoration-color: var(--link-color);
 }
 
-/* 新标签页链接（[文字](url){target="_blank"}）后面追加的右上箭头图标：
-   图标由插件输出在 <a> 外面（链接的下一个兄弟节点），所以链接的下划线与悬停变色
-   都不会作用到它；颜色默认跟随正文（fill="currentColor"），悬停链接时由下面那条
-   `a:hover + .newtab-icon` 单独染成主题蓝——两者之间隔着插件插入的 word joiner 文本节点，
-   而 `+` 只算元素兄弟，所以照样命中。
-   插件的 viewBox 已收紧到箭头自身边界，所以这里的 width / height 就是箭头实际大小，
-   想调大小只改下面这一个值即可（换图标时要同步插件里的 viewBox：rehype-link-target.ts）。 */
+/* 新标签页链接的箭头图标：由插件输出在 <a> 之后（下一个兄弟节点），所以下划线 / 悬停变色
+   都不作用到它，靠 `a:hover + .newtab-icon` 单独染色。viewBox 已收紧到箭头边界，
+   这里的 width / height 就是实际大小；换图标必须同步 rehype-link-target.ts 的 viewBox。 */
 .markdown-content .newtab-icon {
   display: inline-block;
   width: 0.56em;
   height: 0.56em;
-  /* 箭头左右各留一点空隙：左边和链接文字分开，右边不贴住后面的标点或文字 */
+  /* 左侧与链接文字分开，右侧不贴住后面的标点 */
   margin-left: 0.18em;
   margin-right: 0.08em;
   vertical-align: 0.03em;
@@ -133,7 +122,6 @@
   transition: color var(--momo-t-fast) var(--momo-ease-out), opacity var(--momo-t-fast) var(--momo-ease-out);
 }
 
-/* 悬停链接时箭头跟着一起变色（并和文字一样略微透明） */
 .markdown-content a:hover + .newtab-icon {
   color: var(--link-color);
   opacity: 0.8;
@@ -202,8 +190,7 @@
   font-size: 0.9em;
 }
 
-/* 代码块由 Expressive Code 渲染（样式见构建产物 /_astro/ec.*.css，配置见 ec.config.mjs），
-   下面这些规则只用于兜底（正文里手写的 <pre>），因此排除 .expressive-code 内部 */
+/* 代码块由 Expressive Code 渲染（配置见 ec.config.mjs），这里只兜底手写的 <pre> */
 .markdown-content pre:not(.expressive-code pre) {
   margin: 0.5rem 0;
   padding: 1rem;
@@ -229,11 +216,8 @@
   margin: 1.25rem 0;
 }
 
-/* 复制按钮：EC 自带样式里，触摸设备（@media (hover: none)）会把按钮放大到 2.5rem
-   并常显，窄屏上很占地方；这里在手机 / 触摸设备上收回到桌面端同尺寸（2rem）。
-   条件与 EC 的那条互补（窄屏 or 触摸），媒体查询里两个都写，横屏手机也覆盖得到；
-   遮罩图标靠 ::after 的 margin 0.475rem 撑出来，尺寸不变即可保持图标比例与桌面一致。
-   选择器必须比 EC 的 `.expressive-code .copy button`(0,2,1) 更重，故带上 .markdown-content。 */
+/* 复制按钮：触摸设备（@media (hover: none)）上 EC 会放大到 2.5rem 并常显，这里收回到
+   桌面端同尺寸 2rem。选择器必须比 EC 的 `.expressive-code .copy button`(0,2,1) 更重。 */
 @media (max-width: 776px), (hover: none) {
   .markdown-content .expressive-code .copy button {
     width: 2rem;
@@ -285,8 +269,7 @@
   border-radius: var(--momo-radius-md);
 }
 
-/* 连续图片自动拼图（插件 src/plugins/rehype-image-collage.mjs，开关见 siteConfig.theme.imageCollage）
-   --cols 是每行张数（插件按图片数量智能选择），--span 让最后一行的图片补满整行 */
+/* 连续图片自动拼图（开关见 siteConfig.theme.imageCollage）：--cols 每行张数，--span 让末行补满整行 */
 .markdown-content .image-collage {
   --collage-gap: 8px;
   --collage-row-height: clamp(110px, 16vw, 200px);
@@ -307,7 +290,7 @@
   margin: 0;
 }
 
-/* 兜底：行内有图片量不出宽高比（远端图片等）时，用固定行高裁切铺满格子，保证行内整齐 */
+/* 兜底：行内有图片量不出宽高比时按固定行高裁切铺满格子 */
 .markdown-content .image-collage .collage-media {
   position: relative;
   flex: none;
@@ -317,8 +300,7 @@
   background: var(--button-hover-color);
 }
 
-/* 行高由该行最宽的图片决定的那些格子：用 aspect-ratio 撑开（值 = 占列数 / 行高因子）
-   最宽的图片完整显示，同行的其它图片正好也是这个高度 */
+/* 行高由该行最宽的图片决定：用 aspect-ratio 撑开（值 = 占列数 / 行高因子） */
 .markdown-content .image-collage .collage-media.collage-ratio {
   height: auto;
   aspect-ratio: var(--ratio);
@@ -346,12 +328,12 @@
     grid-column: auto;
   }
 
-  /* 移动端每行最多 2 张，总数为奇数时最后一张补满整行 */
+  /* 奇数张时最后一张补满整行 */
   .markdown-content .image-collage .collage-item:last-child:nth-child(odd) {
     grid-column: span 2;
   }
 
-  /* 桌面端算出的行高在 2 列布局下不适用，退回固定行高；改用插件为移动端算出的 .collage-ratio-sm */
+  /* 桌面端的行高在 2 列布局下不适用：退回固定行高，改用插件为移动端算出的 .collage-ratio-sm */
   .markdown-content .image-collage .collage-media.collage-ratio {
     height: var(--collage-row-height);
     aspect-ratio: auto;
@@ -374,11 +356,9 @@
   padding: 0.5rem 1rem;
   border-radius: var(--momo-radius-sm);
   margin: 1rem 0;
-  /* border-left: 6px solid; */
 }
 
-/* 四种语义色与 variables.css 的 token 同源：改色只改 token。
-   note 是中性说明块，保持灰调，不占用语义色。 */
+/* 语义色与 variables.css 的 token 同源：改色只改 token。note 是中性的，保持灰调 */
 .note {
   border-color: #757575;
   background: #eeeeee;
@@ -452,18 +432,14 @@
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='%23e13238'%3E%3Cpath d='M4.47.22A.749.749 0 0 1 5 0h6c.199 0 .389.079.53.22l4.25 4.25c.141.14.22.331.22.53v6a.749.749 0 0 1-.22.53l-4.25 4.25A.749.749 0 0 1 11 16H5a.749.749 0 0 1-.53-.22L.22 11.53A.749.749 0 0 1 0 11V5c0-.199.079-.389.22-.53Zm.84 1.28L1.5 5.31v5.38l3.81 3.81h5.38l3.81-3.81V5.31L10.69 1.5ZM8 4a.75.75 0 0 1 .75.75v3.5a.75.75 0 0 1-1.5 0v-3.5A.75.75 0 0 1 8 4Zm0 8a1 1 0 1 1 0-2 1 1 0 0 1 0 2Z'%3E%3C/path%3E%3C/svg%3E");
 }
 
-
-/* 音乐卡片样式 */
 .card-music {
     display: block;
     width: 100%;
     max-width: 400px;
     margin: 1.5rem auto;
     border-radius: var(--momo-radius-lg);
-    /* box-shadow: 0 4px 12px var(--shadow-color); */
     text-decoration: none;
-    /* 只过渡真正会变的两个属性；边框走 t-fast（换色），阴影走 t-base（浮起）。
-       早先是 `all 0.8s ease !important`：既不在时长标尺里，也会连带布局属性。 */
+    /* 只过渡描边与阴影：描边走 t-fast，阴影走 t-base */
     transition:
         border-color var(--momo-t-fast) var(--momo-ease-out),
         box-shadow var(--momo-t-base) var(--momo-ease-out);
@@ -474,7 +450,6 @@
 
 .card-music:hover {
     box-shadow: var(--momo-shadow-lg);
-    /* transform: translateY(-3px); */
     border-color: var(--link-color);
 }
 
@@ -502,7 +477,6 @@
     transition: all var(--momo-t-base) var(--momo-ease-out);
 }
 
-/* 添加网易云音乐图标样式 */
 .music-card::before {
     content: "";
     position: absolute;
@@ -551,7 +525,7 @@
     text-overflow: ellipsis;
 }
 
-/* GitHub 卡片请求失败：半透明 + 语义错误色。合并了早先互相覆盖的两条定义。 */
+/* GitHub 卡片请求失败：半透明 + 语义错误色 */
 .fetch-error {
   opacity: 0.5;
   background-color: var(--error-bg-color);
@@ -559,15 +533,12 @@
   border-radius: var(--momo-radius-sm);
 }
 
-
-/* GitHub Card Styles */
 .card-github {
     display: block;
     padding: 16px;
     border-radius: var(--momo-radius-md);
-    /* box-shadow: 0 4px 12px var(--shadow-color); */
     text-decoration: none;
-    /* 与 .card-music 同一套过渡：只动描边与阴影，时长走 token */
+    /* 与 .card-music 同一套过渡 */
     transition:
         border-color var(--momo-t-fast) var(--momo-ease-out),
         box-shadow var(--momo-t-base) var(--momo-ease-out);
@@ -579,7 +550,6 @@
 
 .card-github:hover {
     box-shadow: var(--momo-shadow-lg);
-    /* transform: translateY(-2px); */
     border-color: var(--link-color);
 }
 
@@ -845,13 +815,8 @@ rt {
   background: transparent;
 }
 
-/* ============================================================================
- * 搜索深链锚点
- * ----------------------------------------------------------------------------
- * 正文块由 rehype-search-anchor 注入 id（标题沿用 slug），搜索结果会直接跳到
- * `#s-12` 这类锚点。短块最终由 Layout 滚到视口中心；这里的 scroll-margin 是
- * 原生锚点 / 长块退化到「顶栏下方」时的兜底偏移。
- * ========================================================================== */
+/* 搜索深链锚点：正文块由 rehype-search-anchor 注入 id（标题沿用 slug），
+   这里只给原生锚点 / 长块退化到「顶栏下方」时的兜底偏移 */
 
 .markdown-content :is(h1, h2, h3, h4, h5, h6, [data-search-anchor]) {
   scroll-margin-top: 6rem;

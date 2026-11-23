@@ -1,25 +1,10 @@
-// 自研下拉选择组件（替换原生 <select>，外观与交互完全自己控制）
+// 自研下拉选择组件（替换原生 <select>）
 //
-// 用法：
-//   const sel = createSelect({
-//     id: 'sort-by',
-//     class: 'tool-select',                        // 追加在触发器上的额外类
-//     title: '排序方式',
-//     options: [{ value: 'a', label: 'A' }],
-//     value: 'a',
-//     onChange: (v) => { ... },                    // 值真的变化时才触发（与原生 select 一致）
-//   })
-//   root.append(sel)                               // 返回的触发器就是控件本身
-//   sel.value                                      // 读取当前值
-//   sel.setOptions(options, value?)                // 重建选项（分类筛选会用到）
+// 用法：createSelect({ id, class?, title?, options, value?, onChange }) 返回触发器本身，
+//       .value 读写当前值，.setOptions(options, value?) 重建选项。
 //
-// 两个实现要点：
-// 1. **面板挂在 body 上、用 position: fixed 定位**：编辑器工具栏 / 弹窗 / 配置网格
-//    各有自己的层叠上下文与 overflow，面板留在原地会被裁掉或压住；挂 body 后只需
-//    在打开时按触发器的 rect 算一次位置，靠近视口底部时自动向上翻转。
-// 2. **焦点始终留在触发器上**（面板内 mousedown 阻止默认行为），因此键盘操作
-//    （↑↓ / Home / End / Enter / 首字母跳转）只需要挂在触发器上，不用全局监听；
-//    只有 Esc 额外挂了一个 document 捕获监听兜底（脚本点击、焦点被别的东西拿走时也能收）。
+// ⚠️ 面板挂在 body 上、position: fixed 定位（否则会被层叠上下文 / overflow 裁掉或压住），
+// 焦点始终留在触发器上，键盘交互只挂在触发器上；Esc 额外用 document 捕获监听兜底。
 import { el } from './dom'
 
 export interface SelectOption {
@@ -42,7 +27,7 @@ export interface SelectControl extends HTMLButtonElement {
   setOptions(options: SelectOption[], value?: string): void
 }
 
-// 同一时刻只允许一个面板展开：点开 B 时 A 必须收起（也顺带收掉上一个页面遗留的面板）
+// 同一时刻只允许一个面板展开（点开 B 时 A 必须收起，也顺带收掉上个页面遗留的面板）
 let openCloser: (() => void) | null = null
 let uid = 0
 
@@ -82,7 +67,7 @@ export function createSelect(config: SelectConfig = {}): SelectControl {
   // 面板内按下鼠标时不要把焦点从触发器上抢走（键盘操作依赖触发器保持聚焦）
   panel.addEventListener('mousedown', (e) => e.preventDefault())
 
-  // 原生 select 的 .value 习惯用法照旧可用（编辑器工具栏等直接读 sel.value）
+  // .value 习惯用法照旧可用（编辑器工具栏等直接读 sel.value）
   Object.defineProperty(trigger, 'value', {
     configurable: true,
     get: () => value,
@@ -98,8 +83,7 @@ export function createSelect(config: SelectConfig = {}): SelectControl {
     valueEl.textContent = current ? current.label : ''
   }
 
-  // 当前值不在选项里时退回第一项（原生 select 就是这么处理的）：
-  // 配置项缺失 / 传了空串时不会出现一个空白标签
+  // 当前值不在选项里时退回第一项（原生 select 的行为），避免出现空白标签
   function normalizeValue() {
     if (!options.some((o) => o.value === value)) value = options[0]?.value ?? ''
     activeIndex = Math.max(0, options.findIndex((o) => o.value === value))
@@ -219,8 +203,7 @@ export function createSelect(config: SelectConfig = {}): SelectControl {
     trigger.classList.add('is-open')
     trigger.setAttribute('aria-expanded', 'true')
     syncRows()
-    // 先定位（此时才量得到最终高度），再把当前值滚进可视区——选项多时
-    // 打开面板应该直接看到选中的那一项，而不是列表顶部
+    // 先定位（此时才量得到最终高度），再把当前值滚进可视区
     place()
     setActive(Math.max(0, options.findIndex((o) => o.value === value)))
     document.addEventListener('pointerdown', onDocPointerDown, true)
@@ -268,9 +251,8 @@ export function createSelect(config: SelectConfig = {}): SelectControl {
     else openPanel()
   })
 
-  // 注意：这里**不要**用 trigger 的 blur 来收起面板——触屏上点选项会让按钮先失焦，
-  // 面板会在 click 到达之前被移除，选项就永远选不上。收起只认下面这些明确信号：
-  // 点面板外（pointerdown）/ 页面滚动 / 换路由 / Esc / 再开一个下拉。
+  // ⚠️ 不要用 trigger 的 blur 收起面板：触屏上点选项会让按钮先失焦，选项就永远选不上。
+  // 收起只认这些信号：点面板外（pointerdown）/ 页面滚动 / 换路由 / Esc / 再开一个下拉。
 
   trigger.addEventListener('keydown', (e: KeyboardEvent) => {
     if (e.ctrlKey || e.metaKey || e.altKey) return

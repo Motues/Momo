@@ -1,11 +1,4 @@
-/**
- * 整页滚动锁定（移动端抽屉、图片灯箱共用）。
- *
- * 锁 <html> 而不是 <body>：开启 OverlayScrollbars 之后，OS 把 documentElement 当作
- * viewport、body 只作为内容容器，此时 body 上的 overflow 已经拦不住滚动；
- * 而根元素的 overflow 会被视口继承，所以锁 documentElement 在「开 / 没开 OS」
- * 两种情况下都成立，调用方不必关心当前用的是哪一种。
- */
+/** 整页滚动锁定（移动端抽屉 / 图片灯箱共用）：锁 <html> 而非 <body>，否则 OS 接管后拦不住滚动 */
 
 /** 计数器式加锁：抽屉与灯箱可能先后叠加，后解锁的不能把先解锁的覆盖掉 */
 let depth = 0

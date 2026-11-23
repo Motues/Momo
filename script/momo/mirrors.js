@@ -1,32 +1,22 @@
 // mirrors.js — GitHub 访问加速：直连与公共镜像的自动探测、缓存与多源回退
 //
-// 背景：`api.github.com` / `codeload.github.com` 在国内经常连不上或慢到超时
-// （实测某些网络下直连完全超时，而公共反代 1-2 秒就有响应），因此 `pnpm momo update`
-// 不能只走直连。这里的策略是：
-//   1) 候选源 = 内置公共镜像 + 用户自定义（`--mirror` / `MOMO_MIRROR`）+ GitHub 直连；
-//   2) 真正下载前并行探测（源码包读一小段字节、API 取一个小 JSON），按实测速度排序；
-//   3) 依次尝试，任何一步失败（连不上 / 超时 / 返回 HTML 错误页 / 内容不是源码包）就换下一个源；
-//   4) 上次成功的源记在 .momo/mirror.json，一小时内直接复用，省掉探测。
-//
-// ⚠️ 安全：**通过第三方镜像请求时不发送 GITHUB_TOKEN**（否则 token 就交给了镜像站），
-// 只有 GitHub 直连才带 Authorization；镜像转发的是公开仓库，不需要 token。
+// ⚠️ 安全：向第三方镜像请求时不发送 GITHUB_TOKEN，只有 GitHub 直连才带 Authorization
 import { fromRoot, readJson, writeJson } from './lib.js'
 
 const UA = 'momo-cli'
 
-// 本机状态（.gitignore 已忽略）：记住上次成功的源
+// 本机缓存（.gitignore 已忽略）：记住上次成功的源
 const CACHE_FILE = '.momo/mirror.json'
-const CACHE_TTL = 60 * 60 * 1000 // 1 小时：过期后重新探测，避免一直用已经变慢的镜像
+const CACHE_TTL = 60 * 60 * 1000 // 1 小时：过期后重新探测
 
-// 探测参数：源码包只读 128 KB，够判断「能不能用 + 大概多快」，不会浪费太多流量
+// 探测参数：源码包只读前 128 KB 判断可用性与速度
 const FILE_PROBE_BYTES = 128 * 1024
 const FILE_PROBE_MIN_BYTES = 16 * 1024
 const FILE_PROBE_TIMEOUT = 8000
 const API_PROBE_TIMEOUT = 8000
 const PROBE_CONCURRENCY = 5
 
-// 下载：空闲超时（多久没有新数据才算失败）比「总时长上限」更合适——
-// 慢速镜像只要还在传就不该被判超时，真正卡死时又能及时换源
+// 下载：空闲超时（多久无新数据即判失败）+ 总时长兜底
 const DEFAULT_IDLE_TIMEOUT = 45000
 const DEFAULT_TOTAL_TIMEOUT = 15 * 60 * 1000
 
@@ -34,9 +24,8 @@ const DEFAULT_TOTAL_TIMEOUT = 15 * 60 * 1000
 export const DIRECT_SOURCE = Object.freeze({ name: 'GitHub 直连', prefix: '', direct: true })
 
 /**
- * 内置公共镜像（都按「前缀 + 完整 GitHub 地址」的方式转发）。
- * 这些站点由第三方提供、可用性会变化，所以每个都会先探测再用，坏了自动跳过；
- * 也可以随时用 `--mirror <前缀>` 或环境变量 `MOMO_MIRROR` 换成自己信得过的。
+ * 内置公共镜像（都按「前缀 + 完整 GitHub 地址」转发）；
+ * 可用 `--mirror <前缀>` 或环境变量 `MOMO_MIRROR` 替换
  */
 export const BUILTIN_MIRRORS = [
   { name: 'gh-proxy.com', prefix: 'https://gh-proxy.com/' },
@@ -49,7 +38,7 @@ export const BUILTIN_MIRRORS = [
   { name: 'hub.gitmirror.com', prefix: 'https://hub.gitmirror.com/' },
 ]
 
-/** 网络/内容类错误：带上 kind，调用方据此决定「换 URL 形式」还是「直接换源」 */
+/** 网络/内容类错误：调用方按 kind 决定换 URL 形式还是直接换源 */
 export class SourceError extends Error {
   constructor(message, { kind = 'network', status = 0 } = {}) {
     super(message)
@@ -75,10 +64,8 @@ export function toSource(value) {
 }
 
 /**
- * 解析镜像设置
- * - 空 / auto：直连 + 内置镜像，自动选最快的
- * - direct / off：只用 GitHub 直连
- * - 其它（可逗号分隔）：把这些前缀排在最前面，失败时仍会回退到内置镜像与直连
+ * 解析镜像设置：空 / auto = 直连 + 内置镜像，自动选最快；
+ * direct / off = 只用直连；其它（可逗号分隔）= 排在最前，失败仍回退内置镜像与直连
  */
 export function mirrorMode(value) {
   const raw = String(value ?? '').trim()
@@ -133,9 +120,8 @@ export function looksLikeArchive(head) {
 // ---------------- 带超时与进度的下载 ----------------
 
 /**
- * 下载一个 URL 到内存：空闲超时（默认 45 秒没有新数据就中断）+ 总时长兜底 + 进度回调。
- * 失败一律抛 SourceError，调用方换下一个源继续。
- * @param {'archive'|'json'} [options.expect] 期望的内容：源码包会拒绝 JSON，API 只拒绝 HTML
+ * 下载 URL 到内存：空闲超时 + 总时长兜底 + 进度回调，失败一律抛 SourceError
+ * @param {'archive'|'json'} [options.expect] 期望的内容：源码包拒绝 JSON，API 只拒绝 HTML
  */
 export async function fetchFile(url, { headers = {}, idleTimeout = DEFAULT_IDLE_TIMEOUT, totalTimeout = DEFAULT_TOTAL_TIMEOUT, onProgress, expect = 'archive' } = {}) {
   const controller = new AbortController()
@@ -314,9 +300,8 @@ async function readCache() {
 }
 
 /**
- * 创建一次运行的「源计划」：按需探测某类目标（file / api）的可用源，并记住成功的那个。
- * - `order(kind, probeUrl)`：返回尝试顺序；有新鲜缓存时直接复用，不再探测
- * - `order(kind, probeUrl, { refresh: true })`：忽略缓存重新探测（首次全失败后调用）
+ * 创建一次运行的「源计划」：按需探测 file / api 的可用源并记住成功的那个
+ * - `order(kind, probeUrl[, { refresh }])`：返回尝试顺序；有新鲜缓存时直接复用
  * - `remember(kind, source)`：记录成功的源，供一小时内复用
  */
 export function createSourcePlan({ mirror = process.env.MOMO_MIRROR, onStatus = () => {}, useCache = true } = {}) {
@@ -363,7 +348,7 @@ export function createSourcePlan({ mirror = process.env.MOMO_MIRROR, onStatus = 
     const probeList = mode.mode === 'custom' ? mode.custom : pool
     const results = await probePool(kind, probeUrl, probeList, onStatus)
     const usable = results.filter((item) => item.ok).map((item) => item.source)
-    // 探测失败的源排在最后当作兜底：镜像可能只是探测接口被限流，真正下载未必不行
+    // 探测失败的源排在最后兜底（可能只是探测接口被限流）
     const failed = results.filter((item) => !item.ok).map((item) => item.source)
     const sources = []
     for (const source of [...usable, ...failed, ...pool]) {

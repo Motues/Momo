@@ -11,7 +11,6 @@ if (profileConfig.indexPage) {
 }
 ---
 
-<!-- footer -->
 <footer class="flex flex-col md:flex-row md:justify-between items-start md:items-center py-10 text-[var(--text-color-70)] max-w-[var(--header-width)] mx-auto w-full">
     <div class="mb-1 md:mb-0">
         © {profileConfig.startYear} - {new Date().getFullYear()} <a class="link-line" target="_self" href={introPage}>{profileConfig.name}</a>. 
@@ -92,11 +91,8 @@ if (profileConfig.indexPage) {
   import { registerPageInit } from '@utils/pageInit';
   import { currentLangFromUrl } from '@utils/locale';
 
-  // 页脚在 swup 容器之外、换页不重建，语言切换后链接与文案要自己跟上。
-  // 语言以地址为准（见 utils/locale 的说明），不要依赖 <html lang>——
-  // 那是 swup head 插件「顺带」同步的，首屏与关闭 updateHead 时都不可靠。
-  // 设计规范页走和其他页面同一套 locale 路由：/design/（默认语言）与 /en/design/，
-  // 文案不复用 i18n 配置、直接写死；入口是纯图标，名称走 title / aria-label。
+  // 页脚在 swup 容器外、换页不重建，语言切换后链接与文案要自己跟上
+  // ⚠️ 语言以地址为准（见 utils/locale），不要依赖 <html lang>；规范页文案写死，名称为「设计规范」/「Design System」
   registerPageInit(() => {
     const link = document.getElementById('footer-design-link');
     if (!link) return;

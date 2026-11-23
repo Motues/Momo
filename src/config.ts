@@ -7,73 +7,71 @@ import type { FriendLink } from "./types/friend"
 import type { I18nConfig } from "./types/i18n"
 
 export const siteConfig: SiteConfig = {
-    title: "Momo", // Title of the site, used in the tab in the browser and in SEO
-    subTitle: "Blog", // Subtitle of the site
-    // Site description: the fallback meta description / og:description for pages without their own.
-    // It can be a single string or a per-language map (shown here), so the English pages
-    // don't inherit a Chinese sentence.
+    title: "Momo", // Site title, used in the browser tab and in SEO
+    subTitle: "Blog",
+    // Fallback meta description / og:description; a per-language map keeps English pages from inheriting the Chinese text.
     description: {
         "zh-cn": "Momo 是一个极简风格的 Astro 博客模板：中英双语、深色模式、站内搜索，支持 KaTeX / Typst 等丰富的 Markdown 语法。",
         en: "Momo is a minimalist Astro blog template with bilingual content, dark mode, built-in search and rich Markdown support such as KaTeX and Typst.",
     },
-    rootSiteUrl: "https://momo.motues.top", // Root URL of the site, used for generating absolute URLs for SEO and social sharing
+    rootSiteUrl: "https://momo.motues.top", // Root URL, used for absolute URLs in SEO and social sharing
 
-    favicon: "/favicon/favicon.ico", // Path of the favicon, relative to the /public directory
+    favicon: "/favicon/favicon.ico", // Favicon path, relative to the /public directory
 
     pageSize: 6, // Number of posts per page
     toc: {
         enable: true,
-        depth: 3 // Max depth of the table of contents, between 1 and 4
+        depth: 3 // Max TOC depth (1 - 4)
     },
     blogNavi: {
-        enable: true // Whether to enable blog navigation in the blog footer
+        enable: true // Enable blog navigation in the article footer
     },
     comments: {
-        enable: true, // Whether to enable comments
-        platform: "default", // Comment platform, set "default" to use Momo-backend, also supports "twikoo"
+        enable: true,
+        platform: "default", // Comment platform: "default" (Momo-backend) or "twikoo"
         backendUrl: "https://api-momo.motues.top" // Backend URL for comments
     },
     theme: {
-        AOS: true, // Whether to enable entrance animations (scroll/pop-in reveal, built in; the key name is kept for compatibility)
-        LQIP: true, // Whether to enable LQIP (Low-Quality Image Placeholder) for image placeholders
-        PhotoSwipe: true, // Whether to enable PhotoSwipe for image viewer
-        readingProgress: true, // Whether to show the reading progress bar (2px line) at the top of article pages
+        AOS: true, // Enable entrance animations (built in; key name kept for compatibility)
+        LQIP: true, // Enable LQIP image placeholders
+        PhotoSwipe: true, // Enable the image lightbox
+        readingProgress: true, // Show the reading progress bar (2px) at the top of article pages
         imageCollage: {
-            enable: true, // Whether to automatically arrange consecutive images into a grid (collage)
+            enable: true, // Merge consecutive images into a grid (collage)
             maxColumns: 4 // Max images per row in a collage (2 - 6); the actual number is chosen automatically
         },
         postCard: {
-            imageMode: "top" // Cover image mode for article cards: "top" shows the image above the content; "background" uses the image as the card background, fading to transparent from right to left
+            imageMode: "top" // Cover mode of article cards: "top" = image above the content; "background" = image as the card background, fading out from right to left
         },
         photoCover: {
-            enable: false, // Whether to use a full-screen photo as the background of the home page; the title and subtitle are centered, and everything smoothly returns to the normal style as you scroll down
-            image: "/cover.jpg", // Photo path: relative to the /public directory if it starts with '/', otherwise relative to the /src directory (e.g. assets/cover.jpg). The blurred placeholder is generated at build time, so there is no small image to prepare by hand
-            mask: 0.5 // Opacity (0 - 1) of the black mask over the photo, fading away as you scroll down
+            enable: false, // Full-screen photo background on the home page; the title/subtitle return to the normal style on scroll
+            image: "/cover.jpg", // Photo path: '/'-prefixed = /public, otherwise /src (e.g. assets/cover.jpg); the blurred placeholder is generated at build time
+            mask: 0.5 // Black mask opacity over the photo (0 - 1), fading out on scroll
         },
         overlayScrollbars: {
-            enable: true, // Whether to replace the browser's default scrollbar with OverlayScrollbars (overlay style, can auto-hide)
-            autoHide: "leave", // When to hide the scrollbar: "never" always visible; "scroll" hidden unless scrolling; "move" hidden unless the pointer moves over the page or the user scrolls; "leave" hidden when the pointer leaves the page or the user isn't scrolling
+            enable: true, // Replace the browser's scrollbar with OverlayScrollbars
+            autoHide: "leave", // When to hide: "never"; "scroll" = unless scrolling; "move" = unless the pointer moves; "leave" = pointer leaves or idle
             size: 8 // Scrollbar thickness in pixels
         }
     },
     expressiveCode: {
-        enable: true, // Whether to enable Expressive Code for code blocks; when false, code blocks fall back to plain text without highlighting (same in the CMS preview)
-        theme: "one-dark-pro" // Shiki theme of code blocks, e.g. "one-dark-pro", "github-dark", "vitesse-dark"; one theme is used for both light and dark mode
+        enable: true, // Enable Expressive Code; false falls back to plain code blocks (also in the CMS preview)
+        theme: "one-dark-pro" // Shiki theme of code blocks, used for both light and dark mode
     }
 }
 
 export const profileConfig: ProfileConfig = {
-    avatar: "assets/Motues.jpg", // Relative to the /src directory. Relative to the /public directory if it starts with '/'
-    name: "Motues", // Used in the footer of the blog
+    avatar: "assets/Motues.jpg", // Relative to /src; '/'-prefixed = /public
+    name: "Motues", // Author name, used in the footer
     description: "Life is colorful!", // Used in SEO
-    indexPage: "https://www.motues.top", // The homepage, used in footer and SEO
-    startYear: 2024, // The year the site was created, used in the footer
+    indexPage: "https://www.motues.top", // Homepage, used in the footer and SEO
+    startYear: 2024, // Year the site was created, used in the footer
 }
 
 export const licenseConfig: LicenseConfig = {
-	enable: true, // Whether to enable license information
-	name: "CC BY-NC-SA 4.0", // License name
-	url: "https://creativecommons.org/licenses/by-nc-sa/4.0/", // License URL
+	enable: true,
+	name: "CC BY-NC-SA 4.0",
+	url: "https://creativecommons.org/licenses/by-nc-sa/4.0/",
 };
 
 export const i18nConfig: I18nConfig = {
@@ -117,10 +115,10 @@ export const i18nConfig: I18nConfig = {
 
 export const friendLinkConfig: FriendLink[] = [
     {
-        name: 'Motues', // Name of the friend link
-        avatar: 'https://www.motues.top/avatar.jpg', // Avatar image of the friend link
-        url: 'https://www.motues.top', // URL of the friend link
-        description: 'Like River!' // Description of the friend link, set to an empty string if not needed
+        name: 'Motues',
+        avatar: 'https://www.motues.top/avatar.jpg',
+        url: 'https://www.motues.top',
+        description: 'Like River!' // One-line description; empty string if not needed
     },
     {
         name: 'Astro',
@@ -128,5 +126,4 @@ export const friendLinkConfig: FriendLink[] = [
         url: 'https://astro.build',
         description: 'Build fast websites, faster.'
     }
-    // Add more friend links here
 ]

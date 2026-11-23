@@ -2,9 +2,8 @@ import { h } from 'hastscript';
 import type { Element, ElementContent, Properties, Root, RootContent } from 'hast';
 
 /**
- * 链接后面**紧跟**属性块 `{target="_blank"}` 时改为新标签页打开，并在链接后追加右上箭头图标。
- * 只认 target / rel / class 三个属性，出现别的属性就整体放弃、原样留在正文里；
- * 图标样式见 `src/styles/markdown.css` 与 `cms/server/prose.css`，两处要保持一致。
+ * 链接后紧跟属性块 `{target="_blank"}` 时改为新标签页打开，并在链接后追加右上箭头图标。
+ * 只认 target / rel / class，出现别的属性就整体放弃；样式见 `src/styles/markdown.css` 与 `cms/server/prose.css`（两处保持一致）。
  */
 
 // 紧跟链接的属性块：{...} 内不允许出现花括号

@@ -9,7 +9,7 @@ import { fileURLToPath } from 'node:url'
 // 仓库根目录（script/momo/ -> ../../）
 export const ROOT = fileURLToPath(new URL('../../', import.meta.url))
 
-// 用户配置：模板里唯一需要用户自己修改的文件，普通备份只包含它
+// 用户配置：普通备份只包含它
 export const USER_CONFIG_PATHS = ['src/config.ts']
 
 // 配置文件：与网站结构/布局相关，升级时通常需要按 release 说明手工合并
@@ -28,7 +28,6 @@ export const CONFIG_PATHS = [
   'cms/package.json',
 ]
 
-// 内容文件：文章、图片等，属于用户自己的数据
 export const CONTENT_PATHS = ['src/content', 'src/assets', 'public']
 
 // 默认备份目录
@@ -50,7 +49,7 @@ export const c = {
   gray: paint('90'),
 }
 
-// 单行进度：只在 TTY 下原地刷新（CI / 重定向时静默，避免刷出成百上千行）
+// 单行进度：只在 TTY 下原地刷新
 let progressActive = false
 
 export const log = {
@@ -198,8 +197,7 @@ function pnpmCommand(args) {
 const needsShell = (cmd) => process.platform === 'win32' && /\.(cmd|bat)$/i.test(cmd)
 const quoteArg = (arg) => (/[\s"&|<>^]/.test(arg) ? `"${arg.replace(/"/g, '\\"')}"` : arg)
 
-// Windows 下 .cmd/.bat 必须通过 shell 执行；此时把参数拼进命令字符串，
-// 而不是「shell + args 数组」（后者会触发 Node 的 DEP0190 警告且不会转义）
+// Windows 下 .cmd/.bat 必须通过 shell 执行：参数拼进命令字符串，不能用「shell + args 数组」（会触发 DEP0190 且不转义）
 function spawnTarget(cmd, args) {
   if (!needsShell(cmd)) return { command: cmd, args, shell: false }
   return { command: [cmd, ...args.map(quoteArg)].join(' '), args: [], shell: true }

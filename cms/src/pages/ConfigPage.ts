@@ -1,7 +1,4 @@
-// ConfigPage.ts — 网站配置（src/config.ts）可视化编辑
-//
-// 页面按分区渲染表单，保存时把整份配置值提交给 /api/config，
-// 服务端只把「真正改动过」的字段写回文件，注释与排版保持不变。
+// ConfigPage.ts — 网站配置（src/config.ts）可视化编辑：保存时服务端只写回真正改动过的字段，注释与排版保持不变
 import { api } from '../api'
 import type { ConfigDoc, ConfigValues, FriendLinkItem } from '../types'
 import { el, escapeHtml } from '../dom'
@@ -103,7 +100,7 @@ function buildSections(values: ConfigValues): SectionDef[] {
     {
       id: 'theme',
       title: '主题与动效',
-      // group：同名连续字段算一组，组与组之间画一条浅色横线
+      // group：同名连续字段算一组，组间由 CSS 画一条浅色横线
       // （动效基础 / 图片拼图 / 卡片封面 / 首页照片封面 / 悬浮滚动条）
       fields: [
         { path: ['siteConfig', 'theme', 'AOS'], label: '入场动画（滚动显现）', type: 'bool', group: '动效基础' },
@@ -369,8 +366,7 @@ function renderSection(
   ])
 }
 
-// 字段网格：没有 group 的走原来的两列布局；有 group 的先按同名连续字段切段，
-// 每段一个 .cfg-group（内部仍是两列），组与组之间由 CSS 画一条浅色横线
+// 没有 group 的走两列布局；有 group 的先按同名连续字段切段，每段一个 .cfg-group
 function renderFields(fields: FieldDef[], state: ConfigState, badge: HTMLElement): HTMLElement {
   if (!fields.some((f) => f.group)) {
     return el('div', { class: 'cfg-grid' }, fields.map((f) => renderField(f, state, badge)))
@@ -403,7 +399,6 @@ function renderField(field: FieldDef, state: ConfigState, badge: HTMLElement): H
     markDirty(state, badge)
   }
 
-  // 开关
   if (field.type === 'bool') {
     return el('div', { class: 'cfg-field cfg-field-check' + (field.wide ? ' wide' : '') }, [
       el('label', { class: 'form-check' }, [

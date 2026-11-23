@@ -471,7 +471,6 @@ export async function renderList(root: HTMLElement) {
 
   await Promise.all([loadMeta(), reload()])
 
-  // 窗口尺寸变化后重新按内容分配列宽
   let fitRaf = 0
   const onWindowResize = () => {
     cancelAnimationFrame(fitRaf)
@@ -617,8 +616,7 @@ function articleTable(articles: ArticleSummary[], onChanged: () => void, ui: Lis
   return el('div', { class: 'table-wrap' }, [table])
 }
 
-// 列宽自适应：先量出每列内容的自然宽度，再在容器宽度内分配，
-// 使表格既贴合内容（不浪费空间）又铺满整行；可伸缩列主要是标题与路径。
+// 列宽自适应：先量出每列内容的自然宽度，再在容器宽度内分配；可伸缩列主要是标题与路径。
 function fitTableColumns(wrap: HTMLElement) {
   const table = wrap.querySelector<HTMLTableElement>('table.article-table')
   if (!table) return

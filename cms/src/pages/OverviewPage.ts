@@ -24,7 +24,7 @@ export async function renderOverview(root: HTMLElement) {
   try {
     const stats = await api.stats()
     categories = stats.categories.map((c) => c.name)
-    main.innerHTML = '' // 移除「加载统计中…」占位符
+    main.innerHTML = ''
     renderStats(main, stats)
   } catch (e) {
     main.innerHTML = ''
@@ -59,8 +59,6 @@ function renderStats(main: HTMLElement, s: Stats) {
   )
 }
 
-// ---------------- 分类分布 ----------------
-
 function categoryPanel(s: Stats) {
   const max = s.categories.length ? s.categories[0].count : 0
   const rows =
@@ -81,8 +79,6 @@ function barRow(name: string, count: number, max: number) {
     el('span', { class: 'bar-count' }, [String(count)]),
   ])
 }
-
-// ---------------- 语言版本 ----------------
 
 function langPanel(s: Stats) {
   const zh = s.langs['zh-cn'] || 0
@@ -107,8 +103,6 @@ function langPanel(s: Stats) {
     ]),
   ])
 }
-
-// ---------------- 最近文章 ----------------
 
 function recentPanel(s: Stats) {
   const list =

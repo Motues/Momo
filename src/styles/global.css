@@ -36,9 +36,8 @@
 }
 
 /* ---------------- 动效：通用按压反馈 ----------------
- * 按下 90ms 到 0.96，松手用 --momo-ease-pop 弹回（约 5% 过冲，观感是「按了一下」，
- * 而不是原来 active:scale-90 那种「陷进去」）。
- * 写法放在层外（不在 @layer 里）：这样能稳定压过 Tailwind 的 active:scale-* 工具类。
+ * 按下 90ms 缩到 0.96，松手用 --momo-ease-pop 弹回。
+ * 写在 @layer 外，才能稳定压过 Tailwind 的 active:scale-* 工具类。
  */
 .press {
   transition:
@@ -55,15 +54,9 @@
 }
 
 /* ---------------- 动效：入场（自研，替代 AOS） ----------------
- * 元素在 HTML 里声明 data-reveal="pop" | "rise"；脚本（src/utils/reveal.ts）只负责
- * 在合适的时机加 .is-revealed。起止态、曲线、时长全在这里，没有第三方样式要同步。
- *
- * 三层闸门，少一层都会出事：
- * ① html[data-reveal-on]：Layout 按 siteConfig.theme.AOS 输出。关掉开关时规则整份
- *    不生效，组件里写死的数据属性也不会把内容藏起来（旧实现靠「不加载 AOS 的 CSS」，
- *    换页时 swup 换 head 会把 dev 下 Vite 注入的那份样式删掉，正是「刷新才有动画」的根因）。
- * ② @media (scripting: enabled)：禁用 JS 的访客没有脚本来加 .is-revealed，必须直接看到内容。
- * ③ prefers-reduced-motion：下面单独收尾，时长归零并强制落位。
+ * 元素在 HTML 里声明 data-reveal="pop" | "rise"，src/utils/reveal.ts 只负责加 .is-revealed。
+ * 三层闸门，少一层都会出事：html[data-reveal-on]（siteConfig.theme.AOS）、
+ * @media (scripting: enabled)、prefers-reduced-motion。
  */
 @media (scripting: enabled) {
   html[data-reveal-on] [data-reveal] {
@@ -73,8 +66,7 @@
     transition-timing-function: var(--momo-ease-out);
   }
 
-  /* 只在「还没入场」时隐藏 / 位移。落位后不再声明 transform，
-     组件自己的 hover 位移（卡片上浮之类）才不会被钉死。 */
+  /* 隐藏 / 位移只在「还没入场」时声明，落位后不声明 transform，组件自己的 hover 位移才不被钉死 */
   html[data-reveal-on] [data-reveal]:not(.is-revealed) {
     opacity: 0;
   }
@@ -85,8 +77,7 @@
     transition-timing-function: var(--momo-ease-pop);
   }
 
-  /* rise：正文块只做减速，不回弹（文字回弹显廉价）。行程比卡片大得多，
-     否则夹在 1.7 倍行高里的段落根本看不出在「上浮」。 */
+  /* rise：正文块只做减速、不回弹（文字回弹显廉价），行程用 --momo-rise-prose */
   html[data-reveal-on] [data-reveal='rise']:not(.is-revealed) {
     transform: translate3d(0, var(--momo-rise-prose), 0);
   }
@@ -95,9 +86,8 @@
     opacity: 1;
   }
 
-  /* 正文块不打属性：文章内容在首屏 HTML 里就可见，靠 JS 事后打标记会先闪一下
-     再藏起来。这里直接按结构隐藏，脚本只需给直接子元素加 .is-revealed。
-     列表与图片拼图是例外：它们不整块位移，动画交给下面的「逐行」规则。 */
+  /* 正文块不打属性（靠 JS 事后打标记会先闪一下再藏起来），直接按结构隐藏；
+     列表与图片拼图例外，动画交给下面的「逐行」规则。 */
   html[data-reveal-on] .markdown-content:not([data-no-reveal]) > *:not(ul):not(ol):not(.image-collage) {
     transition-property: opacity, transform;
     transition-duration: var(--momo-t-reveal);
@@ -110,16 +100,12 @@
     transform: translate3d(0, var(--momo-rise-prose), 0);
   }
 
-  /* 列表逐行 / 拼图逐行：一「行」是一个顶层 li 或一个 collage-item。
-     同一网格行里的格子顶边相同，会同时进入视口、同时入场，看起来仍是整行一起浮出。
-     ⚠️ 行高只有一行文字，别再套 --momo-rise-prose（120px）那套大行程；
-     时长也走更短的 --momo-t-reveal-row：800ms 下相邻几行会一直同时在空中，
-     看着就是「整块淡入」，而不是一行接一行。 */
+  /* 列表逐行 / 拼图逐行：一「行」是一个顶层 li 或一个 collage-item，同一网格行同时入场。
+     行高只有一行文字，行程用 --momo-rise-card、时长用更短的 --momo-t-reveal-row。 */
   html[data-reveal-on] .markdown-content:not([data-no-reveal]) > ul > li,
   html[data-reveal-on] .markdown-content:not([data-no-reveal]) > ol > li,
   html[data-reveal-on] .markdown-content:not([data-no-reveal]) > .image-collage > .collage-item {
-    /* 父级按 nth-child 给的错峰延迟会继承下来，逐行入场不需要它；
-       同一批点亮的行由 reveal.ts 在元素上内联写 --reveal-delay 做 80ms 递进 */
+    /* 清掉父级按 nth-child 继承下来的错峰延迟，逐行入场由 reveal.ts 内联写 --reveal-delay */
     --reveal-delay: 0ms;
     transition-property: opacity, transform;
     transition-duration: var(--momo-t-reveal-row);
