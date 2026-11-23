@@ -335,7 +335,7 @@ const photoCoverOn = photoCoverEnabled();
         };
 
         /** 把目标滚到视口中心；目标高于视口 75% 时退化为「顶栏下方」，从块首开始读 */
-        const alignHashTarget = (hash) => {
+        const alignHashTarget = (hash, behavior = 'instant') => {
             const target = settleRevealForHash(hash);
             if (!target) return null;
 
@@ -357,8 +357,9 @@ const photoCoverOn = photoCoverEnabled();
 
             expected = Math.min(Math.max(0, expected), maxScroll);
             if (Math.abs(window.scrollY - expected) > 2) {
-                // ⚠️ 必须用 instant：auto 会跟随 CSS 的 scroll-behavior: smooth，跟随校正会变成追不上的动画
-                window.scrollTo({ top: expected, behavior: 'instant' });
+                // 校正 / 落位必须 instant：auto 会跟随 CSS 的 scroll-behavior: smooth，
+                // 跟随校正会变成追不上的动画；只有用户点击同页锚点时才传 smooth
+                window.scrollTo({ top: expected, behavior });
             }
             return target;
         };
@@ -385,20 +386,31 @@ const photoCoverOn = photoCoverEnabled();
             stop();
         };
 
-        const followHash = (hash) => {
+        // 用户要求减弱动画时不做平滑滚动（与 CSS 那边 prefers-reduced-motion 的口径一致）
+        const prefersReducedMotion = () =>
+            window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false;
+
+        // smooth 只给「用户点击同页锚点」（脚注、搜索结果、标题 #）：首屏带 hash 与换页落位必须 instant
+        const followHash = (hash, { smooth = false } = {}) => {
             stopHashFollow();
             if (!hash) return;
 
+            const scrollingSmooth = smooth && !prefersReducedMotion();
             let stopped = false;
             let flashed = false;
             let intervalId;
             let timeoutId;
+            let settleRaf;
+            let settleTimer;
+            let correcting = false;
 
             const stop = () => {
                 if (stopped) return;
                 stopped = true;
                 clearInterval(intervalId);
                 clearTimeout(timeoutId);
+                clearTimeout(settleTimer);
+                cancelAnimationFrame(settleRaf);
                 window.removeEventListener('wheel', stop);
                 window.removeEventListener('touchmove', stop);
                 window.removeEventListener('pointerdown', stop);
@@ -410,33 +422,82 @@ const photoCoverOn = photoCoverEnabled();
                     stop();
                 }
             };
-            const tick = () => {
-                if (stopped) return;
-                const target = alignHashTarget(hash);
+            const tick = (behavior = 'instant', flashNow = true) => {
+                if (stopped) return false;
+                const target = alignHashTarget(hash, behavior);
                 if (!target) {
                     stop();
-                    return;
+                    return false;
                 }
-                if (!flashed) {
+                // 平滑滚动时把高亮推迟到落位那一刻再闪（否则 2s 的淡出大半消耗在路上）
+                if (flashNow && !flashed) {
                     flashHashTarget(target);
                     flashed = true;
                 }
+                return true;
+            };
+
+            // 平滑滚动停下来之后才开始校正：滚动中途做 instant 对齐会把动画掐成一跳
+            const startCorrections = () => {
+                if (correcting || stopped) return;
+                correcting = true;
+                clearTimeout(settleTimer);
+                cancelAnimationFrame(settleRaf);
+
+                let lastY = window.scrollY;
+                const correct = () => {
+                    if (stopped) return;
+                    // 位置还在变（平滑滚动没走完 / 用户自己在滚）就先不动，下一轮再看
+                    if (Math.abs(window.scrollY - lastY) < 1) tick();
+                    lastY = window.scrollY;
+                };
+                correct();
+                intervalId = setInterval(correct, 300);
+                timeoutId = setTimeout(stop, 3000);
             };
 
             activeHashFollow = stop;
-            tick();
-            intervalId = setInterval(tick, 300);
-            timeoutId = setTimeout(stop, 3000);
+
+            if (scrollingSmooth) {
+                if (tick('smooth', false)) {
+                    // 连续 3 帧位置不变即视为滚完；1200ms 兜底（后台标签页里 rAF 会停摆）
+                    let lastY = window.scrollY;
+                    let still = 0;
+                    const watch = () => {
+                        if (stopped) return;
+                        const y = window.scrollY;
+                        still = Math.abs(y - lastY) < 1 ? still + 1 : 0;
+                        lastY = y;
+                        if (still >= 3) {
+                            startCorrections();
+                            return;
+                        }
+                        settleRaf = requestAnimationFrame(watch);
+                    };
+                    settleRaf = requestAnimationFrame(watch);
+                    settleTimer = setTimeout(startCorrections, 1200);
+                }
+            } else {
+                tick();
+                intervalId = setInterval(tick, 300);
+                timeoutId = setTimeout(stop, 3000);
+            }
 
             window.addEventListener('wheel', stop, { passive: true });
             window.addEventListener('touchmove', stop, { passive: true });
             window.addEventListener('pointerdown', stop, { passive: true });
             window.addEventListener('keydown', onKeyDown);
-            window.addEventListener('load', tick, { once: true });
-            document.fonts?.ready.then(tick).catch(() => {});
+            // ⚠️ 不能把 tick 直接当监听器：事件对象会被当成 behavior 传进 scrollTo
+            const lateTick = () => {
+                // 平滑滚动还没走完时先不动，落位后的校正会补上
+                if (scrollingSmooth && !correcting) return;
+                tick();
+            };
+            window.addEventListener('load', lateTick, { once: true });
+            document.fonts?.ready.then(lateTick).catch(() => {});
         };
 
-        // 同页锚点（搜索结果 / 目录 / 脚注回跳）先在 capture 阶段落位，等 swup / TOC 滚完再精确对齐
+        // 同页锚点（搜索结果 / 目录 / 脚注回跳）：先在 capture 阶段落位，再用平滑滚动跳过去
         document.addEventListener('click', (event) => {
             if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
             const node = event.target instanceof Element ? event.target : null;
@@ -451,7 +512,8 @@ const photoCoverOn = photoCoverEnabled();
             }
             if (url.origin !== window.location.origin || url.pathname !== window.location.pathname || !url.hash) return;
             settleRevealForHash(url.hash);
-            setTimeout(() => followHash(url.hash), 0);
+            // 平滑滚动要等默认锚点行为跑完再接管，否则会被原生跳转盖掉
+            setTimeout(() => followHash(url.hash, { smooth: true }), 0);
         }, true);
 
         // 首屏带锚点：原生滚动发生在入场样式生效期间，DOM 就绪后再跟随校正
@@ -642,6 +704,13 @@ const photoCoverOn = photoCoverEnabled();
   /* 页内锚点（脚注、目录）依赖这里的平滑滚动；换页时由 before-swap 临时切成 auto */
   html {
     scroll-behavior: smooth;
+  }
+
+  /* 减弱动画的访客直接落位，不做平滑滚动 */
+  @media (prefers-reduced-motion: reduce) {
+    html {
+      scroll-behavior: auto;
+    }
   }
 </style>
 
