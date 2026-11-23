@@ -26,9 +26,6 @@ const translationsByLocale = Object.fromEntries(
         tip: tr("search.tip"),
         devHint: tr("search.devHint"),
         page: tr("search.page"),
-        history: tr("search.history"),
-        clearHistory: tr("search.clearHistory"),
-        allCategories: tr("search.allCategories"),
         suggestions: tr("search.suggestions"),
       },
     ];
@@ -73,9 +70,6 @@ const translationsByLocale = Object.fromEntries(
         </button>
       </div>
 
-      <!-- 分类筛选：分类来自索引的 article:section，按钮由脚本生成，没有分类时整行隐藏 -->
-      <div id="search-filters" class="search-filters" role="group" aria-label={t("search.allCategories")} hidden></div>
-
       <!-- #search-results 由 OverlayScrollbars 接管，#search-results-list 才是重写目标。
            ⚠️ 两层必须分开：重写容器会冲掉 OS 的包装层（data-overlayscrollbars-*），实例当场失效。 -->
       <div id="search-results" class="overflow-y-auto flex-grow">
@@ -99,7 +93,7 @@ import { registerPageInit } from '@utils/pageInit';
 import { currentLangFromUrl } from '@utils/locale';
 import { lockPageScroll, unlockPageScroll } from '@utils/scrollLock';
 import { loadSearchIndex, SearchIndexError } from '@utils/search/load';
-import { indexCategories, recentPages, search } from '@utils/search/rank';
+import { recentPages, search } from '@utils/search/rank';
 import type { PreparedIndex, PreparedPage } from '@utils/search/rank';
 import type { SearchHit } from '@/types/search';
 
@@ -114,9 +108,6 @@ interface SearchTranslations {
   tip: string;
   devHint: string;
   page: string;
-  history: string;
-  clearHistory: string;
-  allCategories: string;
   suggestions: string;
 }
 
@@ -131,15 +122,8 @@ const FALLBACK_TRANSLATIONS: SearchTranslations = {
   tip: '↑↓ select · Enter open · Esc close',
   devHint: 'Search index is not built yet: run pnpm build, then pnpm preview',
   page: 'Article',
-  history: 'Recent searches',
-  clearHistory: 'Clear',
-  allCategories: 'All',
   suggestions: 'Try these posts',
 };
-
-/** 搜索历史的 localStorage 键；只存查询串，最多 HISTORY_LIMIT 条 */
-const HISTORY_KEY = 'momo-search-history';
-const HISTORY_LIMIT = 8;
 
 let translations: SearchTranslations = FALLBACK_TRANSLATIONS;
 // 当前文案 / 查询对应的语言；换语言后清掉旧输入与旧结果
@@ -150,8 +134,6 @@ let prepared: PreparedIndex | null = null;
 let preparedLang = '';
 let hits: SearchHit[] = [];
 let activeIndex = -1;
-// 分类筛选：空串 = 全部分类（单选）
-let activeCategory = '';
 // 查询序号：每次输入 / 清空都 +1，异步结果回来时序号不符就丢弃
 let searchSeq = 0;
 let debounceTimer: ReturnType<typeof setTimeout> | undefined;
@@ -193,34 +175,6 @@ function readTranslations(): SearchTranslations | null {
   return byLocale[currentLangFromUrl()] || Object.values(byLocale)[0] || null;
 }
 
-/** 本地搜索历史：localStorage 在隐私模式下会抛错，读写全部包在 try 里 */
-function readHistory(): string[] {
-  try {
-    const raw = localStorage.getItem(HISTORY_KEY);
-    const parsed = raw ? JSON.parse(raw) : [];
-    return Array.isArray(parsed) ? parsed.filter((item) => typeof item === 'string').slice(0, HISTORY_LIMIT) : [];
-  } catch {
-    return [];
-  }
-}
-
-function rememberQuery(query: string) {
-  const value = query.trim();
-  if (!value) return;
-  const next = [value, ...readHistory().filter((item) => item !== value)].slice(0, HISTORY_LIMIT);
-  try {
-    localStorage.setItem(HISTORY_KEY, JSON.stringify(next));
-  } catch {
-  }
-}
-
-function clearHistory() {
-  try {
-    localStorage.removeItem(HISTORY_KEY);
-  } catch {
-  }
-}
-
 /** 按当前地址重挑文案；语言变了就作废已加载的索引 */
 function syncSearchLocale() {
   const next = readTranslations();
@@ -236,8 +190,6 @@ function syncSearchLocale() {
     preparedLang = '';
     hits = [];
     activeIndex = -1;
-    activeCategory = '';
-    renderFilters();
     const input = el<HTMLInputElement>('search-input');
     if (input) input.value = '';
     // 先恢复空闲态，否则下次打开会闪出旧语言结果
@@ -247,7 +199,6 @@ function syncSearchLocale() {
   const modal = el<HTMLElement>('search-modal');
   modal?.setAttribute('aria-label', translations.label);
   el<HTMLElement>('search-results-list')?.setAttribute('aria-label', translations.label);
-  el<HTMLElement>('search-filters')?.setAttribute('aria-label', translations.allCategories);
 
   const input = el<HTMLInputElement>('search-input');
   if (input) input.placeholder = `${translations.placeholder}...`;
@@ -257,7 +208,6 @@ function syncSearchLocale() {
 
   const current = input?.value.trim() ?? '';
   if (!current) showIdle();
-  else renderFilters();
 }
 
 function setPageScrollLocked(locked: boolean) {
@@ -293,7 +243,6 @@ function openModal() {
     preparedLang = '';
     hits = [];
     activeIndex = -1;
-    activeCategory = '';
     const input = el<HTMLInputElement>('search-input');
     if (input) input.value = '';
     showIdle();
@@ -322,9 +271,7 @@ function openModal() {
   setTimeout(() => input?.focus(), 240);
   setPageScrollLocked(true);
 
-  void ensureIndex(false).then((index) => {
-    if (index) renderFilters();
-  });
+  void ensureIndex(false);
 }
 
 function closeModal() {
@@ -376,49 +323,7 @@ function updateCount(count: number | null) {
   target.textContent = count === null ? '' : translations.results.replace('{count}', String(count));
 }
 
-/** 分类胶囊：分类来自索引，点一下在当前分类里搜，再点一次回到全部 */
-function renderFilters() {
-  const filters = el<HTMLElement>('search-filters');
-  if (!filters) return;
-
-  const categories = prepared ? indexCategories(prepared) : [];
-  if (categories.length === 0) {
-    filters.hidden = true;
-    filters.replaceChildren();
-    return;
-  }
-
-  if (activeCategory && !categories.includes(activeCategory)) activeCategory = '';
-
-  const fragment = document.createDocumentFragment();
-  const options = [{ value: '', label: translations.allCategories }, ...categories.map((c) => ({ value: c, label: c }))];
-
-  for (const option of options) {
-    const button = document.createElement('button');
-    button.type = 'button';
-    button.className = 'search-chip';
-    button.dataset.searchCategory = option.value;
-    button.setAttribute('aria-pressed', option.value === activeCategory ? 'true' : 'false');
-    button.textContent = option.label;
-    fragment.append(button);
-  }
-
-  filters.replaceChildren(fragment);
-  filters.hidden = false;
-}
-
-function historyItem(query: string): HTMLLIElement {
-  const item = document.createElement('li');
-  const button = document.createElement('button');
-  button.type = 'button';
-  button.className = 'search-history-item';
-  button.dataset.historyQuery = query;
-  button.textContent = query;
-  item.append(button);
-  return item;
-}
-
-/** 空闲态：有历史显示「最近搜索」，否则显示一句提示 */
+/** 空闲态：一句提示（不再展示搜索历史） */
 function showIdle() {
   searchSeq++;
   clearTimeout(debounceTimer);
@@ -426,37 +331,7 @@ function showIdle() {
   activeIndex = -1;
   el<HTMLInputElement>('search-input')?.removeAttribute('aria-activedescendant');
 
-  const list = el<HTMLElement>('search-results-list');
-  if (!list) return;
-
-  const history = readHistory();
-  if (history.length === 0) {
-    setMessage(translations.hint, true);
-    updateCount(null);
-    return;
-  }
-
-  const wrap = document.createElement('div');
-  wrap.className = 'search-history';
-
-  const header = document.createElement('div');
-  header.className = 'search-section-head';
-  const title = document.createElement('span');
-  title.className = 'search-section-title';
-  title.textContent = translations.history;
-  const clear = document.createElement('button');
-  clear.type = 'button';
-  clear.className = 'search-history-clear';
-  clear.dataset.historyClear = '1';
-  clear.textContent = translations.clearHistory;
-  header.append(title, clear);
-
-  const items = document.createElement('ul');
-  items.className = 'search-history-list';
-  for (const query of history) items.append(historyItem(query));
-
-  wrap.append(header, items);
-  list.replaceChildren(wrap);
+  setMessage(translations.hint, true);
   updateCount(null);
 }
 
@@ -499,20 +374,14 @@ async function runSearch(query: string) {
     setMessage(translations.searching);
     const index = await ensureIndex(false);
     if (!index || seq !== searchSeq) return;
-    renderFilters();
   }
 
   const current = el<HTMLInputElement>('search-input')?.value.trim() || '';
   if (current !== query || currentLangFromUrl() !== lang || !prepared) return;
 
-  hits = search(prepared, query, {
-    categories: activeCategory ? [activeCategory] : undefined,
-  });
+  hits = search(prepared, query);
   activeIndex = hits.length > 0 ? 0 : -1;
   renderResults();
-
-  // 只在有结果时记历史
-  if (hits.length > 0) rememberQuery(query);
 }
 
 /** 结果渲染：按文章聚合，组头是文章标题（链接到文章顶部），下面是各段落的命中行 */
@@ -768,49 +637,16 @@ function bindResultClicks() {
   if (!list || list.dataset.bound === 'true') return;
   list.dataset.bound = 'true';
 
-  // 历史项 / 清空按钮 / 结果链接都走事件委托
+  // 结果链接走事件委托
   list.addEventListener('click', (event) => {
     const target = event.target instanceof Element ? event.target : null;
     if (!target) return;
-
-    const historyButton = target.closest<HTMLElement>('[data-history-query]');
-    if (historyButton) {
-      const query = historyButton.dataset.historyQuery || '';
-      const input = el<HTMLInputElement>('search-input');
-      if (input) input.value = query;
-      void runSearch(query);
-      return;
-    }
-
-    if (target.closest('[data-history-clear]')) {
-      clearHistory();
-      showIdle();
-      return;
-    }
 
     // 同页 #锚点 不会派发 swup:visit:start，必须在这里主动收起弹窗；中键 / Ctrl 是新标签页
     const link = target.closest('a[data-search-hit]');
     if (!link) return;
     if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey || event.button !== 0) return;
     closeModal();
-  });
-}
-
-function bindFilterClicks() {
-  const filters = el<HTMLElement>('search-filters');
-  if (!filters || filters.dataset.bound === 'true') return;
-  filters.dataset.bound = 'true';
-
-  filters.addEventListener('click', (event) => {
-    const target = event.target instanceof Element ? event.target.closest<HTMLElement>('[data-search-category]') : null;
-    if (!target) return;
-    const value = target.dataset.searchCategory || '';
-    activeCategory = activeCategory === value ? '' : value;
-    renderFilters();
-
-    const query = el<HTMLInputElement>('search-input')?.value.trim() || '';
-    if (query) void runSearch(query);
-    else showIdle();
   });
 }
 
@@ -832,7 +668,7 @@ function prefetchIndex() {
   const run = () => {
     loadSearchIndex(lang)
       .then(() => {
-        if (isOpen()) void ensureIndex(false).then((index) => index && renderFilters());
+        if (isOpen()) void ensureIndex(false);
       })
       .catch(() => {
       });
@@ -930,7 +766,6 @@ function initSearchModal() {
 
   bindSearchInput();
   bindResultClicks();
-  bindFilterClicks();
 
   // 悬停 / 聚焦搜索按钮时预取索引
   if (searchButton.dataset.prefetchBound !== '1') {
@@ -949,7 +784,6 @@ function initSearchModal() {
   // 首屏 / 换页都确保输入框已绑定（dataset 保证只绑一次）
   bindSearchInput();
   if (searchInput) searchInput.placeholder = `${translations.placeholder}...`;
-  renderFilters();
   openFromDeepLink();
 }
 
@@ -1014,15 +848,27 @@ registerPageInit(initSearchModal);
   .search-hit {
     display: block;
     padding: var(--momo-space-3) var(--momo-space-4);
-    border-bottom: 1px solid var(--button-border-color);
     text-decoration: none;
     color: inherit;
     outline: none;
     transition: background-color var(--momo-t-fast) var(--momo-ease-out);
   }
 
-  .search-hit:last-child {
-    border-bottom: 0;
+  /* 文章之间的分隔：整行长线正好压到弹窗两侧，只在每条结果组的行顶（首行不画） */
+  .search-hit--head {
+    position: relative;
+  }
+
+  .search-hit--head::before {
+    content: '';
+    position: absolute;
+    inset: 0 0 auto;
+    height: 1px;
+    background-color: var(--button-border-color);
+  }
+
+  .search-hit--head:first-child::before {
+    display: none;
   }
 
   .search-hit:hover,
@@ -1038,18 +884,23 @@ registerPageInit(initSearchModal);
   /* 分组头：同一篇文章的第一条，字号略大、底部没有分隔线（下面的段落行才分隔） */
   .search-hit--group {
     padding-bottom: var(--momo-space-1);
-    border-bottom: 0;
   }
 
-  /* 段落行：缩进一档，视觉上从属于上面的文章标题 */
+  /* 段落行：缩进一档，视觉上从属于上面的文章标题；
+     同一篇文章内部的段落之间用短线分隔（左右都留出间距、不和弹窗边框相连），
+     最后一段与下一篇文章之间交给文章头的长线，不再画短线 */
   .search-hit--child {
+    position: relative;
     padding-top: var(--momo-space-1);
     padding-left: calc(var(--momo-space-4) + var(--momo-space-4));
-    border-bottom: 1px solid color-mix(in srgb, var(--button-border-color) 55%, transparent);
   }
 
-  .search-hit--child:last-child {
-    border-bottom: 0;
+  .search-hit--child + .search-hit--child::before {
+    content: '';
+    position: absolute;
+    inset: 0 calc(var(--momo-space-4) * 2) auto calc(var(--momo-space-4) * 2);
+    height: 1px;
+    background-color: color-mix(in srgb, var(--button-border-color) 55%, transparent);
   }
 
   .search-hit-head {
@@ -1107,58 +958,8 @@ registerPageInit(initSearchModal);
     color: var(--text-color-70);
   }
 
-  .search-filters {
-    display: flex;
-    flex-wrap: wrap;
-    gap: var(--momo-space-2);
-    padding: var(--momo-space-2) var(--momo-space-4);
-    border-bottom: 1px solid var(--button-border-color);
-    overflow-x: auto;
-  }
-
-  .search-filters[hidden] {
-    display: none;
-  }
-
-  .search-chip {
-    flex-shrink: 0;
-    padding: 2px var(--momo-space-3);
-    border-radius: var(--momo-radius-pill);
-    border: 1px solid var(--button-border-color);
-    background-color: transparent;
-    color: var(--text-color-70);
-    font-size: var(--momo-font-size-xs);
-    line-height: 1.6;
-    cursor: pointer;
-    transition:
-      background-color var(--momo-t-fast) var(--momo-ease-out),
-      color var(--momo-t-fast) var(--momo-ease-out),
-      border-color var(--momo-t-fast) var(--momo-ease-out);
-  }
-
-  .search-chip:hover {
-    color: var(--text-color);
-    border-color: var(--border-color-strong);
-  }
-
-  /* 选中态用 --accent-bg + --accent-fg（对比度见 variables.css） */
-  .search-chip[aria-pressed='true'] {
-    background-color: var(--accent-bg);
-    border-color: var(--accent-bg);
-    color: var(--accent-fg);
-  }
-
-  .search-history,
   .search-empty {
     padding: var(--momo-space-3) var(--momo-space-4) var(--momo-space-4);
-  }
-
-  .search-section-head {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: var(--momo-space-3);
-    margin-bottom: var(--momo-space-2);
   }
 
   .search-section-title {
@@ -1168,53 +969,6 @@ registerPageInit(initSearchModal);
     text-transform: uppercase;
     color: var(--text-color-30);
     margin-bottom: var(--momo-space-2);
-  }
-
-  .search-section-head .search-section-title {
-    margin-bottom: 0;
-  }
-
-  .search-history-clear {
-    border: 0;
-    background: transparent;
-    color: var(--link-color);
-    font-size: var(--momo-font-size-xs);
-    cursor: pointer;
-    padding: 2px var(--momo-space-1);
-    border-radius: var(--momo-radius-xs);
-  }
-
-  .search-history-clear:hover {
-    background-color: var(--button-hover-color);
-  }
-
-  .search-history-list {
-    display: flex;
-    flex-wrap: wrap;
-    gap: var(--momo-space-2);
-    margin: 0;
-    padding: 0;
-    list-style: none;
-  }
-
-  .search-history-item {
-    max-width: 100%;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    padding: 2px var(--momo-space-3);
-    border-radius: var(--momo-radius-pill);
-    border: 1px solid var(--button-border-color);
-    background-color: transparent;
-    color: var(--text-color-70);
-    font-size: var(--momo-font-size-xs);
-    cursor: pointer;
-    transition: color var(--momo-t-fast) var(--momo-ease-out), border-color var(--momo-t-fast) var(--momo-ease-out);
-  }
-
-  .search-history-item:hover {
-    color: var(--text-color);
-    border-color: var(--border-color-strong);
   }
 
   .search-empty-title {
@@ -1247,12 +1001,18 @@ registerPageInit(initSearchModal);
   .search-footer {
     display: flex;
     align-items: center;
-    justify-content: space-between;
+    /* 提示语始终贴右：没有结果计数时也不会被挤到左边 */
+    justify-content: flex-end;
     gap: var(--momo-space-3);
     padding: var(--momo-space-2) var(--momo-space-4);
     border-top: 1px solid var(--button-border-color);
     font-size: var(--momo-font-size-xs);
     color: var(--text-color-30);
+  }
+
+  /* 有结果计数时它留在左边，提示语继续靠右 */
+  .search-footer-count:not(:empty) {
+    margin-right: auto;
   }
 
   .search-footer-count:empty {
