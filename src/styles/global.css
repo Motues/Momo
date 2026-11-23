@@ -87,12 +87,16 @@
   }
 
   /* 正文块不打属性（靠 JS 事后打标记会先闪一下再藏起来），直接按结构隐藏；
-     列表与图片拼图例外，动画交给下面的「逐行」规则。 */
+     列表与图片拼图例外，动画交给下面的「逐行」规则。
+     ⚠️ 这条规则的时长 / 延迟必须走同一条 transition：组件自己的 transition 特异性低，
+     会被整条盖掉（卡片 hover 的描边 / 阴影就是这样变成「瞬变」的）。需要 hover 过渡的
+     组件写一条 --reveal-transition 把自己的属性一起声明进来即可（见 markdown.css 的卡片）。 */
   html[data-reveal-on] .markdown-content:not([data-no-reveal]) > *:not(ul):not(ol):not(.image-collage) {
-    transition-property: opacity, transform;
-    transition-duration: var(--momo-t-reveal);
-    transition-delay: var(--reveal-delay, 0ms);
-    transition-timing-function: var(--momo-ease-out);
+    transition: var(
+      --reveal-transition,
+      opacity var(--momo-t-reveal) var(--momo-ease-out) var(--reveal-delay, 0ms),
+      transform var(--momo-t-reveal) var(--momo-ease-out) var(--reveal-delay, 0ms)
+    );
   }
 
   html[data-reveal-on] .markdown-content:not([data-no-reveal]) > *:not(ul):not(ol):not(.image-collage):not(.is-revealed) {

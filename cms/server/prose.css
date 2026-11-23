@@ -332,6 +332,7 @@ body {
   text-decoration: none;
   color: var(--text);
   background: var(--bg);
+  transition: border-color 0.14s ease;
 }
 .markdown-content .card-github:hover { border-color: var(--link); }
 .markdown-content .card-github .gc-titlebar { display: flex; justify-content: space-between; align-items: center; }
@@ -359,6 +360,7 @@ body {
   text-decoration: none;
   color: var(--text);
   background: var(--bg);
+  transition: border-color 0.14s ease;
 }
 .markdown-content .card-music:hover { border-color: var(--link); }
 .markdown-content .music-card { display: flex; gap: 1rem; padding: 1rem; }

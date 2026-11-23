@@ -553,6 +553,18 @@
     border-color: var(--link-color);
 }
 
+/* 这两张卡片是正文的直接子元素，入场规则会用自己的 transition 盖掉上面的声明（见 global.css），
+   hover 的描边 / 阴影就会变成瞬变。这里把入场需要的两个属性一并写进 --reveal-transition，
+   同一条 transition 同时管入场与 hover。关闭入场动画时走上面各自的 transition，观感一致。 */
+.card-music,
+.card-github {
+    --reveal-transition:
+        opacity var(--momo-t-reveal) var(--momo-ease-out) var(--reveal-delay, 0ms),
+        transform var(--momo-t-reveal) var(--momo-ease-out) var(--reveal-delay, 0ms),
+        border-color var(--momo-t-fast) var(--momo-ease-out),
+        box-shadow var(--momo-t-base) var(--momo-ease-out);
+}
+
 .card-github .gc-titlebar {
     display: flex;
     justify-content: space-between;
