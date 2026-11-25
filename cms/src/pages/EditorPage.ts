@@ -4,6 +4,8 @@ import { navigate } from '../router'
 import { el, encodePath, escapeHtml } from '../dom'
 import { createSelect } from '../select'
 import { toast } from '../ui'
+import { closeActiveOverlays, stripExt } from '../media-shared'
+import { openMediaPicker } from './media-picker'
 
 interface EditorState {
   path: string
@@ -89,7 +91,8 @@ interface InsertTool {
   linePrefix?: string
 }
 
-function buildToolbar(getMd: () => HTMLTextAreaElement | null): HTMLElement {  const noteSelect = createSelect({
+function buildToolbar(root: HTMLElement, state: EditorState, getMd: () => HTMLTextAreaElement | null): HTMLElement {
+  const noteSelect = createSelect({
     class: 'tool-select',
     title: '提示块类型',
     options: [
@@ -110,6 +113,12 @@ function buildToolbar(getMd: () => HTMLTextAreaElement | null): HTMLElement {  c
     btn({ label: '代码', title: '行内代码 `code`', wrap: ['`', '`'] }),
     btn({ label: '链接', title: '链接 [文字](https://…)', template: '[{sel}]({cur}https://)' }),
     btn({ label: '图片', title: '图片 ![描述](./图片.png)', template: '![{sel}]({cur}./图片.png)' }),
+    el('button', {
+      class: 'tool-btn',
+      id: 'tool-media',
+      title: '从媒体库插入图片（本文 / public）',
+      onclick: () => pickMedia(root, state),
+    }, ['媒体库']),
     btn({ label: '引用', title: '引用 > 文字（多行会逐行加前缀）', linePrefix: '> ' }),
     btn({ label: '自定义引用', title: '自定义居中引用 :::quote … :::', template: ':::quote\n{sel}{cur}{ph:内容}\n:::' }),
     sep(),
@@ -246,6 +255,12 @@ function buildShell(root: HTMLElement, state: EditorState) {
               el('button', { class: 'btn btn-sm', id: 'btn-upload', onclick: () => pickFile(state) }, [
                 '上传',
               ]),
+              el('button', {
+                class: 'btn btn-sm',
+                id: 'btn-cover-media',
+                title: '从媒体库选择封面图',
+                onclick: () => pickCover(root, state),
+              }, ['媒体库']),
             ]),
           ]),
           el('label', { class: 'form-field wide' }, [
@@ -262,7 +277,7 @@ function buildShell(root: HTMLElement, state: EditorState) {
           ]),
           ]),
         ]),
-        buildToolbar(() => shell.querySelector('#md-editor') as HTMLTextAreaElement | null),
+        buildToolbar(root, state, () => shell.querySelector('#md-editor') as HTMLTextAreaElement | null),
         el('textarea', {
           class: 'md-editor',
           id: 'md-editor',
@@ -323,6 +338,7 @@ function buildShell(root: HTMLElement, state: EditorState) {
     window.removeEventListener('beforeunload', onBeforeUnload)
     clearInterval(autosaveTimer)
     offScrollSync()
+    closeActiveOverlays()
   }
 }
 
@@ -639,4 +655,41 @@ function pickFile(state: EditorState) {
     }
   })
   input.click()
+}
+
+// 从媒体库插入正文图片：选中了文字就当 alt，没选则用文件名
+function pickMedia(root: HTMLElement, state: EditorState) {
+  const md = document.querySelector('#md-editor') as HTMLTextAreaElement | null
+  if (!md) return
+  openMediaPicker({
+    root,
+    articleDir: state.path,
+    title: '从媒体库插入图片',
+    onPick: (item, _scope, ref) => {
+      const selected = md.value.slice(md.selectionStart, md.selectionEnd).trim()
+      const alt = selected || item.altName || stripExt(item.name)
+      insertMarkdown(md, `![${alt}](${ref})`)
+    },
+  })
+}
+
+// 从媒体库选择封面：只回填 frontmatter 的 image 字段
+function pickCover(root: HTMLElement, state: EditorState) {
+  openMediaPicker({
+    root,
+    articleDir: state.path,
+    title: '选择封面图',
+    onPick: (item, _scope, ref) => {
+      state.data.image = ref
+      syncForm(state)
+      markDirty(state)
+      toast(`已选择封面 ${item.name}，记得保存`)
+    },
+  })
+}
+
+function insertMarkdown(md: HTMLTextAreaElement, text: string) {
+  md.setRangeText(text, md.selectionStart, md.selectionEnd, 'end')
+  md.focus()
+  md.dispatchEvent(new Event('input', { bubbles: true }))
 }

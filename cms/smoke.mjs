@@ -1,6 +1,6 @@
 // 冒烟测试：在 jsdom 中真实点击「新建文章」→ 创建 → 编辑 → 实时预览 → 保存 → 删除
 // 覆盖：新建弹窗标题 / 自定义分类、空路径自动生成 yyyy/yyyy-mm-dd、el() 只读属性（input.list）、
-//       列表批量模式的开关
+//       列表批量模式的开关、媒体库图床弹窗 / 外链 Markdown / 大图详情（不执行上传与删除）
 import { JSDOM } from 'jsdom'
 
 const dom = new JSDOM('<!doctype html><html><body><div id="app"></div></body></html>', {
@@ -219,6 +219,69 @@ if (batchBar.hidden !== true || app.querySelectorAll('.card-check').length) {
   throw new Error('FAIL: 退出批量模式后应恢复默认')
 }
 console.log('PASS: 批量模式默认关闭，开关切换正常')
+
+// ---------- 10. 媒体库：列表渲染 + 图床弹窗 / 大图开关（不执行上传与删除） ----------
+const { renderMedia } = await import('./src/pages/MediaPage.ts')
+await render(renderMedia)
+const mediaCards = await waitFor(() => app.querySelectorAll('.media-card').length, 15000)
+if (!mediaCards) throw new Error('FAIL: 媒体库未渲染图片卡片')
+if (app.querySelectorAll('.media-check').length) throw new Error('FAIL: 媒体库默认不应出现多选框')
+if (app.querySelectorAll('.media-card .media-act').length) throw new Error('FAIL: 卡片上不应直接放操作按钮')
+document.getElementById('media-upload').click()
+const uploadDialog = await waitFor(() => app.querySelector('.media-upload-dialog'), 5000)
+if (!uploadDialog || !app.querySelector('.media-dropzone')) throw new Error('FAIL: 图床上传弹窗未打开')
+if (!app.querySelector('.media-quality-range')) throw new Error('FAIL: 上传弹窗缺少压缩质量滑块')
+if (!app.querySelector('.media-estimate-summary')) throw new Error('FAIL: 上传弹窗缺少预估大小区域')
+console.log('PASS: 图床上传弹窗打开，含拖拽区、目标选择与压缩质量')
+const feedInputs = app.querySelectorAll('.media-external-row .input')
+app.querySelector('.media-external summary').click()
+feedInputs[0].value = 'https://example.com/a.png'
+feedInputs[1].value = '回归测试'
+app.querySelector('.media-external-row .btn').click()
+await sleep(100)
+const md = app.querySelector('.media-result-md')?.textContent || ''
+if (md !== '![回归测试](https://example.com/a.png)') throw new Error('FAIL: 外链 Markdown 生成错误: ' + md)
+console.log('PASS: 外链生成 Markdown 片段')
+closeDialog()
+await sleep(100)
+if (app.querySelector('.media-upload-dialog')) throw new Error('FAIL: 上传弹窗未关闭')
+
+document.getElementById('media-batch-toggle').click()
+await sleep(100)
+document.getElementById('media-batch-toggle').click()
+await sleep(100)
+app.querySelector('.media-card .media-thumb').click()
+if (!(await waitFor(() => app.querySelector('.media-lightbox'), 5000))) throw new Error('FAIL: 大图详情未打开')
+const detailActions = [...app.querySelectorAll('.media-detail-actions .btn')].map((b) => b.textContent)
+for (const label of ['复制 Markdown', '复制 alt', '替换图片', '移动到…', '重命名', '删除']) {
+  if (!detailActions.includes(label)) throw new Error('FAIL: 详情缺少操作「' + label + '」')
+}
+app.querySelector('.media-lightbox-close').click()
+await sleep(100)
+if (app.querySelector('.media-lightbox')) throw new Error('FAIL: 大图详情未关闭')
+console.log('PASS: 媒体库多选开关、详情操作与大图开关正常')
+
+// ---------- 11. 编辑器：从媒体库插入图片 ----------
+await render(renderEditor, 'markdown')
+const editorMd = await waitFor(() => document.getElementById('md-editor'), 10000)
+if (!editorMd) throw new Error('FAIL: 编辑器未渲染')
+document.getElementById('tool-media').click()
+if (!(await waitFor(() => app.querySelector('.media-picker-dialog'), 5000))) {
+  throw new Error('FAIL: 编辑器媒体库选图弹窗未打开')
+}
+if (!(await waitFor(() => app.querySelector('.picker-item'), 15000))) {
+  throw new Error('FAIL: 选图弹窗没有列出本文图片')
+}
+app.querySelector('.media-picker-dialog .media-lightbox-close').click()
+await sleep(100)
+if (app.querySelector('.media-picker-dialog')) throw new Error('FAIL: 选图弹窗未关闭')
+console.log('PASS: 编辑器可从媒体库选图')
+
+function closeDialog() {
+  const btns = [...app.querySelectorAll('.media-upload-dialog .modal-actions .btn')]
+  const close = btns.find((b) => b.textContent === '关闭')
+  close?.click()
+}
 
 console.log('\n=== 冒烟测试全部通过 ===')
 process.exit(0)

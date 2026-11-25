@@ -89,6 +89,12 @@ export interface MediaGroup {
   items: MediaItem[]
 }
 
+/** 上传弹窗的目标：博客文章目录（图片统一落到 <dir>/images） */
+export interface MediaArticleTarget {
+  dir: string
+  title: string
+}
+
 export interface MediaList {
   scope: MediaScope
   total: number
@@ -96,11 +102,46 @@ export interface MediaList {
   sharp: boolean
   /** 上传目录候选（blog 为文章目录，public 为实际目录） */
   dirs: string[]
+  /** 文章目录与标题，供上传弹窗选择目标（两个 scope 都会返回） */
+  articles: MediaArticleTarget[]
   groups: MediaGroup[]
 }
 
 export interface MediaUploadResult extends MediaItem {
   duplicate?: MediaItem
+  /** 本次使用的压缩质量（10-100） */
+  quality?: number
+}
+
+/** 上传前的压缩预估（/api/media/estimate，不写盘） */
+export interface MediaEstimate {
+  name: string
+  ext: string
+  quality: number
+  /** 压缩后的预估字节数 */
+  size: number
+  originalSize: number
+  width: number | null
+  height: number | null
+  compressed: boolean
+  /** GIF / SVG / ICO 或没有 sharp 时为 false */
+  compressible: boolean
+}
+
+/** 图片被哪些 markdown 引用（路径相对 src/content） */
+export interface MediaRefs {
+  path: string
+  refs: string[]
+}
+
+export interface MediaUnused {
+  scope: MediaScope
+  total: number
+  unused: MediaItem[]
+}
+
+export interface MediaMoveResult extends MediaItem {
+  movedFrom: { scope: MediaScope; path: string }
 }
 
 export interface BatchUpdateResult {

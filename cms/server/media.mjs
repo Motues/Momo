@@ -5,9 +5,14 @@ import { createHash } from 'node:crypto'
 import { readdir, readFile, writeFile, mkdir, stat, unlink, rename } from 'node:fs/promises'
 import { join, dirname, basename, extname, resolve, sep } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { BLOG_DIR, safeRel } from './store.mjs'
+import { BLOG_DIR, safeRel, scanArticles } from './store.mjs'
 
 export const PUBLIC_DIR = fileURLToPath(new URL('../../public/', import.meta.url))
+// 引用扫描范围：文章 / 页面文案、组件、样式与根目录配置（构建期真正会读到图片的地方）
+const ROOT_DIR = fileURLToPath(new URL('../../', import.meta.url))
+const SRC_DIR = fileURLToPath(new URL('../../src/', import.meta.url))
+const CONTENT_DIR = fileURLToPath(new URL('../../src/content/', import.meta.url))
+const ROOT_CONFIG_FILES = ['astro.config.mjs', 'ec.config.mjs']
 
 const MEDIA_ROOTS = { blog: BLOG_DIR, public: PUBLIC_DIR }
 
@@ -332,7 +337,20 @@ async function listMedia(scope, q) {
     ? [...new Set([...articleDirs, ...dirs])].filter((dir) => dir !== '').sort((a, b) => a.localeCompare(b))
     : [...dirs].sort((a, b) => a.localeCompare(b))
 
-  return { scope, total: list.length, truncated, sharp: !!sharp, dirs: uploadDirs, groups: grouped }
+  // 上传弹窗的目标列表：两个 scope 都返回文章目录，图片统一落到 <文章目录>/images
+  const articles = (await scanArticles())
+    .map((a) => ({ dir: a.path, title: a.title || a.path }))
+    .sort((a, b) => a.dir.localeCompare(b.dir))
+
+  return {
+    scope,
+    total: list.length,
+    truncated,
+    sharp: !!sharp,
+    dirs: uploadDirs,
+    articles,
+    groups: grouped,
+  }
 }
 
 // ---------- 上传：压缩 + 去重 ----------
@@ -341,9 +359,18 @@ function compressible(ext) {
   return ['.png', '.jpg', '.jpeg', '.webp', '.avif'].includes(ext)
 }
 
-// 长边 > 2400 等比缩小；jpeg / webp 质量 82，png 用压缩等级；SVG / GIF 原样保存
-async function prepareImage(buf, ext) {
+// 压缩质量：10-100，非法值回落默认 82
+function normalizeQuality(raw) {
+  const n = Number(raw)
+  if (!Number.isFinite(n)) return QUALITY
+  return Math.min(100, Math.max(10, Math.round(n)))
+}
+
+// 长边 > 2400 等比缩小；jpeg / webp / avif 按 quality 重编码，PNG 用调色板压缩（100 = 无损），
+// SVG / GIF 原样保存。force：替换图片时即使重编码变大也要按目标格式写出。
+async function prepareImage(buf, ext, { force = false, quality = QUALITY } = {}) {
   if (!sharp || !compressible(ext)) return { data: buf, compressed: false, width: null, height: null }
+  const q = normalizeQuality(quality)
   try {
     const meta = await sharp(buf).metadata()
     const longEdge = Math.max(meta.width || 0, meta.height || 0)
@@ -351,15 +378,19 @@ async function prepareImage(buf, ext) {
     if (longEdge > LONG_EDGE) {
       pipe = pipe.resize({ width: LONG_EDGE, height: LONG_EDGE, fit: 'inside', withoutEnlargement: true })
     }
-    if (ext === '.png') pipe = pipe.png({ compressionLevel: 9 })
-    else if (ext === '.jpg' || ext === '.jpeg') pipe = pipe.jpeg({ quality: QUALITY, mozjpeg: true })
-    else if (ext === '.webp') pipe = pipe.webp({ quality: QUALITY })
-    else if (ext === '.avif') pipe = pipe.avif({ quality: 60 })
+    if (ext === '.png') {
+      pipe = q < 100
+        ? pipe.png({ compressionLevel: 9, palette: true, quality: q })
+        : pipe.png({ compressionLevel: 9 })
+    } else if (ext === '.jpg' || ext === '.jpeg') pipe = pipe.jpeg({ quality: q, mozjpeg: true })
+    else if (ext === '.webp') pipe = pipe.webp({ quality: q })
+    // AVIF 的 quality 刻度比 JPEG 更「高」：同样 82 会明显更大，按比例折算（82 → 60）
+    else if (ext === '.avif') pipe = pipe.avif({ quality: Math.max(1, Math.round(q * 0.73)) })
     else return { data: buf, compressed: false, width: meta.width ?? null, height: meta.height ?? null }
 
     const out = await pipe.toBuffer()
     // 没有缩图、重编码反而变大时保留原图（PNG 重编码偶尔会这样）
-    if (out.length >= buf.length && longEdge <= LONG_EDGE) {
+    if (!force && out.length >= buf.length && longEdge <= LONG_EDGE) {
       return { data: buf, compressed: false, width: meta.width ?? null, height: meta.height ?? null }
     }
     const outMeta = await sharp(out).metadata().catch(() => ({}))
@@ -426,6 +457,95 @@ async function findByHash(scope, hash) {
   return toItem(scope, root, found, articleDirs)
 }
 
+// ---------- 引用扫描：详情面板与「未引用图片」清理 ----------
+
+const TEXT_EXTS = new Set([
+  '.md', '.mdx', '.astro', '.ts', '.tsx', '.js', '.mjs', '.cjs', '.jsx',
+  '.svelte', '.css', '.json', '.yml', '.yaml', '.html', '.txt', '.xml',
+])
+
+// 递归收集文本文件；跳过依赖 / 构建产物目录
+async function collectTextFiles(dir, out = []) {
+  const entries = await readdir(dir, { withFileTypes: true }).catch(() => [])
+  for (const entry of entries) {
+    if (entry.name.startsWith('.')) continue
+    const full = join(dir, entry.name)
+    if (entry.isDirectory()) {
+      if (IGNORED_DIRS.has(entry.name)) continue
+      await collectTextFiles(full, out)
+    } else if (entry.isFile() && TEXT_EXTS.has(extname(entry.name).toLowerCase())) {
+      out.push(full)
+    }
+  }
+  return out
+}
+
+const textCache = new Map() // absPath -> { key, text }
+
+async function readTextCached(file) {
+  const st = await stat(file).catch(() => null)
+  if (!st?.isFile()) return null
+  // 单个文件超过 2MB 视为数据 / 构建产物，不参与引用匹配
+  if (st.size > 2 * 1024 * 1024) return null
+  const key = `${st.mtimeMs}:${st.size}`
+  const cached = textCache.get(file)
+  if (cached && cached.key === key) return cached.text
+  const text = await readFile(file, 'utf-8').catch(() => null)
+  if (text === null) return null
+  textCache.set(file, { key, text })
+  return text
+}
+
+// 会读到图片的文本（src/** 与根目录配置文件）拼成一个 haystack，用于判断「有没有人引用」
+async function textHaystack() {
+  const files = await collectTextFiles(SRC_DIR)
+  for (const name of ROOT_CONFIG_FILES) files.push(join(ROOT_DIR, name))
+  const parts = []
+  for (const file of files) {
+    const text = await readTextCached(file)
+    if (text) parts.push(text)
+  }
+  return parts.join('\n')
+}
+
+const IMAGE_TOKEN = /[\w.\-\u4e00-\u9fff]+\.(?:png|jpe?g|gif|webp|avif|svg|ico)/gi
+
+// 找图片被哪些 markdown 引用：按文件名做保守匹配（宁可多报，避免误删）
+async function findReferences(rel) {
+  const needle = basename(rel).toLowerCase()
+  const files = (await collectTextFiles(CONTENT_DIR)).filter((file) => {
+    const ext = extname(file).toLowerCase()
+    return ext === '.md' || ext === '.mdx'
+  })
+  const refs = []
+  for (const file of files) {
+    const text = await readTextCached(file)
+    if (text && text.toLowerCase().includes(needle)) {
+      refs.push(file.slice(CONTENT_DIR.length).replace(/\\/g, '/'))
+    }
+  }
+  return refs.sort()
+}
+
+// 未被任何文本引用的图片（按体积从大到小），供前端确认后批量删除
+async function listUnused(scope) {
+  const { root, files, articleDirs } = await scanScope(scope)
+  const haystack = await textHaystack()
+  const tokens = new Set()
+  for (const match of haystack.matchAll(IMAGE_TOKEN)) tokens.add(match[0].toLowerCase())
+  const lowerHaystack = haystack.toLowerCase()
+
+  const parsed = await mapLimit(files, IO_CONCURRENCY, async (file) => {
+    const name = basename(file).toLowerCase()
+    if (tokens.has(name)) return null
+    // 文件名含空格 / 特殊字符时 token 提取不到，回退到子串匹配
+    if (lowerHaystack.includes(name)) return null
+    return toItem(scope, root, file, articleDirs)
+  })
+  const unused = parsed.filter(Boolean).sort((a, b) => b.size - a.size)
+  return { scope, total: files.length, unused }
+}
+
 // ---------- 路由 ----------
 
 const media = new Hono()
@@ -479,10 +599,11 @@ media.post('/upload', async (c) => {
   if (!name) return c.json({ error: '仅支持 png / jpg / jpeg / gif / webp / avif / svg 图片' }, 400)
 
   const original = Buffer.from(await file.arrayBuffer())
-  const prepared = await prepareImage(original, extname(name))
+  const quality = normalizeQuality(form['quality'])
+  const prepared = await prepareImage(original, extname(name), { quality })
   const hash = createHash('sha256').update(prepared.data).digest('hex')
   const duplicate = await findByHash(scope, hash)
-  if (duplicate) return c.json({ ...duplicate, duplicate, compressed: prepared.compressed })
+  if (duplicate) return c.json({ ...duplicate, duplicate, compressed: prepared.compressed, quality })
 
   await mkdir(target, { recursive: true })
   const finalName = await uniqueName(target, name)
@@ -497,7 +618,150 @@ media.post('/upload', async (c) => {
     if (articleDir !== null) articleDirs.add(articleDir)
   }
   const item = await toItem(scope, root, abs, articleDirs)
+  return c.json({ ...item, compressed: prepared.compressed, quality })
+})
+
+// POST /api/media/estimate  (multipart: file + quality) —— 只预估压缩后大小，不写盘
+media.post('/estimate', async (c) => {
+  const form = await c.req.parseBody().catch(() => null)
+  if (!form) return c.json({ error: '无法解析表单' }, 400)
+
+  const file = form['file']
+  if (typeof File === 'undefined' || !(file instanceof File)) {
+    return c.json({ error: '缺少文件字段 file' }, 400)
+  }
+  if (file.size > MAX_UPLOAD) return c.json({ error: '图片大小不能超过 20MB' }, 400)
+  const name = safeName(file.name)
+  if (!name) return c.json({ error: '仅支持 png / jpg / jpeg / gif / webp / avif / svg 图片' }, 400)
+
+  const ext = extname(name).toLowerCase()
+  const quality = normalizeQuality(form['quality'])
+  const original = Buffer.from(await file.arrayBuffer())
+  const prepared = await prepareImage(original, ext, { quality })
+  const size = prepared.data.length
+  return c.json({
+    name,
+    ext,
+    quality,
+    size,
+    originalSize: original.length,
+    width: prepared.width,
+    height: prepared.height,
+    compressed: prepared.compressed,
+    // GIF / SVG / ICO 以及没有 sharp 的环境不会重编码
+    compressible: compressible(ext) && !!sharp,
+  })
+})
+
+// POST /api/media/replace  (multipart: file + scope + path) —— 原路径替换图片内容
+media.post('/replace', async (c) => {
+  const form = await c.req.parseBody().catch(() => null)
+  if (!form) return c.json({ error: '无法解析表单' }, 400)
+
+  const file = form['file']
+  if (typeof File === 'undefined' || !(file instanceof File)) {
+    return c.json({ error: '缺少文件字段 file' }, 400)
+  }
+  if (file.size > MAX_UPLOAD) return c.json({ error: '图片大小不能超过 20MB' }, 400)
+
+  const scope = normalizeScope(form['scope'])
+  const rel = safeRel(String(form['path'] || ''))
+  if (!scope || !rel || !isImageName(rel)) return c.json({ error: '无效的图片路径' }, 400)
+  const root = MEDIA_ROOTS[scope]
+  const abs = inside(root, rel)
+  if (!abs) return c.json({ error: '无效的图片路径' }, 400)
+  const st = await stat(abs).catch(() => null)
+  if (!st?.isFile()) return c.json({ error: '图片不存在' }, 404)
+
+  const sourceExt = extname(String(file.name || '')).toLowerCase()
+  if (!IMAGE_EXTS.has(sourceExt)) return c.json({ error: '只能上传图片文件' }, 400)
+  // 路径（含扩展名）保持不变：格式不同时按目标扩展名重编码，GIF / SVG / ICO 只能同格式替换
+  const targetExt = extname(abs).toLowerCase()
+  const converting = sourceExt !== targetExt
+  if (converting && !compressible(targetExt)) {
+    return c.json({ error: `替换需要相同格式的图片（${targetExt}）` }, 400)
+  }
+  if (converting && !sharp) {
+    return c.json({ error: '当前环境未加载 sharp，无法转换格式，请上传同格式图片' }, 400)
+  }
+
+  const original = Buffer.from(await file.arrayBuffer())
+  const prepared = await prepareImage(original, targetExt, {
+    force: converting,
+    quality: normalizeQuality(form['quality']),
+  })
+  await writeFile(abs, prepared.data)
+  hashCache.delete(abs)
+  metaCache.delete(abs)
+
+  const articleDirs = new Set()
+  if (scope === 'blog') {
+    const articleDir = await resolveArticleDir(root, rel)
+    if (articleDir !== null) articleDirs.add(articleDir)
+  }
+  const item = await toItem(scope, root, abs, articleDirs)
   return c.json({ ...item, compressed: prepared.compressed })
+})
+
+// POST /api/media/move  { scope, path, targetScope, targetDir } —— 移动到其他博客目录 / public 目录
+media.post('/move', async (c) => {
+  const body = await c.req.json().catch(() => null)
+  if (!body || typeof body !== 'object') return c.json({ error: '无效请求体' }, 400)
+
+  const scope = normalizeScope(body.scope)
+  const targetScope = normalizeScope(body.targetScope)
+  const rel = safeRel(body.path || '')
+  if (!scope || !targetScope || !rel || !isImageName(rel)) {
+    return c.json({ error: '无效的图片路径' }, 400)
+  }
+  const srcAbs = inside(MEDIA_ROOTS[scope], rel)
+  if (!srcAbs) return c.json({ error: '无效的图片路径' }, 400)
+  const st = await stat(srcAbs).catch(() => null)
+  if (!st?.isFile()) return c.json({ error: '图片不存在' }, 404)
+
+  const rawDir = String(body.targetDir || '').trim().replace(/^\/+|\/+$/g, '')
+  const dirRel = rawDir ? safeRel(rawDir) : ''
+  if (dirRel === null) return c.json({ error: '无效的目标目录' }, 400)
+  const dstRoot = MEDIA_ROOTS[targetScope]
+  const dstDir = inside(dstRoot, dirRel)
+  if (!dstDir) return c.json({ error: '无效的目标目录' }, 400)
+  if (resolve(dstDir) === resolve(dirname(srcAbs))) {
+    return c.json({ error: '目标位置与当前位置相同' }, 400)
+  }
+
+  await mkdir(dstDir, { recursive: true })
+  const finalName = await uniqueName(dstDir, basename(srcAbs))
+  const dstAbs = join(dstDir, finalName)
+  if (resolve(dstAbs) === resolve(srcAbs)) return c.json({ error: '目标位置与当前位置相同' }, 400)
+
+  await rename(srcAbs, dstAbs)
+  hashCache.delete(srcAbs)
+  hashCache.delete(dstAbs)
+  metaCache.delete(srcAbs)
+  metaCache.delete(dstAbs)
+
+  const articleDirs = new Set()
+  if (targetScope === 'blog') {
+    const articleDir = await resolveArticleDir(dstRoot, relOf(dstRoot, dstAbs))
+    if (articleDir !== null) articleDirs.add(articleDir)
+  }
+  const item = await toItem(targetScope, dstRoot, dstAbs, articleDirs)
+  return c.json({ ...item, movedFrom: { scope, path: rel } })
+})
+
+// GET /api/media/refs?scope=&path= —— 该图片被哪些 markdown 引用
+media.get('/refs', async (c) => {
+  const scope = normalizeScope(c.req.query('scope'))
+  const rel = safeRel(c.req.query('path') || '')
+  if (!scope || !rel || !isImageName(rel)) return c.json({ error: '无效的图片路径' }, 400)
+  return c.json({ path: rel, refs: await findReferences(rel) })
+})
+
+// GET /api/media/unused?scope= —— 扫描未被任何文本引用的图片
+media.get('/unused', async (c) => {
+  const scope = normalizeScope(c.req.query('scope'))
+  if (!scope) return c.json({ error: 'scope 只能是 blog 或 public' }, 400)
+  return c.json(await listUnused(scope))
 })
 
 // DELETE /api/media?scope=&path= —— 删除单张图片

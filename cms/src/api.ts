@@ -5,8 +5,12 @@ import type {
   ConfigDoc,
   ConfigValues,
   FrontmatterData,
+  MediaEstimate,
   MediaList,
+  MediaMoveResult,
+  MediaRefs,
   MediaScope,
+  MediaUnused,
   MediaUploadResult,
   MetaInfo,
   Stats,
@@ -108,12 +112,21 @@ export const api = {
     return req<MediaList>(`/api/media?${sp.toString()}`)
   },
 
-  mediaUpload(file: File, scope: MediaScope, dir: string) {
+  mediaUpload(file: File, scope: MediaScope, dir: string, quality = 82) {
     const fd = new FormData()
     fd.append('file', file)
     fd.append('scope', scope)
     fd.append('dir', dir)
+    fd.append('quality', String(quality))
     return req<MediaUploadResult>('/api/media/upload', { method: 'POST', body: fd })
+  },
+
+  // 只预估压缩后大小（与上传走同一套 sharp 参数），不写盘
+  mediaEstimate(file: File, quality: number) {
+    const fd = new FormData()
+    fd.append('file', file)
+    fd.append('quality', String(quality))
+    return req<MediaEstimate>('/api/media/estimate', { method: 'POST', body: fd })
   },
 
   mediaRemove(scope: MediaScope, path: string) {
@@ -126,6 +139,32 @@ export const api = {
       method: 'PATCH',
       body: JSON.stringify({ scope, path, name }),
     })
+  },
+
+  // 原路径替换图片内容（保持引用不变）
+  mediaReplace(scope: MediaScope, path: string, file: File) {
+    const fd = new FormData()
+    fd.append('file', file)
+    fd.append('scope', scope)
+    fd.append('path', path)
+    return req<MediaUploadResult>('/api/media/replace', { method: 'POST', body: fd })
+  },
+
+  // 移动到其他博客目录 / public 目录（不会自动改写文章引用）
+  mediaMove(body: { scope: MediaScope; path: string; targetScope: MediaScope; targetDir: string }) {
+    return req<MediaMoveResult>('/api/media/move', {
+      method: 'POST',
+      body: JSON.stringify(body),
+    })
+  },
+
+  mediaRefs(scope: MediaScope, path: string) {
+    const sp = new URLSearchParams({ scope, path })
+    return req<MediaRefs>(`/api/media/refs?${sp.toString()}`)
+  },
+
+  mediaUnused(scope: MediaScope) {
+    return req<MediaUnused>(`/api/media/unused?scope=${encodeURIComponent(scope)}`)
   },
 
   // ---- 批量操作 ----

@@ -23,7 +23,8 @@ pnpm cms
 - **网站配置页**（`#/config`）：`src/config.ts` 的可视化编辑器（站点信息、阅读与目录、评论、主题、个人信息、许可协议、国际化、各语言 Cover 文案、友链列表；支持增删与上下移动友链），可展开查看文件源码；右侧**悬浮目录栏**（贴住表单右边缘，只列分区，点击平滑滚动到位、滚动时自动高亮当前分区，可收起，窄窗口默认收起）；「主题与动效」按语义分组、组间用浅色横线分隔；保存时**只改写真正改动过的字段**，文件里的注释与排版保持不变
 - **文章列表**（`#/list`）：搜索、分类筛选、草稿/已发布筛选、语言徽章；支持**卡片 / 表格**两种视图模式（localStorage 记忆选择）与**多种排序**（默认置顶+日期 / 发布日期升降序 / 标题 / 路径 / 分类，中文按拼音排序）；表格**列宽按内容自动分配**（宽裕时按内容比例铺满整行，狭窄时压缩标题/路径并保底最小宽度，窗口变化自动重算），表格右侧**行内操作**（置顶/取消置顶、草稿/发布切换、删除）
 - **批量操作**（列表页）：默认**关闭**，列表里没有任何多选框；顶部「批量操作」按钮开启后才显示批量操作条与卡片/表格多选框（表格多选列也随开关出现/消失），再点「退出批量」清空选中并收起。批量操作条支持全选当前筛选结果、改分类（含「未分类」）、置顶 / 取消置顶、设为草稿 / 发布、批量删除（二次确认并显示数量）与**导出 Markdown**（ZIP，包含每篇文章的全部语言版本）；没有选中时动作按钮禁用。操作成功后局部刷新列表，失败项逐条列出并保持选中以便重试；切换筛选 / 视图后选中集合只保留当前可见项
-- **媒体库**（`#/media`）：统一浏览 `src/content/blog/**` 与 `public/**` 下的图片，按文章目录（blog）或目录（public）分组，显示相对路径、宽高、大小与修改时间；支持搜索、按钮上传与拖拽上传（长边 > 2400px 自动等比缩小，JPEG / WebP 质量 82，PNG 压缩，SVG / GIF 原样保存），按内容 sha256 跨同 scope 去重，可复制 Markdown 片段（blog `./xxx`、public `/xxx`）/ alt 建议、重命名与删除（二次确认）
+- **媒体库**（`#/media`）：统一浏览 `src/content/blog/**` 与 `public/**` 下的图片，按文章目录（blog）或目录（public）分组，显示相对路径、宽高、大小与修改时间。上传采用**图床式弹窗**：选择目标文章（图片统一保存到 `<文章目录>/images/`，引用写作 `./images/xxx.png`）或 public 目录后，把图片拖进弹窗（也可点击选择、或在弹窗里粘贴外链直接生成引用），逐张显示上传状态与可复制的 Markdown；**压缩质量可在弹窗里拖动滑块调整（40-100，默认 82），并按同一套 sharp 参数实时预估压缩后大小（总大小 / 单张节省比例）**；上传仍会压缩长边 > 2400px 的图片并按内容 sha256 跨同 scope 去重。**卡片本身不再放操作按钮**：点缩略图 / 卡片打开大图详情，详情里统一提供复制 Markdown / alt / 路径、原路径替换、移动到其他博客或 public 目录（会提示受影响的引用文件，但不会自动改写引用）、重命名与删除。其它已有能力包括搜索、**批量选择删除**、**未引用图片扫描清理**（扫描 `src/**` 与根目录配置后列出可确认删除的图片）
+- **编辑器从媒体库选图**：Markdown 工具栏的「媒体库」与封面图旁的「媒体库」都会打开选图弹窗；「本文图片 / public 图片」两个标签只列出当前文章目录与 `public` 下的图片（本文没有图片时提示先去媒体库上传/移动），点击即按 `./images/xxx.png` 或 `/xxx.png` 插入正文 / 回填封面（选中文字会作为 alt）
 - **Markdown 编辑器**：frontmatter 表单 + 正文源码，左侧编辑右侧**实时预览**（防抖 500ms，重绘后保持原滚动位置）；编辑区上方**快速插入工具栏**（加粗/斜体/行内代码/链接/图片/引用（`> `）/自定义引用（`:::quote`）、代码块/Typst、行内/块公式、提示块（note/tip/important/caution/warning）、GitHub/音乐卡片、注音/折叠/彩虹/下划线），支持选中文本包裹与光标定位
 - **自动保存**：编辑页每 60 秒自动写盘一次（`EditorPage.ts` 的 `AUTOSAVE_INTERVAL`），只在「有改动且没有保存在进行」时保存；提示做在顶栏（`已自动保存 HH:MM`），不弹 toast，也**不重建界面**（`navigate` 会重建编辑器、丢掉光标与撤销栈），只有 slugId 改名真的移动了文件夹时才静默对齐地址栏
 - **完整自定义语法预览**：与博客渲染管线一致（见下方语法表）
@@ -52,15 +53,16 @@ cms/
 │   ├── upload.mjs        # POST /api/upload：封面图上传（multipart）
 │   ├── meta.mjs          # GET /api/meta：分类统计
 │   ├── stats.mjs         # GET /api/stats：概览页统计（字数 / 语言覆盖 / 最近文章）
-│   ├── media.mjs         # /api/media：图片列表（sharp 读宽高）/ 上传压缩去重 / 删除 / 重命名
+│   ├── media.mjs         # /api/media：图片列表（sharp 读宽高）/ 上传压缩去重 / 压缩预估 / 删除 / 重命名 / 替换 / 移动 / 引用查询 / 未引用扫描
 │   ├── batch.mjs         # /api/batch：批量改 frontmatter + 零依赖 ZIP 导出 Markdown
 │   ├── blog-content.mjs  # GET /blog-content/*：文章文件夹静态资源（预览图片）
 │   └── prose.css         # 预览正文样式（与博客 markdown.css 一致的精简版）
 └── src/                  # 前端（纯 TypeScript SPA，hash 路由，无框架）
     ├── main.ts / router.ts / api.ts / types.ts / styles.css
-    ├── dom.ts / ui.ts（toast）/ select.ts（自研下拉组件：createSelect / 可输入的 createComboSelect）
+    ├── dom.ts / ui.ts（toast）/ select.ts（自研下拉组件：createSelect / 可输入的 createComboSelect）/ media-shared.ts（引用路径 + 弹窗工具）
     └── pages/ OverviewPage.ts（概览）、ListPage.ts（列表：卡片/表格 + 批量模式）、
-              MediaPage.ts（媒体库：网格 / 上传 / 复制引用）、EditorPage.ts、
+              MediaPage.ts（媒体库：网格 / 图床上传弹窗 / 批量选择 / 详情 / 替换 / 移动 / 未引用清理）、
+              media-picker.ts（编辑器选图弹窗）、EditorPage.ts、
               ConfigPage.ts（网站配置）、config-toc.ts（配置页悬浮目录栏）、header.ts（顶栏导航）、
               new-article.ts（新建文章弹窗）
 ```
@@ -85,11 +87,16 @@ cms/
 | GET | `/api/stats` | 概览统计（总数/发布/草稿/置顶/分类/字数/语言/最近文章） |
 | GET | `/api/config` | 读取 `src/config.ts`：`{ path, source, values }` |
 | PUT | `/api/config` | 保存配置 `{ values }` -> `{ path, source, values, changed }`；只写回改动过的字段 |
-| GET | `/api/media?scope=blog\|public&q=` | 媒体库列表，按目录分组，含相对路径 / 宽高 / 大小 / 修改时间 / alt 建议与上传目录候选；最多 2000 个文件 |
+| GET | `/api/media?scope=blog\|public&q=` | 媒体库列表，按目录分组，含相对路径 / 宽高 / 大小 / 修改时间 / alt 建议、上传目录候选与 `articles`（文章目录 + 标题，供上传弹窗选目标）；最多 2000 个文件 |
 | GET | `/api/media/file?scope=&path=` | 读取媒体库图片（缩略图 / 原图，只允许两个根目录内的图片） |
-| POST | `/api/media/upload` | 上传图片（multipart: file + scope + dir）：压缩后按 sha256 去重，重复时返回 `{ duplicate }` |
+| POST | `/api/media/upload` | 上传图片（multipart: file + scope + dir + quality）：压缩后按 sha256 去重，重复时返回 `{ duplicate }`；博客图片由前端传 `<文章目录>/images` |
+| POST | `/api/media/estimate` | 只预估压缩后大小（multipart: file + quality），返回 `{ size, originalSize, width, height, compressed, compressible }`，不写盘 |
 | DELETE | `/api/media?scope=&path=` | 删除单张图片（路径经 safeRel 校验，禁止 `..`） |
 | PATCH | `/api/media` | 重命名图片 `{ scope, path, name }`（同目录内，不会自动改文章引用） |
+| POST | `/api/media/replace` | 原路径替换图片（multipart: file + scope + path）；格式不同时用 sharp 重编码，GIF / SVG / ICO 只能同格式 |
+| POST | `/api/media/move` | 移动图片 `{ scope, path, targetScope, targetDir }`（跨 blog / public；不会自动改引用） |
+| GET | `/api/media/refs?scope=&path=` | 该图片被哪些 Markdown 引用（`{ path, refs }`，refs 相对 `src/content`） |
+| GET | `/api/media/unused?scope=` | 扫描 `src/**` 与根目录配置，返回未被引用的图片 `{ scope, total, unused }` |
 | POST | `/api/batch/update` | 批量改 frontmatter `{ paths, action, value? }`；action 为 category / pin / unpin / draft / publish，返回 `{ ok, failed }` |
 | GET | `/api/batch/export?paths=a,b,c` | 导出所选文章的 Markdown（含全部语言版本）为 `momo-export-YYYYMMDD-HHmm.zip` |
 
@@ -135,11 +142,13 @@ cms/
 - **编辑页滚动同步**在 `src/pages/EditorPage.ts` 的 `setupScrollSync()` 与 `server/preview.mjs` 的 `PREVIEW_SYNC_SCRIPT`：跨源 iframe 只能 postMessage，发送走 rAF 节流、每帧最多一条；用两侧「最近一次主动滚动」的时间戳识别回声，**不把预览回传的位置再写回 textarea**（以前用 80ms 抑制回环，预览每回传一次就重置一次抑制窗口，左侧滚动被压成一段一段的，右侧预览看起来一顿一顿）。实时预览每次输入都会重建 iframe 文档，所以预览脚本就绪后先发 `cms-preview-ready`，父窗口再按重建前的滚动比例发 `cms-scroll-to` 恢复位置——否则每次输入预览都会跳回顶部。
 - 博客根目录相对路径图片（`/images/xxx.png`）在预览中不会加载（仅本地文件相对路径可用）。
 - **`hidden` 属性统一由 `styles.css` 顶部的 `[hidden] { display: none !important }` 兜底**：组件类里一旦写了 `display: flex/grid`，浏览器对 `hidden` 的默认样式会被作者样式盖掉（批量操作条、拖拽提示都踩过这个坑），所以不要再给需要隐藏的元素单独写 `display` 而指望 `hidden` 生效。
+- **编辑器选图**（`pages/media-picker.ts` + `EditorPage.ts`）：工具栏「媒体库」与封面「媒体库」共用 `openMediaPicker()`；弹窗只列「本文图片」（`item.articleDir === state.path`）与 `public 图片`，分别生成 `./images/xxx.png` 与 `/xxx.png`。选中文字优先作为 alt；封面只回填 `f-image` 并 markDirty。弹窗关闭/Esc/换路由统一走 `media-shared.ts` 的 `createOverlay()` / `closeActiveOverlays()`（编辑器 `__cleanup` 会强制关闭），避免残留 Esc 监听。
+- **媒体库**（`server/media.mjs` + `pages/MediaPage.ts`）：blog 图片按「最近的含 `.md` 的目录」归到所属文章，复制 Markdown 时用相对文章目录的 `./...`（上传到 `images/` 后自然是 `./images/xxx.png`），public 图片用 `/...`。上传统一走**图床式弹窗**：`state.list.articles` 提供目标文章（图片写入 `<文章目录>/images`，目录不存在会自动创建），拖拽 / 选择文件后逐张上传并在弹窗里给出可复制的 Markdown；弹窗还支持粘贴外链，只生成 `![alt](url)`，不落盘。**压缩质量滑块（40-100，默认 82）**通过 `/estimate` 逐个预估（缓存键含 `name:size:lastModified:quality`），队列行与底部汇总显示「预计大小 / 原始大小 / 节省比例」，上传时把同一个 `quality` 传给 `/upload`，因此预估与最终文件大小一致。JPEG / WebP 直接按 quality，AVIF 按 `quality × 0.73` 折算（sharp 的 AVIF 刻度更「高」），PNG 在 `<100` 时用调色板压缩、100 为无损，GIF / SVG / ICO 原样保存；重编码反而变大时保留原图（替换时除外）。上传先压缩再按内容 sha256 与同 scope 已有图片比对，命中重复不写盘并返回 `duplicate`（前端给一键复用）；重名自动加 `-1` / `-2`。宽高优先用 `sharp`，加载失败时退化为内置文件头解析并在响应里标注 `compressed: false`。目录扫描最多 2000 个文件，忽略 `node_modules` / `dist` / `.astro` 等目录。**卡片上不放操作按钮**：点卡片/缩略图打开详情，详情内提供复制 Markdown / alt / 路径、**替换**（保持原路径，格式不同时用 sharp 按目标扩展名重编码，GIF / SVG / ICO 只能同格式）、**移动**（按目录判定同名冲突并自动加后缀，前端会先用 `/refs` 提示受影响的 Markdown，但不会自动改写引用）、重命名与删除；**未引用扫描**把 `src/**` 文本与根目录配置拼成 haystack，按文件名做保守匹配（宁可多报也不误删），结果列成缩略图由用户勾选后删除。
 - **批量操作**（`server/batch.mjs` + `pages/ListPage.ts`）：列表页默认**不是**批量模式，`state.batchMode` 为 false 时不渲染任何多选框、批量操作条隐藏；顶部「批量操作」按钮切换 `is-batch` 并重绘列表（表格多选列随开关增删，`fitTableColumns` 要传同一份列定义，窗口 resize 时也一样），退出批量会清空选中。动作按钮在没有选中 / 执行中时禁用。`/api/batch/update` 复用 `store.mjs` 的 `readArticle` / `saveArticle` 逐语言写 frontmatter，分类 / 置顶变化不会移动文件夹；批量删除由前端逐篇调 `DELETE /api/articles/:path` 并收集失败项。导出 ZIP 用 STORE（不压缩）+ 手写 CRC32 表，文件名 UTF-8 并置通用标志位 `0x0800`，因此体积等于所有 Markdown 原文之和（未做 deflate）。列表页的选中集合在每次刷新 / 切换筛选 / 切换视图后都与当前可见列表求交集。
 
 ## 测试
 
-`smoke.mjs` 是基于 jsdom 的端到端冒烟测试（真实点击「新建文章」→ 填标题 / 路径 / 自定义分类创建 → 编辑 → 实时预览 → 保存 → 删除），并覆盖空路径自动生成日期路径、列表批量模式的开关。需先启动服务再运行：
+`smoke.mjs` 是基于 jsdom 的端到端冒烟测试（真实点击「新建文章」→ 填标题 / 路径 / 自定义分类创建 → 编辑 → 实时预览 → 保存 → 删除），并覆盖空路径自动生成日期路径、列表批量模式的开关、媒体库渲染 / 图床弹窗（含压缩质量控件）/ 外链 Markdown / 大图详情与操作、编辑器从媒体库选图（上传与删除不放进冒烟，避免改动真实图片）。需先启动服务再运行：
 
 ```bash
 pnpm cms                  # 终端 1：启动服务
