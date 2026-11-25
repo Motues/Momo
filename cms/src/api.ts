@@ -40,7 +40,7 @@ export const api = {
     return req<ArticleDetail>(`/api/articles/${encodePath(path)}`)
   },
 
-  create(body: { path: string; lang: string }) {
+  create(body: { path: string; lang: string; title?: string; category?: string }) {
     return req<{ path: string }>('/api/articles', { method: 'POST', body: JSON.stringify(body) })
   },
 

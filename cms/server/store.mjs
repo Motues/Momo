@@ -245,8 +245,8 @@ export async function saveArticle(path, lang, payload) {
   return { path: rel }
 }
 
-// 新建文章（创建文件夹 + 模板文件）
-export async function createArticle(path, lang) {
+// 新建文章（创建文件夹 + 模板文件）；title / category 由新建弹窗传入，缺省时标题取路径最后一段
+export async function createArticle(path, lang, fields = {}) {
   const rel = safeRel(path)
   if (!rel) return { error: '无效路径' }
   if (!LANGS.includes(lang)) return { error: `不支持的语言: ${lang}` }
@@ -255,14 +255,16 @@ export async function createArticle(path, lang) {
   const exists = await stat(join(dir, `${lang}.md`)).then(() => true).catch(() => false)
   if (exists) return { error: '文章已存在' }
 
+  const title = typeof fields.title === 'string' ? fields.title.trim() : ''
+  const category = typeof fields.category === 'string' ? fields.category.trim() : ''
   const data = normalizeData({
-    title: rel.split('/').pop(),
+    title: title || rel.split('/').pop(),
     pubDate: new Date().toISOString().slice(0, 10),
     description: '',
     image: '',
     draft: true,
     slugId: rel,
-    category: '',
+    category,
     pinTop: 0,
   })
   await mkdir(dir, { recursive: true })

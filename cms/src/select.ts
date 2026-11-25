@@ -31,6 +31,31 @@ export interface SelectControl extends HTMLButtonElement {
 let openCloser: (() => void) | null = null
 let uid = 0
 
+// 面板定位（createSelect / createComboSelect 共用）：默认贴着锚点下方，
+// 下面放不下且上面更宽裕时向上翻转；超出可用高度时面板内部滚动。
+function placePanel(panel: HTMLElement, rect: DOMRect) {
+  const gap = 6
+  const edge = 8
+  panel.style.maxHeight = ''
+  panel.style.minWidth = `${Math.round(rect.width)}px`
+  const width = panel.offsetWidth
+  const height = panel.offsetHeight
+  const below = window.innerHeight - rect.bottom - gap - edge
+  const above = rect.top - gap - edge
+  const up = height > below && above > below
+  panel.style.maxHeight = `${Math.round(Math.min(320, Math.max(140, up ? above : below)))}px`
+  panel.style.left = `${Math.round(Math.max(edge, Math.min(rect.left, window.innerWidth - width - edge)))}px`
+  if (up) {
+    panel.classList.add('is-drop-up')
+    panel.style.top = 'auto'
+    panel.style.bottom = `${Math.round(window.innerHeight - rect.top + gap)}px`
+  } else {
+    panel.classList.remove('is-drop-up')
+    panel.style.top = `${Math.round(rect.bottom + gap)}px`
+    panel.style.bottom = 'auto'
+  }
+}
+
 export function createSelect(config: SelectConfig = {}): SelectControl {
   const panelId = `cms-select-${++uid}`
   let options: SelectOption[] = [...(config.options || [])]
@@ -143,30 +168,8 @@ export function createSelect(config: SelectConfig = {}): SelectControl {
     if (changed) config.onChange?.(value)
   }
 
-  // 位置：默认贴着触发器下方；下面放不下且上面更宽裕时向上翻转
   function place() {
-    const rect = trigger.getBoundingClientRect()
-    const gap = 6
-    const edge = 8
-    panel.style.maxHeight = ''
-    panel.style.minWidth = `${Math.round(rect.width)}px`
-    const width = panel.offsetWidth
-    const height = panel.offsetHeight
-    const below = window.innerHeight - rect.bottom - gap - edge
-    const above = rect.top - gap - edge
-    const up = height > below && above > below
-    // 超出可用空间时让面板自己滚，而不是把面板顶到视口外
-    panel.style.maxHeight = `${Math.round(Math.min(320, Math.max(140, up ? above : below)))}px`
-    panel.style.left = `${Math.round(Math.max(edge, Math.min(rect.left, window.innerWidth - width - edge)))}px`
-    if (up) {
-      panel.classList.add('is-drop-up')
-      panel.style.top = 'auto'
-      panel.style.bottom = `${Math.round(window.innerHeight - rect.top + gap)}px`
-    } else {
-      panel.classList.remove('is-drop-up')
-      panel.style.top = `${Math.round(rect.bottom + gap)}px`
-      panel.style.bottom = 'auto'
-    }
+    placePanel(panel, trigger.getBoundingClientRect())
   }
 
   function onDocPointerDown(e: PointerEvent) {
@@ -311,4 +314,321 @@ export function createSelect(config: SelectConfig = {}): SelectControl {
   syncLabel()
   syncRows()
   return trigger
+}
+
+// ---------------- 可输入下拉（分类这类「选已有，也能自己写」的字段） ----------------
+//
+// 与 createSelect 的区别：触发器本身是一个 <input>，直接输入即可采用任意值（自定义分类），
+// 右侧箭头展开已有选项；输入时按内容过滤，没有完全匹配的选项时在面板顶部提供
+// 「使用「xxx」」一行，回车 / 点击即采用。
+//
+// 返回外层容器（.input.cms-combo）：.value 读写输入框文本，.input 拿真正的输入框。
+
+export interface ComboSelectConfig {
+  id?: string
+  /** 追加在外层容器上的额外类 */
+  class?: string
+  title?: string
+  placeholder?: string
+  value?: string
+  options?: SelectOption[]
+  /** 采用某个值（点选项 / 回车 / 失焦提交）时回调；同值不触发 */
+  onChange?: (value: string) => void
+}
+
+export interface ComboSelectControl extends HTMLDivElement {
+  /** 真正的输入框（需要聚焦 / 读写光标时用） */
+  readonly input: HTMLInputElement
+  value: string
+  setOptions(options: SelectOption[], value?: string): void
+  /** 收起面板（关弹窗 / 换页时调用，避免面板留在 body 上） */
+  closePanel(): void
+}
+
+interface ComboRow {
+  value: string
+  label: string
+  /** 「使用当前输入」那一行 */
+  create?: boolean
+}
+
+export function createComboSelect(config: ComboSelectConfig = {}): ComboSelectControl {
+  const panelId = `cms-combo-${++uid}`
+  let options: SelectOption[] = [...(config.options || [])]
+  let open = false
+  let rows: ComboRow[] = []
+  let activeIndex = 0
+  // 最近一次「已采用」的值，用来判断失焦 / 回车时要不要触发 onChange
+  let committed = config.value ?? ''
+
+  const input = el('input', {
+    type: 'text',
+    class: 'cms-combo-input',
+    id: config.id,
+    placeholder: config.placeholder,
+    value: config.value ?? '',
+    autocomplete: 'off',
+    spellcheck: false,
+    role: 'combobox',
+    'aria-autocomplete': 'list',
+    'aria-expanded': 'false',
+    'aria-controls': panelId,
+  }) as HTMLInputElement
+
+  // 箭头按钮不抢输入框焦点，否则点一下面板就跟着失焦收起了
+  const toggle = el('button', {
+    type: 'button',
+    class: 'cms-combo-toggle',
+    'aria-label': '展开选项',
+    tabindex: '-1',
+    title: '展开选项',
+    onmousedown: (e: Event) => e.preventDefault(),
+  }, [el('span', { class: 'cms-select-arrow' })])
+
+  const wrapper = el('div', {
+    class: `input cms-combo${config.class ? ` ${config.class}` : ''}`,
+    title: config.title,
+  }, [input, toggle]) as ComboSelectControl
+
+  const panel = el('div', {
+    class: 'cms-select-panel',
+    id: panelId,
+    role: 'listbox',
+    hidden: true,
+  })
+  // 面板内按下鼠标时不要把焦点从输入框上抢走
+  panel.addEventListener('mousedown', (e) => e.preventDefault())
+
+  Object.defineProperty(wrapper, 'input', { value: input })
+  Object.defineProperty(wrapper, 'value', {
+    configurable: true,
+    get: () => input.value,
+    set: (next: string) => {
+      input.value = String(next)
+      committed = input.value
+      if (open) renderRows()
+    },
+  })
+
+  function buildRows(): ComboRow[] {
+    const query = input.value.trim()
+    const needle = query.toLowerCase()
+    const matched = options.filter(
+      (o) => !needle || o.label.toLowerCase().includes(needle) || o.value.toLowerCase().includes(needle),
+    )
+    const list: ComboRow[] = matched.map((o) => ({ value: o.value, label: o.label }))
+    if (query && !options.some((o) => o.value.toLowerCase() === needle)) {
+      list.unshift({ value: query, label: `使用「${query}」`, create: true })
+    }
+    return list
+  }
+
+  function renderRows() {
+    rows = buildRows()
+    panel.textContent = ''
+    if (!rows.length) {
+      panel.append(el('div', { class: 'cms-select-empty' }, ['暂无可选项，直接输入即可']))
+      activeIndex = -1
+      return
+    }
+    const current = input.value.trim()
+    rows.forEach((row, i) => {
+      const selected = !row.create && row.value === current
+      panel.append(
+        el(
+          'div',
+          {
+            class: `cms-select-option${row.create ? ' is-create' : ''}${selected ? ' is-selected' : ''}`,
+            id: `${panelId}-opt-${i}`,
+            role: 'option',
+            'aria-selected': selected ? 'true' : 'false',
+            onclick: () => pick(row.value),
+            onmousemove: () => setActive(i, false),
+          },
+          [row.label],
+        ),
+      )
+    })
+    activeIndex = Math.max(0, Math.min(activeIndex, rows.length - 1))
+    setActive(activeIndex, false)
+  }
+
+  // 高亮某一项（不动值）；面板自己滚，不用 scrollIntoView——那会连页面一起滚
+  function setActive(index: number, scroll = true) {
+    if (!rows.length) return
+    activeIndex = (index + rows.length) % rows.length
+    const children = panel.children
+    for (let i = 0; i < children.length; i++) children[i].classList.toggle('is-active', i === activeIndex)
+    const row = children[activeIndex] as HTMLElement | undefined
+    if (!row) return
+    input.setAttribute('aria-activedescendant', row.id)
+    if (!scroll) return
+    const top = row.offsetTop
+    const bottom = top + row.offsetHeight
+    if (top < panel.scrollTop) panel.scrollTop = top - 4
+    else if (bottom > panel.scrollTop + panel.clientHeight) {
+      panel.scrollTop = bottom - panel.clientHeight + 4
+    }
+  }
+
+  // 采用一个值：写回输入框、收起面板、通知外部
+  function pick(next: string) {
+    input.value = next
+    renderRows()
+    close()
+    input.focus({ preventScroll: true })
+    commit()
+  }
+
+  function commit() {
+    if (input.value === committed) return
+    committed = input.value
+    config.onChange?.(committed)
+  }
+
+  function place() {
+    placePanel(panel, wrapper.getBoundingClientRect())
+  }
+
+  function onDocPointerDown(e: PointerEvent) {
+    const target = e.target as Node
+    if (panel.contains(target) || wrapper.contains(target)) return
+    close()
+    commit()
+  }
+
+  function onScroll(e: Event) {
+    // 面板自己的滚动（选项很多时）不算「页面滚了」，不能因此收起
+    const target = e.target as Node | null
+    if (target && (target === panel || panel.contains(target))) return
+    close()
+  }
+
+  // Esc 兜底：焦点万一不在输入框上也要能收起；已收起时把 Esc 让给弹窗
+  function onDocKeyDown(e: KeyboardEvent) {
+    if (e.key !== 'Escape') return
+    e.preventDefault()
+    e.stopPropagation()
+    close()
+    commit()
+  }
+
+  function openPanel() {
+    if (open || !wrapper.isConnected) return
+    openCloser?.() // 关掉别的实例（含上个页面遗留的面板）
+    document.body.append(panel)
+    panel.hidden = false
+    open = true
+    openCloser = close
+    wrapper.classList.add('is-open')
+    input.setAttribute('aria-expanded', 'true')
+    renderRows()
+    place()
+    setActive(Math.max(0, rows.findIndex((r) => !r.create && r.value === input.value.trim())), true)
+    document.addEventListener('pointerdown', onDocPointerDown, true)
+    document.addEventListener('keydown', onDocKeyDown, true)
+    window.addEventListener('resize', close)
+    window.addEventListener('scroll', onScroll, true)
+    window.addEventListener('hashchange', close)
+  }
+
+  function close() {
+    if (!open) return
+    open = false
+    if (openCloser === close) openCloser = null
+    wrapper.classList.remove('is-open')
+    input.setAttribute('aria-expanded', 'false')
+    input.removeAttribute('aria-activedescendant')
+    panel.hidden = true
+    panel.remove()
+    document.removeEventListener('pointerdown', onDocPointerDown, true)
+    document.removeEventListener('keydown', onDocKeyDown, true)
+    window.removeEventListener('resize', close)
+    window.removeEventListener('scroll', onScroll, true)
+    window.removeEventListener('hashchange', close)
+  }
+
+  toggle.addEventListener('click', () => {
+    if (open) close()
+    else {
+      input.focus({ preventScroll: true })
+      openPanel()
+    }
+  })
+
+  // 点输入框本身不自动展开面板（正常写新分类时不该被列表挡住），只有输入 / 点箭头才展开
+  input.addEventListener('input', () => {
+    if (!open) openPanel()
+    else {
+      renderRows()
+      place()
+    }
+  })
+
+  // 失焦即采用当前输入：点面板里的选项时 mousedown 已 preventDefault，不会走到这里
+  input.addEventListener('blur', () => {
+    close()
+    commit()
+  })
+
+  input.addEventListener('keydown', (e: KeyboardEvent) => {
+    if (e.ctrlKey || e.metaKey || e.altKey || e.isComposing) return
+    switch (e.key) {
+      case 'ArrowDown':
+      case 'ArrowUp': {
+        e.preventDefault()
+        if (!open) openPanel()
+        else setActive(activeIndex + (e.key === 'ArrowDown' ? 1 : -1))
+        return
+      }
+      case 'Home':
+        if (open) {
+          e.preventDefault()
+          setActive(0)
+        }
+        return
+      case 'End':
+        if (open) {
+          e.preventDefault()
+          setActive(rows.length - 1)
+        }
+        return
+      case 'Enter':
+        if (open) {
+          e.preventDefault()
+          const row = rows[activeIndex]
+          if (row) pick(row.value)
+          else close()
+        }
+        return
+      case 'Escape':
+        if (open) {
+          // 面板打开时 Esc 只收面板，别让弹窗跟着关掉
+          e.preventDefault()
+          e.stopPropagation()
+          close()
+        }
+        return
+      case 'Tab':
+        close()
+        commit()
+        return
+    }
+  })
+
+  wrapper.setOptions = (next: SelectOption[], nextValue?: string) => {
+    options = next.map((o) => ({ ...o }))
+    if (nextValue !== undefined) {
+      input.value = nextValue
+      committed = nextValue
+    }
+    if (open) {
+      renderRows()
+      place()
+    }
+  }
+
+  wrapper.closePanel = close
+
+  return wrapper
 }

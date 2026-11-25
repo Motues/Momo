@@ -38,11 +38,18 @@
 
 * { box-sizing: border-box; }
 
+/* 组件类里写了 display 的元素会盖掉浏览器对 hidden 的默认样式，这里统一兜住 */
+[hidden] { display: none !important; }
+
 html, body {
   margin: 0;
   padding: 0;
   height: 100%;
 }
+
+/* 常驻预留纵向滚动条槽位：内容高度跨过一屏、滚动条出现 / 消失时，
+   整页居中布局不再左右跳一个滚动条宽度（窗口宽度 > .cms-main 的 1100px 时最明显） */
+html { scrollbar-gutter: stable; }
 
 body {
   background: var(--bg);
@@ -274,6 +281,66 @@ body {
   .cms-select-arrow { transition: none; }
 }
 
+/* ---------- 可输入下拉（createComboSelect：可直选，也可输入自定义值） ---------- */
+.cms-combo {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  /* .input 的左右内边距挪到输入框上，箭头按钮才能贴住右边缘 */
+  padding: 0 6px 0 12px;
+  cursor: text;
+}
+
+.cms-combo:focus-within { border-color: var(--accent); }
+
+.cms-combo-input {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  outline: none;
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  font-size: 13px;
+  line-height: 1.4;
+  padding: 7px 0;
+}
+
+.cms-combo-input::placeholder { color: var(--text-sub); opacity: 0.75; }
+
+.cms-combo-toggle {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border: none;
+  border-radius: 5px;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+}
+
+.cms-combo-toggle:hover { background: var(--bg-hover); }
+
+/* 箭头复用 .cms-select-arrow 的造型；容器里垂直居中，去掉触发器那套偏移 */
+.cms-combo .cms-select-arrow { margin-top: 0; }
+
+.cms-combo:hover .cms-select-arrow { border-color: var(--text); }
+
+.cms-combo.is-open .cms-select-arrow {
+  border-color: var(--accent);
+  transform: rotate(225deg);
+}
+
+/* 「使用『当前输入』」这一行（自定义值） */
+.cms-select-option.is-create {
+  color: var(--accent);
+  font-weight: 500;
+}
+
 .mono { font-family: var(--mono); }
 
 /* ---------- 列表页 ---------- */
@@ -383,10 +450,19 @@ body {
   transform: translateY(-1px);
 }
 
+/* 开关按钮（批量操作 / 批量选择）激活态 */
+.btn.is-active,
+.btn[aria-pressed='true'] {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: var(--accent-soft);
+}
+
 /* 卡片视图的多选框：包一层容器，避免把 checkbox 塞进 <a> 里 */
 .article-card-wrap { position: relative; min-width: 0; }
 
-.article-card-wrap .article-card {
+/* 只有开启批量模式后卡片才给左侧复选框留位置 */
+.article-list.is-batch .article-card-wrap .article-card {
   height: 100%;
   padding-left: 44px;
 }

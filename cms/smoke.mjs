@@ -1,5 +1,6 @@
 // 冒烟测试：在 jsdom 中真实点击「新建文章」→ 创建 → 编辑 → 实时预览 → 保存 → 删除
-// 覆盖：el() 只读属性（input.list）、空路径自动生成 yyyy/yyyy-mm-dd
+// 覆盖：新建弹窗标题 / 自定义分类、空路径自动生成 yyyy/yyyy-mm-dd、el() 只读属性（input.list）、
+//       列表批量模式的开关
 import { JSDOM } from 'jsdom'
 
 const dom = new JSDOM('<!doctype html><html><body><div id="app"></div></body></html>', {
@@ -96,19 +97,37 @@ if (app.querySelector('.article-table')) throw new Error('FAIL: 切回卡片视�
 if (app.querySelector('#article-list').classList.contains('is-table')) throw new Error('FAIL: 卡片视图容器仍带表格样式')
 console.log('PASS: 卡片视图切换成功')
 
-// ---------- 2. 点击「新建文章」打开弹窗（复现原 bug 的位置） ----------
+// ---------- 2. 点击「新建文章」打开弹窗 ----------
 btnNew.click()
 await sleep(300)
-const modalInput = app.querySelector('.modal input')
+const titleField = document.getElementById('new-title')
+const pathField = document.getElementById('new-path')
 const modalSubmit = document.getElementById('modal-submit')
-if (!modalInput || !modalSubmit) throw new Error('FAIL: 新建弹窗未打开')
-console.log('PASS: 点击新建文章，弹窗正常打开（不再抛 list 只读属性错误）')
+const combo = app.querySelector('.modal .cms-combo')
+const comboInput = combo?.querySelector('.cms-combo-input')
+if (!titleField || !pathField || !modalSubmit || !comboInput) {
+  throw new Error('FAIL: 新建弹窗字段缺失（标题 / 路径 / 可输入分类下拉）')
+}
+console.log('PASS: 点击新建文章，弹窗打开且标题 / 路径 / 分类下拉齐全')
 
-// ---------- 3. 填写并创建 ----------
-const inputs = app.querySelectorAll('.modal input')
-inputs[0].value = 'smoke-test-post' // 路径
-const submitBtn = document.getElementById('modal-submit')
-submitBtn.click()
+// ---------- 2.1 分类：输入自定义分类 → 出现「使用「xxx」」→ 点击采用 ----------
+comboInput.value = '冒烟分类'
+comboInput.dispatchEvent(new window.Event('input', { bubbles: true }))
+await sleep(60)
+const createRow = document.querySelector('.cms-select-panel .cms-select-option.is-create')
+if (!createRow || !createRow.textContent.includes('冒烟分类')) {
+  throw new Error('FAIL: 输入自定义分类后未出现「使用当前输入」选项')
+}
+createRow.click()
+await sleep(30)
+if (comboInput.value !== '冒烟分类') throw new Error('FAIL: 采用自定义分类后未回填输入框')
+if (document.querySelector('.cms-select-panel')) throw new Error('FAIL: 采用分类后下拉面板未收起')
+console.log('PASS: 分类下拉支持自定义分类')
+
+// ---------- 3. 填写标题 / 路径并创建 ----------
+titleField.value = '冒烟测试文章'
+pathField.value = 'smoke-test-post'
+modalSubmit.click()
 
 // 等待跳转（api.create 完成）
 const navigated = await waitFor(() => location.hash.startsWith('#/edit/'), 10000)
@@ -123,7 +142,14 @@ const titleInput = document.getElementById('f-title')
 const mdEditor = document.getElementById('md-editor')
 const frame = document.getElementById('preview-frame')
 if (!titleInput || !mdEditor || !frame) throw new Error('FAIL: 编辑器页面元素缺失')
-console.log('PASS: 编辑器渲染（表单 + textarea + 预览 iframe）')
+if (titleInput.value !== '冒烟测试文章') {
+  throw new Error('FAIL: 新建弹窗的标题未写入 frontmatter，实际为 ' + titleInput.value)
+}
+const catField = document.getElementById('f-category')
+if (!catField || catField.value !== '冒烟分类') {
+  throw new Error('FAIL: 新建弹窗的分类未写入 frontmatter，实际为 ' + (catField && catField.value))
+}
+console.log('PASS: 编辑器渲染（表单 + textarea + 预览 iframe），标题 / 分类已写入')
 
 // 等待首次预览渲染
 const previewOk = await waitFor(() => frame.srcdoc && frame.srcdoc.length > 200, 15000)
@@ -157,8 +183,8 @@ await render(renderList)
 await sleep(300)
 document.getElementById('btn-new').click()
 await sleep(200)
-const modalInputs = app.querySelectorAll('.modal input')
-modalInputs[0].value = '' // 路径留空
+document.getElementById('new-title').value = '自动路径文章'
+document.getElementById('new-path').value = '' // 路径留空
 document.getElementById('modal-submit').click()
 const autoPath = await waitFor(() => {
   const m = location.hash.match(/^#\/edit\/(\d{4})\/(\d{4}-\d{2}-\d{2})$/)
@@ -175,6 +201,24 @@ document.querySelector('.btn-danger').click()
 const autoDeleted = await waitDeleted(autoPathStr)
 if (!autoDeleted) throw new Error('FAIL: 自动生成文章删除未完成: ' + autoPathStr)
 console.log('PASS: 自动生成文章已删除 (' + autoPathStr + ')')
+
+// ---------- 9. 列表批量模式：默认隐藏，点按钮才出现多选框与操作条 ----------
+await render(renderList)
+const batchToggle = await waitFor(() => document.getElementById('batch-toggle'))
+const batchBar = document.getElementById('batch-bar')
+if (!batchToggle || !batchBar) throw new Error('FAIL: 批量操作按钮/操作条缺失')
+if (batchBar.hidden !== true) throw new Error('FAIL: 批量操作条默认应隐藏')
+if (app.querySelectorAll('.card-check').length) throw new Error('FAIL: 默认不应出现卡片多选框')
+batchToggle.click()
+await sleep(150)
+if (batchBar.hidden !== false) throw new Error('FAIL: 开启批量模式后操作条应显示')
+if (!app.querySelectorAll('.card-check').length) throw new Error('FAIL: 开启批量模式后卡片应出现多选框')
+batchToggle.click()
+await sleep(150)
+if (batchBar.hidden !== true || app.querySelectorAll('.card-check').length) {
+  throw new Error('FAIL: 退出批量模式后应恢复默认')
+}
+console.log('PASS: 批量模式默认关闭，开关切换正常')
 
 console.log('\n=== 冒烟测试全部通过 ===')
 process.exit(0)

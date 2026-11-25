@@ -23,11 +23,14 @@ interface ListState {
   view: ViewMode
   sort: string
   articles: ArticleSummary[]
+  /** 批量模式：默认关闭，关闭时列表里没有任何多选框与批量操作条 */
+  batchMode: boolean
   /** 批量操作选中的文章路径（只保留当前筛选结果里仍然可见的） */
   selected: Set<string>
 }
 
 interface ListUi {
+  batchMode: boolean
   isSelected(path: string): boolean
   toggle(path: string, checked: boolean): void
   allSelected(): boolean
@@ -52,14 +55,28 @@ export async function renderList(root: HTMLElement) {
     view: loadView(),
     sort: 'default',
     articles: [],
+    batchMode: false,
     selected: new Set(),
   }
+
+  let batchBusy = false
+  // 批量操作条里会被「无选中 / 执行中」禁用的按钮（清空与退出不受影响）
+  const batchActionButtons: HTMLButtonElement[] = []
 
   const selectAllBox = el('input', {
     type: 'checkbox',
     id: 'select-all',
     'aria-label': '全选当前筛选结果',
   })
+
+  const batchToggle = el('button', {
+    class: 'btn',
+    id: 'batch-toggle',
+    type: 'button',
+    'aria-pressed': 'false',
+    title: '开启批量操作',
+    onclick: () => setBatchMode(!state.batchMode),
+  }, ['批量操作'])
 
   // 批量分类用哨兵值：选完一次后会复位到它，才能再次选择「未分类」（值为空串）
   const CATEGORY_NONE = '__none__'
@@ -76,9 +93,25 @@ export async function renderList(root: HTMLElement) {
 
   const batchCount = el('span', { class: 'batch-count', id: 'batch-count' })
   const batchErrors = el('div', { class: 'batch-errors', id: 'batch-errors', hidden: true })
+
+  function batchButton(label: string, action: string, cls = '') {
+    const btn = el('button', {
+      class: `btn btn-sm ${cls}`.trim(),
+      type: 'button',
+      disabled: true,
+      onclick: () => void runBatch(action),
+    }, [label]) as HTMLButtonElement
+    batchActionButtons.push(btn)
+    return btn
+  }
+
   const batchBar = el('div', { class: 'batch-bar', id: 'batch-bar', hidden: true }, [
     el('span', { class: 'batch-title' }, ['批量操作']),
     batchCount,
+    el('label', { class: 'select-all', title: '全选当前筛选结果' }, [
+      selectAllBox,
+      el('span', {}, ['全选']),
+    ]),
     el('button', {
       class: 'btn btn-sm',
       id: 'batch-clear',
@@ -87,37 +120,13 @@ export async function renderList(root: HTMLElement) {
     }, ['清空']),
     el('span', { class: 'batch-sep' }),
     batchCategory,
-    el('button', {
-      class: 'btn btn-sm',
-      type: 'button',
-      onclick: () => void runBatch('pin'),
-    }, ['置顶']),
-    el('button', {
-      class: 'btn btn-sm',
-      type: 'button',
-      onclick: () => void runBatch('unpin'),
-    }, ['取消置顶']),
-    el('button', {
-      class: 'btn btn-sm',
-      type: 'button',
-      onclick: () => void runBatch('draft'),
-    }, ['设为草稿']),
-    el('button', {
-      class: 'btn btn-sm',
-      type: 'button',
-      onclick: () => void runBatch('publish'),
-    }, ['发布']),
+    batchButton('置顶', 'pin'),
+    batchButton('取消置顶', 'unpin'),
+    batchButton('设为草稿', 'draft'),
+    batchButton('发布', 'publish'),
     el('span', { class: 'batch-sep' }),
-    el('button', {
-      class: 'btn btn-sm',
-      type: 'button',
-      onclick: () => void runBatch('export'),
-    }, ['导出 Markdown']),
-    el('button', {
-      class: 'btn btn-sm btn-danger',
-      type: 'button',
-      onclick: () => void runBatch('delete'),
-    }, ['批量删除']),
+    batchButton('导出 Markdown', 'export'),
+    batchButton('批量删除', 'delete', 'btn-danger'),
   ])
 
   root.append(
@@ -189,10 +198,7 @@ export async function renderList(root: HTMLElement) {
             onclick: () => setView('table'),
           }, ['表格']),
         ]),
-        el('label', { class: 'select-all', title: '全选当前筛选结果' }, [
-          selectAllBox,
-          el('span', {}, ['全选']),
-        ]),
+        batchToggle,
         el('span', { class: 'cms-count', id: 'count' }),
       ]),
       batchBar,
@@ -223,6 +229,18 @@ export async function renderList(root: HTMLElement) {
     if (tableBtn) tableBtn.classList.toggle('active', view === 'table')
     const listEl = root.querySelector('#article-list') as HTMLElement
     listEl.classList.toggle('is-table', view === 'table')
+    renderListItems(state.articles)
+  }
+
+  // 批量模式：默认关闭（列表里没有多选框，也没有批量操作条），点顶部「批量操作」才开启
+  function setBatchMode(on: boolean) {
+    if (state.batchMode === on) return
+    state.batchMode = on
+    if (!on) clearSelection()
+    batchToggle.textContent = on ? '退出批量' : '批量操作'
+    batchToggle.classList.toggle('is-active', on)
+    batchToggle.setAttribute('aria-pressed', String(on))
+    batchToggle.title = on ? '退出批量操作' : '开启批量操作'
     renderListItems(state.articles)
   }
 
@@ -279,8 +297,9 @@ export async function renderList(root: HTMLElement) {
   function updateBatchUi() {
     const count = state.selected.size
     batchCount.textContent = `已选 ${count} 篇`
-    batchBar.hidden = count === 0
-    if (count === 0) batchErrors.hidden = true
+    batchBar.hidden = !state.batchMode
+    if (!state.batchMode || count === 0) batchErrors.hidden = true
+    syncBatchButtons()
 
     const paths = visiblePaths()
     const selectedVisible = paths.filter((p) => state.selected.has(p)).length
@@ -291,6 +310,12 @@ export async function renderList(root: HTMLElement) {
       box.checked = all
       box.indeterminate = some
     }
+  }
+
+  // 没有选中项或正在执行批量动作时禁用动作按钮（清空 / 退出始终可用）
+  function syncBatchButtons() {
+    const disabled = batchBusy || state.selected.size === 0
+    for (const btn of batchActionButtons) btn.disabled = disabled
   }
 
   function toggleSelect(path: string, checked: boolean) {
@@ -328,15 +353,11 @@ export async function renderList(root: HTMLElement) {
   }
 
   function setBatchBusy(busy: boolean) {
-    for (const btn of batchBar.querySelectorAll<HTMLButtonElement>('button')) {
-      if (btn.id === 'batch-clear') continue
-      btn.disabled = busy
-    }
+    batchBusy = busy
+    syncBatchButtons()
   }
 
   // ---------------- 批量动作 ----------------
-
-  let batchBusy = false
 
   async function runBatch(action: string, value?: string) {
     if (batchBusy) return
@@ -426,10 +447,12 @@ export async function renderList(root: HTMLElement) {
     const countEl = root.querySelector('#count') as HTMLElement
     pruneSelection()
     listEl.innerHTML = ''
+    listEl.classList.toggle('is-batch', state.batchMode)
     emptyEl.hidden = sorted.length > 0
     countEl.textContent = `共 ${sorted.length} 篇`
 
     const ui: ListUi = {
+      batchMode: state.batchMode,
       isSelected: (path) => state.selected.has(path),
       toggle: toggleSelect,
       allSelected: () => sorted.length > 0 && sorted.every((a) => state.selected.has(a.path)),
@@ -440,7 +463,7 @@ export async function renderList(root: HTMLElement) {
     if (state.view === 'table') {
       const wrap = articleTable(sorted, () => reload(), ui)
       listEl.append(wrap)
-      fitTableColumns(wrap)
+      fitTableColumns(wrap, tableColumns(state.batchMode))
     } else for (const a of sorted) listEl.append(articleCard(a, ui))
     updateBatchUi()
   }
@@ -476,7 +499,7 @@ export async function renderList(root: HTMLElement) {
     cancelAnimationFrame(fitRaf)
     fitRaf = requestAnimationFrame(() => {
       const wrap = root.querySelector('.table-wrap') as HTMLElement | null
-      if (wrap) fitTableColumns(wrap)
+      if (wrap) fitTableColumns(wrap, tableColumns(state.batchMode))
     })
   }
   window.addEventListener('resize', onWindowResize)
@@ -543,14 +566,17 @@ function articleCard(a: ArticleSummary, ui: ListUi) {
   if (a.pinTop) badges.push(el('span', { class: 'badge badge-pin' }, ['置顶']))
   for (const lang of a.langs) badges.push(el('span', { class: 'badge badge-lang' }, [lang]))
 
-  const check = el('input', {
-    type: 'checkbox',
-    class: 'card-check',
-    checked: ui.isSelected(a.path),
-    'aria-label': `选择 ${a.title || a.path}`,
-    onclick: (e: Event) => e.stopPropagation(),
-    onchange: (e: Event) => ui.toggle(a.path, (e.target as HTMLInputElement).checked),
-  })
+  // 多选框只在批量模式下渲染；平时卡片保持原有的 16px 内边距
+  const check = ui.batchMode
+    ? el('input', {
+        type: 'checkbox',
+        class: 'card-check',
+        checked: ui.isSelected(a.path),
+        'aria-label': `选择 ${a.title || a.path}`,
+        onclick: (e: Event) => e.stopPropagation(),
+        onchange: (e: Event) => ui.toggle(a.path, (e.target as HTMLInputElement).checked),
+      })
+    : null
 
   return el(
     'div',
@@ -560,7 +586,22 @@ function articleCard(a: ArticleSummary, ui: ListUi) {
     },
     [
       check,
-      el('a', { class: 'article-card', href: `#/edit/${encodePath(a.path)}` }, [
+      el('a', {
+        class: 'article-card',
+        href: `#/edit/${encodePath(a.path)}`,
+        // 批量模式下点卡片是勾选，不跳转编辑器
+        onclick: (e: Event) => {
+          if (!ui.batchMode) return
+          e.preventDefault()
+          ui.toggle(a.path, !ui.isSelected(a.path))
+        },
+        onkeydown: (e: KeyboardEvent) => {
+          if (ui.batchMode && e.key === 'Enter') {
+            e.preventDefault()
+            ui.toggle(a.path, !ui.isSelected(a.path))
+          }
+        },
+      }, [
         el('div', { class: 'article-card-head' }, [
           el('span', { class: 'article-card-title' }, [a.title || a.path]),
           el('div', { class: 'article-card-badges' }, badges),
@@ -590,7 +631,13 @@ const TABLE_COLUMNS: { key: string; label: string; min: number; max: number }[] 
   { key: 'actions', label: '操作', min: 110, max: 118 },
 ]
 
+// 批量模式下才有多选列；列宽分配必须跟着同一份列定义走
+function tableColumns(batchMode: boolean) {
+  return batchMode ? TABLE_COLUMNS : TABLE_COLUMNS.filter((c) => c.key !== 'select')
+}
+
 function articleTable(articles: ArticleSummary[], onChanged: () => void, ui: ListUi) {
+  const columns = tableColumns(ui.batchMode)
   const selectAll = el('input', {
     type: 'checkbox',
     id: 'table-select-all',
@@ -602,9 +649,9 @@ function articleTable(articles: ArticleSummary[], onChanged: () => void, ui: Lis
   const tbody = el('tbody')
   for (const a of articles) tbody.append(articleRow(a, onChanged, ui))
   const table = el('table', { class: 'article-table' }, [
-    el('colgroup', {}, TABLE_COLUMNS.map((c) => el('col', { class: `col-${c.key}` }))),
+    el('colgroup', {}, columns.map((c) => el('col', { class: `col-${c.key}` }))),
     el('thead', {}, [
-      el('tr', {}, TABLE_COLUMNS.map((c) => {
+      el('tr', {}, columns.map((c) => {
         if (c.key === 'select') return el('th', { class: 'select-col' }, [selectAll])
         return c.key === 'actions'
           ? el('th', { class: 'actions' }, [c.label])
@@ -617,12 +664,12 @@ function articleTable(articles: ArticleSummary[], onChanged: () => void, ui: Lis
 }
 
 // 列宽自适应：先量出每列内容的自然宽度，再在容器宽度内分配；可伸缩列主要是标题与路径。
-function fitTableColumns(wrap: HTMLElement) {
+function fitTableColumns(wrap: HTMLElement, columns = TABLE_COLUMNS) {
   const table = wrap.querySelector<HTMLTableElement>('table.article-table')
   if (!table) return
   const cols = Array.from(table.querySelectorAll<HTMLTableColElement>('colgroup > col'))
   const heads = Array.from(table.querySelectorAll<HTMLElement>('thead > tr > th'))
-  if (cols.length !== TABLE_COLUMNS.length || heads.length !== TABLE_COLUMNS.length) return
+  if (cols.length !== columns.length || heads.length !== columns.length) return
 
   // 临时取消宽度约束，让浏览器按内容（不换行）排一次，量出各列自然宽度
   table.style.tableLayout = 'auto'
@@ -637,10 +684,10 @@ function fitTableColumns(wrap: HTMLElement) {
     return
   }
   const natural = measured.map((w, i) =>
-    Math.min(Math.max(w, TABLE_COLUMNS[i].min), TABLE_COLUMNS[i].max),
+    Math.min(Math.max(w, columns[i].min), columns[i].max),
   )
 
-  const mins = TABLE_COLUMNS.map((c) => c.min)
+  const mins = columns.map((c) => c.min)
   const totalMin = mins.reduce((a, b) => a + b, 0)
   const totalNatural = natural.reduce((a, b) => a + b, 0)
   // 容器比最小列宽之和还窄时，表格保持最小宽度，由 .table-wrap 横向滚动
@@ -673,14 +720,16 @@ function articleRow(a: ArticleSummary, onChanged: () => void, ui: ListUi) {
   if (a.pinTop) badges.push(el('span', { class: 'badge badge-pin' }, ['置顶']))
   const langs = a.langs.map((l) => el('span', { class: 'badge badge-lang' }, [l]))
 
-  const check = el('input', {
-    type: 'checkbox',
-    class: 'row-check',
-    checked: ui.isSelected(a.path),
-    'aria-label': `选择 ${a.title || a.path}`,
-    onclick: (e: Event) => e.stopPropagation(),
-    onchange: (e: Event) => ui.toggle(a.path, (e.target as HTMLInputElement).checked),
-  })
+  const check = ui.batchMode
+    ? el('input', {
+        type: 'checkbox',
+        class: 'row-check',
+        checked: ui.isSelected(a.path),
+        'aria-label': `选择 ${a.title || a.path}`,
+        onclick: (e: Event) => e.stopPropagation(),
+        onchange: (e: Event) => ui.toggle(a.path, (e.target as HTMLInputElement).checked),
+      })
+    : null
 
   return el('tr', {
     class: 'article-table-row' + (ui.isSelected(a.path) ? ' is-selected' : ''),
@@ -688,15 +737,20 @@ function articleRow(a: ArticleSummary, onChanged: () => void, ui: ListUi) {
     tabindex: '0',
     title: `编辑 ${a.path}`,
     'data-path': a.path,
-    onclick: () => navigate(`#/edit/${encodePath(a.path)}`),
+    // 批量模式下点整行是「选中」；平时才是打开编辑器
+    onclick: () => {
+      if (ui.batchMode) ui.toggle(a.path, !ui.isSelected(a.path))
+      else navigate(`#/edit/${encodePath(a.path)}`)
+    },
     onkeydown: (e: KeyboardEvent) => {
       // 焦点在复选框 / 操作按钮上时 Enter 不跳转
       if (e.key === 'Enter' && !(e.target as HTMLElement).closest('button, input, label')) {
-        navigate(`#/edit/${encodePath(a.path)}`)
+        if (ui.batchMode) ui.toggle(a.path, !ui.isSelected(a.path))
+        else navigate(`#/edit/${encodePath(a.path)}`)
       }
     },
   }, [
-    el('td', { class: 'select-col', onclick: (e: Event) => e.stopPropagation() }, [check]),
+    check ? el('td', { class: 'select-col', onclick: (e: Event) => e.stopPropagation() }, [check]) : null,
     el('td', {}, [
       el('div', { class: 'article-table-title' }, [a.title || a.path]),
       a.description ? el('div', { class: 'article-table-desc' }, [a.description]) : null,

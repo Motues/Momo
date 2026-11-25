@@ -45,11 +45,14 @@ articles.get('/*', async (c) => {
   return c.json(article)
 })
 
-// POST /api/articles  { path, lang? }
+// POST /api/articles  { path, lang?, title?, category? }
 articles.post('/', async (c) => {
   const body = await c.req.json().catch(() => null)
   if (!body?.path) return c.json({ error: 'path 不能为空' }, 400)
-  const result = await createArticle(body.path, body.lang || 'zh-cn')
+  const result = await createArticle(body.path, body.lang || 'zh-cn', {
+    title: body.title,
+    category: body.category,
+  })
   if (result.error) return c.json(result, 400)
   return c.json(result)
 })

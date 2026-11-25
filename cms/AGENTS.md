@@ -19,9 +19,10 @@ pnpm cms
 ## 功能
 
 - **概览页**（`#/`）：文章总数 / 已发布 / 草稿 / 置顶 / 分类数 / 正文总字数统计，分类分布条形图，语言版本覆盖（中英双语），最近文章列表
+- **新建文章弹窗**（列表页 / 概览页右上角，`src/pages/new-article.ts`）：标题（必填）/ 路径（留空按 `yyyy/yyyy-mm-dd` 生成）/ 语言 / 分类一次填完即创建并直接进编辑器；分类用自研**可输入下拉**（`createComboSelect`），既能从已有分类里选，也能直接输入新分类；标题与分类随模板一起写进 frontmatter（`POST /api/articles` 接收 `{ path, lang, title?, category? }`），不再创建后再补一次保存。Enter 创建、Esc / 点遮罩关闭，关闭后焦点回到「新建文章」按钮。
 - **网站配置页**（`#/config`）：`src/config.ts` 的可视化编辑器（站点信息、阅读与目录、评论、主题、个人信息、许可协议、国际化、各语言 Cover 文案、友链列表；支持增删与上下移动友链），可展开查看文件源码；右侧**悬浮目录栏**（贴住表单右边缘，只列分区，点击平滑滚动到位、滚动时自动高亮当前分区，可收起，窄窗口默认收起）；「主题与动效」按语义分组、组间用浅色横线分隔；保存时**只改写真正改动过的字段**，文件里的注释与排版保持不变
 - **文章列表**（`#/list`）：搜索、分类筛选、草稿/已发布筛选、语言徽章；支持**卡片 / 表格**两种视图模式（localStorage 记忆选择）与**多种排序**（默认置顶+日期 / 发布日期升降序 / 标题 / 路径 / 分类，中文按拼音排序）；表格**列宽按内容自动分配**（宽裕时按内容比例铺满整行，狭窄时压缩标题/路径并保底最小宽度，窗口变化自动重算），表格右侧**行内操作**（置顶/取消置顶、草稿/发布切换、删除）
-- **批量操作**（列表页）：卡片 / 表格视图都支持多选，表头「全选」按当前筛选结果；选中后出现批量操作条，可批量改分类（含「未分类」）、置顶 / 取消置顶、设为草稿 / 发布、批量删除（二次确认并显示数量）与**导出 Markdown**（ZIP，包含每篇文章的全部语言版本）。操作成功后局部刷新列表，失败项逐条列出并保持选中以便重试；切换筛选 / 视图后选中集合只保留当前可见项
+- **批量操作**（列表页）：默认**关闭**，列表里没有任何多选框；顶部「批量操作」按钮开启后才显示批量操作条与卡片/表格多选框（表格多选列也随开关出现/消失），再点「退出批量」清空选中并收起。批量操作条支持全选当前筛选结果、改分类（含「未分类」）、置顶 / 取消置顶、设为草稿 / 发布、批量删除（二次确认并显示数量）与**导出 Markdown**（ZIP，包含每篇文章的全部语言版本）；没有选中时动作按钮禁用。操作成功后局部刷新列表，失败项逐条列出并保持选中以便重试；切换筛选 / 视图后选中集合只保留当前可见项
 - **媒体库**（`#/media`）：统一浏览 `src/content/blog/**` 与 `public/**` 下的图片，按文章目录（blog）或目录（public）分组，显示相对路径、宽高、大小与修改时间；支持搜索、按钮上传与拖拽上传（长边 > 2400px 自动等比缩小，JPEG / WebP 质量 82，PNG 压缩，SVG / GIF 原样保存），按内容 sha256 跨同 scope 去重，可复制 Markdown 片段（blog `./xxx`、public `/xxx`）/ alt 建议、重命名与删除（二次确认）
 - **Markdown 编辑器**：frontmatter 表单 + 正文源码，左侧编辑右侧**实时预览**（防抖 500ms，重绘后保持原滚动位置）；编辑区上方**快速插入工具栏**（加粗/斜体/行内代码/链接/图片/引用（`> `）/自定义引用（`:::quote`）、代码块/Typst、行内/块公式、提示块（note/tip/important/caution/warning）、GitHub/音乐卡片、注音/折叠/彩虹/下划线），支持选中文本包裹与光标定位
 - **自动保存**：编辑页每 60 秒自动写盘一次（`EditorPage.ts` 的 `AUTOSAVE_INTERVAL`），只在「有改动且没有保存在进行」时保存；提示做在顶栏（`已自动保存 HH:MM`），不弹 toast，也**不重建界面**（`navigate` 会重建编辑器、丢掉光标与撤销栈），只有 slugId 改名真的移动了文件夹时才静默对齐地址栏
@@ -57,8 +58,8 @@ cms/
 │   └── prose.css         # 预览正文样式（与博客 markdown.css 一致的精简版）
 └── src/                  # 前端（纯 TypeScript SPA，hash 路由，无框架）
     ├── main.ts / router.ts / api.ts / types.ts / styles.css
-    ├── dom.ts / ui.ts（toast）/ select.ts（自研下拉组件）
-    └── pages/ OverviewPage.ts（概览）、ListPage.ts（列表：卡片/表格 + 批量操作）、
+    ├── dom.ts / ui.ts（toast）/ select.ts（自研下拉组件：createSelect / 可输入的 createComboSelect）
+    └── pages/ OverviewPage.ts（概览）、ListPage.ts（列表：卡片/表格 + 批量模式）、
               MediaPage.ts（媒体库：网格 / 上传 / 复制引用）、EditorPage.ts、
               ConfigPage.ts（网站配置）、config-toc.ts（配置页悬浮目录栏）、header.ts（顶栏导航）、
               new-article.ts（新建文章弹窗）
@@ -74,7 +75,7 @@ cms/
 |---|---|---|
 | GET | `/api/articles?q=&category=&draft=` | 文章列表（分组、筛选、搜索） |
 | GET | `/api/articles/:path` | 读取文章全部语言版本 |
-| POST | `/api/articles` | 新建文章 `{ path, lang }` |
+| POST | `/api/articles` | 新建文章 `{ path, lang?, title?, category? }`（标题缺省取路径最后一段） |
 | PUT | `/api/articles/:path/:lang` | 保存 `{ data, body }`；仅当 slugId 与路径一致且被修改时移动文件夹 |
 | DELETE | `/api/articles/:path` | 删除整篇文章（文件夹） |
 | POST | `/api/preview` | 实时预览 `{ data, body, base, lang }` → 完整 HTML 文档 |
@@ -126,17 +127,19 @@ cms/
 - 文章信息读取（列表 / 分类 / 概览统计）由 `server/store.mjs` 统一处理：目录并发遍历、文件并发读取，并按文件 `mtime + size` 缓存解析结果。文件被 CMS 保存或外部修改后缓存会自动失效，无需重启。
 - Typst 首次编译需加载原生编译器，约 1-3 秒；失败时预览区显示错误信息。
 - 修改 `server/` 目录下的代码后需要重启 `pnpm cms`（服务端模块不参与 HMR）。
+- **整页滚动条**：`styles.css` 的 `html { scrollbar-gutter: stable }` 常驻预留纵向滚动条槽位。CMS 用原生滚动条，内容高度跨过一屏时滚动条会吃掉约 15px 宽度，居中的 `.cms-main` 与顶栏会整体左右跳一下；删掉这一行就会复现。
 - **下拉选择一律用 `src/select.ts` 的 `createSelect()`**（界面里的原生 `<select>` 已全部替换）：返回值就是触发器本身，`.value` / `setOptions(options)` 照旧可用，值变化走 `onChange` 回调。选项面板挂在 `body` 上并用 `position: fixed` 定位（编辑器工具栏 / 弹窗 / 配置网格各有层叠上下文与 overflow，留在原地会被裁掉或压住），靠近视口底部自动向上翻转、超出可用高度时面板内部滚动；键盘支持 ↑↓ / Home / End / Enter / Esc / 首字母跳转，焦点始终留在触发器上。样式在 `styles.css` 的 `.cms-select-*`（箭头用两条边框画，颜色跟 `currentColor`，深浅色共用一套变量）。⚠️ 不要用触发器的 `blur` 来收起面板：触屏上点选项会先让按钮失焦，选项就永远选不上。
+- **「选已有或自己输入」的字段用 `createComboSelect()`**（同文件，目前是新建弹窗的分类）：外层是 `.input.cms-combo`，里面是真正的 `<input>` + 箭头按钮，`.value` 读写输入框文本、`.input` 拿输入框、`.closePanel()` 在关弹窗时收起面板；面板与 `createSelect` 共用 `.cms-select-*` 类名和同一个定位函数（`placePanel`），输入时按内容过滤，没有完全匹配时在顶部给一行「使用「xxx」」供直接采用。它监听的是输入框 `blur` / 面板项 `mousedown` 的 `preventDefault`——所以点选项不会先失焦。
 - **配置页悬浮目录栏**在 `src/pages/config-toc.ts`：目录项必须是 `<button>`，**不能**用 `#anchor` 链接——CMS 是 hash 路由，改 hash 会直接把页面切走；分区列表由 `renderBody` 每次重建表单后调 `setSections()` 刷新；「主题与动效」的分组靠 `FieldDef.group`（同名连续字段为一组，组间一条 `--border-soft` 横线）。
 - **编辑页自动保存**在 `src/pages/EditorPage.ts`：定时器跟界面一起建、在 `__cleanup` 里 `clearInterval`（换路由不残留）。`doSave` 三处要点：① 请求前先固化 `payload` 并按它算快照，请求期间的新输入才不会被误标成已保存（手动保存同样受益）；② 成功后同步 `state.detail.files[lang]`，否则切到另一种语言再切回来会读到打开页面时的旧内容，并被自动保存写回磁盘；③ 自动保存不调 `navigate`——那会重建编辑器 DOM、丢掉光标与撤销栈，slugId 改名真的移动文件夹时才用 `history.replaceState` 静默对齐地址栏。
 - **编辑页滚动同步**在 `src/pages/EditorPage.ts` 的 `setupScrollSync()` 与 `server/preview.mjs` 的 `PREVIEW_SYNC_SCRIPT`：跨源 iframe 只能 postMessage，发送走 rAF 节流、每帧最多一条；用两侧「最近一次主动滚动」的时间戳识别回声，**不把预览回传的位置再写回 textarea**（以前用 80ms 抑制回环，预览每回传一次就重置一次抑制窗口，左侧滚动被压成一段一段的，右侧预览看起来一顿一顿）。实时预览每次输入都会重建 iframe 文档，所以预览脚本就绪后先发 `cms-preview-ready`，父窗口再按重建前的滚动比例发 `cms-scroll-to` 恢复位置——否则每次输入预览都会跳回顶部。
 - 博客根目录相对路径图片（`/images/xxx.png`）在预览中不会加载（仅本地文件相对路径可用）。
-- **媒体库**（`server/media.mjs` + `pages/MediaPage.ts`）：blog 图片按「最近的含 `.md` 的目录」归到所属文章，复制 Markdown 时用相对文章目录的 `./...`，public 图片用 `/...`。上传先压缩再按内容 sha256 与同 scope 已有图片比对，命中重复不写盘并返回 `duplicate`（前端给一键复用）；重名自动加 `-1` / `-2`。宽高优先用 `sharp`，加载失败时退化为内置文件头解析并在响应里标注 `compressed: false`。目录扫描最多 2000 个文件，忽略 `node_modules` / `dist` / `.astro` 等目录；重命名不会自动更新文章里的引用。
-- **批量操作**（`server/batch.mjs` + `pages/ListPage.ts`）：`/api/batch/update` 复用 `store.mjs` 的 `readArticle` / `saveArticle` 逐语言写 frontmatter，分类 / 置顶变化不会移动文件夹；批量删除由前端逐篇调 `DELETE /api/articles/:path` 并收集失败项。导出 ZIP 用 STORE（不压缩）+ 手写 CRC32 表，文件名 UTF-8 并置通用标志位 `0x0800`，因此体积等于所有 Markdown 原文之和（未做 deflate）。列表页的选中集合在每次刷新 / 切换筛选 / 切换视图后都与当前可见列表求交集。
+- **`hidden` 属性统一由 `styles.css` 顶部的 `[hidden] { display: none !important }` 兜底**：组件类里一旦写了 `display: flex/grid`，浏览器对 `hidden` 的默认样式会被作者样式盖掉（批量操作条、拖拽提示都踩过这个坑），所以不要再给需要隐藏的元素单独写 `display` 而指望 `hidden` 生效。
+- **批量操作**（`server/batch.mjs` + `pages/ListPage.ts`）：列表页默认**不是**批量模式，`state.batchMode` 为 false 时不渲染任何多选框、批量操作条隐藏；顶部「批量操作」按钮切换 `is-batch` 并重绘列表（表格多选列随开关增删，`fitTableColumns` 要传同一份列定义，窗口 resize 时也一样），退出批量会清空选中。动作按钮在没有选中 / 执行中时禁用。`/api/batch/update` 复用 `store.mjs` 的 `readArticle` / `saveArticle` 逐语言写 frontmatter，分类 / 置顶变化不会移动文件夹；批量删除由前端逐篇调 `DELETE /api/articles/:path` 并收集失败项。导出 ZIP 用 STORE（不压缩）+ 手写 CRC32 表，文件名 UTF-8 并置通用标志位 `0x0800`，因此体积等于所有 Markdown 原文之和（未做 deflate）。列表页的选中集合在每次刷新 / 切换筛选 / 切换视图后都与当前可见列表求交集。
 
 ## 测试
 
-`smoke.mjs` 是基于 jsdom 的端到端冒烟测试（真实点击「新建文章」→ 创建 → 编辑 → 实时预览 → 保存 → 删除）。需先启动服务再运行：
+`smoke.mjs` 是基于 jsdom 的端到端冒烟测试（真实点击「新建文章」→ 填标题 / 路径 / 自定义分类创建 → 编辑 → 实时预览 → 保存 → 删除），并覆盖空路径自动生成日期路径、列表批量模式的开关。需先启动服务再运行：
 
 ```bash
 pnpm cms                  # 终端 1：启动服务
