@@ -34,6 +34,8 @@
   const PANEL_GAP = 8;
   /** 面板与可视视口边缘保留的空白 */
   const VIEWPORT_MARGIN = 12;
+  /** 触发按钮的左内边距（Tailwind 的 p-2）：面板要对齐到图标，而不是按钮盒 */
+  const BUTTON_PADDING_LEFT = 8;
   /**
    * 面板配色变量：它们定义在 `.comment-container`（style/main.css）而不是 `:root`，
    * portal 到 body 后不再继承，必须复制成面板的内联样式，否则面板无边框、文字色也不对。
@@ -160,7 +162,7 @@
     );
     const minLeft = view.left + edge;
     const maxLeft = Math.max(minLeft, view.left + view.width - width - edge);
-    const left = Math.round(Math.min(Math.max(rect.left, minLeft), maxLeft));
+    const left = Math.round(Math.min(Math.max(rect.left + BUTTON_PADDING_LEFT, minLeft), maxLeft));
 
     const belowTop = rect.bottom + PANEL_GAP;
     const belowSpace = view.top + view.height - belowTop - edge;
@@ -291,7 +293,7 @@
 
 <svelte:window on:click={onWindowClick} on:keydown={onWindowKeydown} />
 
-<div class="relative inline-block">
+<div class="relative -ml-2 inline-block">
   <button
     type="button"
     bind:this={buttonEl}

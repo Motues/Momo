@@ -338,9 +338,20 @@ async function listMedia(scope, q) {
     : [...dirs].sort((a, b) => a.localeCompare(b))
 
   // 上传弹窗的目标列表：两个 scope 都返回文章目录，图片统一落到 <文章目录>/images
+  // 顺序与文章列表的默认排序一致：置顶优先 → 发布日期倒序 → 路径兜底
   const articles = (await scanArticles())
-    .map((a) => ({ dir: a.path, title: a.title || a.path }))
-    .sort((a, b) => a.dir.localeCompare(b.dir))
+    .map((a) => ({
+      dir: a.path,
+      title: a.title || a.path,
+      pubDate: a.pubDate || '',
+      pinTop: a.pinTop || 0,
+    }))
+    .sort(
+      (a, b) =>
+        b.pinTop - a.pinTop ||
+        (b.pubDate || '').localeCompare(a.pubDate || '') ||
+        a.dir.localeCompare(b.dir),
+    )
 
   return {
     scope,
@@ -510,9 +521,72 @@ async function textHaystack() {
 
 const IMAGE_TOKEN = /[\w.\-\u4e00-\u9fff]+\.(?:png|jpe?g|gif|webp|avif|svg|ico)/gi
 
-// 找图片被哪些 markdown 引用：按文件名做保守匹配（宁可多报，避免误删）
-async function findReferences(rel) {
-  const needle = basename(rel).toLowerCase()
+// Markdown 图片 / 链接：![alt](./images/a.png "title")、[x](../b/a.png)
+const MD_IMAGE_REF = /!?\[[^\]]*\]\(\s*(?:<([^>\s]+)>|([^\s)]+))(?:\s+["'][^"']*["'])?\s*\)/g
+// 引用式链接定义：[id]: ./images/a.png
+const MD_REF_DEF = /^\s*\[[^\]]+\]:\s*(\S+)/gm
+// HTML / MDX 属性：src="…"、href="…"、poster="…"
+const ATTR_IMAGE_REF = /\b(?:src|href|poster)\s*=\s*["']([^"']+)["']/gi
+// CSS / 行内样式：url(./images/a.png)
+const CSS_IMAGE_REF = /url\(\s*["']?([^"')]+)["']?\s*\)/gi
+// frontmatter 封面：image: ./cover.jpg
+const FRONTMATTER_IMAGE = /^\s*image\s*:\s*["']?([^"'\r\n#]+?)["']?\s*$/gm
+const IMAGE_EXT_SUFFIX = /\.(?:png|jpe?g|gif|webp|avif|svg|ico)(?:[?#].*)?$/i
+
+// 从一段 Markdown 文本里收集所有可能是图片引用的候选串（srcset 会拆成多项）
+function collectImageRefs(text) {
+  const out = []
+  const push = (raw) => {
+    const value = String(raw || '').trim()
+    if (!value) return
+    for (const part of value.split(',')) {
+      const token = part.trim().split(/\s+/)[0]
+      if (token && IMAGE_EXT_SUFFIX.test(token)) out.push(token)
+    }
+  }
+  for (const m of text.matchAll(MD_IMAGE_REF)) push(m[1] || m[2])
+  for (const m of text.matchAll(MD_REF_DEF)) push(m[1])
+  for (const m of text.matchAll(ATTR_IMAGE_REF)) push(m[1])
+  for (const m of text.matchAll(CSS_IMAGE_REF)) push(m[1])
+  for (const m of text.matchAll(FRONTMATTER_IMAGE)) push(m[1])
+  // 兜底：不依赖语法结构出现的裸路径（如 HTML 里没有引号的 src），按 md 所在目录解析
+  for (const m of text.matchAll(IMAGE_TOKEN)) push(m[0])
+  return out
+}
+
+// 把引用串解析成绝对路径：`/…` 相对 public，其余相对当前 markdown 所在目录
+function resolveImageRef(raw, fromDir) {
+  let value = String(raw || '').trim().replace(/^<|>$/g, '')
+  if (!value) return null
+  // 外链 / data URI / 锚点不参与本地引用匹配
+  if (/^(?:[a-z][a-z0-9+.-]*:|\/\/)/i.test(value)) return null
+  value = value.split('#')[0].split('?')[0]
+  if (!value) return null
+  try {
+    value = decodeURIComponent(value)
+  } catch {
+    /* 非法百分号编码就按原样解析 */
+  }
+  value = value.replace(/\\/g, '/')
+  return value.startsWith('/')
+    ? resolve(PUBLIC_DIR, value.replace(/^\/+/, ''))
+    : resolve(fromDir, value)
+}
+
+// Windows 文件系统不区分大小写；resolve 已消除 `..` 与分隔符差异
+function samePath(a, b) {
+  const left = resolve(a)
+  const right = resolve(b)
+  return process.platform === 'win32' ? left.toLowerCase() === right.toLowerCase() : left === right
+}
+
+// 找图片被哪些 markdown 引用：按「解析后的绝对路径」精确匹配。
+// ⚠️ 不能只比文件名——不同文章目录下常有同名图片（如 images/1.png），只比名字会把
+// 别的文章的引用算进来（曾导致引用统计偏多）。
+async function findReferences(scope, rel) {
+  const root = MEDIA_ROOTS[scope]
+  if (!root) return []
+  const target = resolve(root, ...rel.split('/').filter(Boolean))
   const files = (await collectTextFiles(CONTENT_DIR)).filter((file) => {
     const ext = extname(file).toLowerCase()
     return ext === '.md' || ext === '.mdx'
@@ -520,9 +594,13 @@ async function findReferences(rel) {
   const refs = []
   for (const file of files) {
     const text = await readTextCached(file)
-    if (text && text.toLowerCase().includes(needle)) {
-      refs.push(file.slice(CONTENT_DIR.length).replace(/\\/g, '/'))
-    }
+    if (!text) continue
+    const fromDir = dirname(file)
+    const referenced = collectImageRefs(text).some((raw) => {
+      const abs = resolveImageRef(raw, fromDir)
+      return abs !== null && samePath(abs, target)
+    })
+    if (referenced) refs.push(file.slice(CONTENT_DIR.length).replace(/\\/g, '/'))
   }
   return refs.sort()
 }
@@ -754,7 +832,7 @@ media.get('/refs', async (c) => {
   const scope = normalizeScope(c.req.query('scope'))
   const rel = safeRel(c.req.query('path') || '')
   if (!scope || !rel || !isImageName(rel)) return c.json({ error: '无效的图片路径' }, 400)
-  return c.json({ path: rel, refs: await findReferences(rel) })
+  return c.json({ path: rel, refs: await findReferences(scope, rel) })
 })
 
 // GET /api/media/unused?scope= —— 扫描未被任何文本引用的图片

@@ -93,6 +93,10 @@ export interface MediaGroup {
 export interface MediaArticleTarget {
   dir: string
   title: string
+  /** 发布日期（YYYY-MM-DD）；与文章列表默认排序一致用 */
+  pubDate?: string
+  /** 置顶权重，越大越靠前 */
+  pinTop?: number
 }
 
 export interface MediaList {

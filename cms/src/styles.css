@@ -241,6 +241,42 @@ body {
 
 .cms-select-panel.is-drop-up { animation-name: cms-select-in-up; }
 
+/* 带搜索框的下拉：搜索框固定在顶部，只有选项列表滚动 */
+.cms-select-panel.has-search {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.cms-select-panel.has-search .cms-select-list {
+  position: relative;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.cms-select-search {
+  flex: none;
+  width: 100%;
+  margin: 0 0 6px;
+  padding: 6px 8px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg);
+  color: var(--text);
+  font: inherit;
+  font-size: 13px;
+}
+
+.cms-select-search::placeholder { color: var(--text-sub); }
+
+.cms-select-search:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+
 .cms-select-option {
   padding: 6px 10px;
   border-radius: 6px;

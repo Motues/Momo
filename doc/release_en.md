@@ -29,6 +29,14 @@ Below are general modification suggestions.
 
 > Version numbers follow the `YY.MM.DD` format
 
+### 26.11.25
+
+* **A better CMS media library**: uploads now use an image-host style dialog with drag & drop or multi-select, an adjustable compression quality with a live size estimate, and external URLs that become Markdown directly; the image detail view offers replace, move, rename and delete plus a list of referencing posts; upload targets follow the post list's default order (pinned first, then newest) and the dropdown can search titles or folders
+* **Faster post creation**: the new-post dialog now takes the title, path, language and category in one go, and the category field accepts both existing and new values
+* **More accurate reference counts**: image references are matched by full path, so same-named images in different post folders no longer count each other
+* **Fixes**: the emoji button in the comment box aligns with the left edge of the input, and friend-link avatars fall back to the built-in default when they fail to load (including when navigating to the friends page from inside the site)
+* **Leaner search dialog**: removed the category filter and search history while keeping per-article grouping, matched-paragraph jumps and recent-post suggestions when nothing matches
+
 ### 26.11.23
 
 * **Site search rebuilt**: no more Pagefind — the index is generated per language at build time, matches Chinese by word, and still finds mixed-language or long queries; results group by article and jump straight to the matched paragraph, with category filters, search history and recent-post suggestions when nothing matches, plus `/` or `?q=` to open it directly

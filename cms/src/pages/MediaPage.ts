@@ -819,6 +819,8 @@ export async function renderMedia(root: HTMLElement) {
       id: 'upload-target',
       title: '上传到哪个目录',
       options: [{ value: '', label: '加载中…' }],
+      search: true,
+      searchPlaceholder: '搜索文章标题或目录…',
       onChange: (value: string) => {
         targetDirValue = value
         syncTargetHint()

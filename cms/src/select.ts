@@ -1,10 +1,11 @@
 // 自研下拉选择组件（替换原生 <select>）
 //
-// 用法：createSelect({ id, class?, title?, options, value?, onChange }) 返回触发器本身，
+// 用法：createSelect({ id, class?, title?, options, value?, onChange, search? }) 返回触发器本身，
 //       .value 读写当前值，.setOptions(options, value?) 重建选项。
 //
-// ⚠️ 面板挂在 body 上、position: fixed 定位（否则会被层叠上下文 / overflow 裁掉或压住），
-// 焦点始终留在触发器上，键盘交互只挂在触发器上；Esc 额外用 document 捕获监听兜底。
+// ⚠️ 面板挂在 body 上、position: fixed 定位（否则会被层叠上下文 / overflow 裁掉或压住）。
+// 不开搜索框时焦点留在触发器上、键盘交互都挂在触发器上；开 search 后打开面板焦点进入
+// 顶部搜索框，方向键 / Enter / Esc 由输入框接管。Esc 额外用 document 捕获监听兜底。
 import { el } from './dom'
 
 export interface SelectOption {
@@ -21,6 +22,10 @@ export interface SelectConfig {
   options?: SelectOption[]
   /** 值变化时回调（同值不触发） */
   onChange?: (value: string) => void
+  /** 面板顶部显示搜索框，按 label / value 实时过滤（选项很多时用） */
+  search?: boolean
+  /** 搜索框占位文案（默认「搜索…」） */
+  searchPlaceholder?: string
 }
 
 export interface SelectControl extends HTMLButtonElement {
@@ -58,11 +63,15 @@ function placePanel(panel: HTMLElement, rect: DOMRect) {
 
 export function createSelect(config: SelectConfig = {}): SelectControl {
   const panelId = `cms-select-${++uid}`
+  const listId = `${panelId}-list`
   let options: SelectOption[] = [...(config.options || [])]
+  /** 搜索过滤后真正展示 / 可键盘选中的选项 */
+  let visibleOptions: SelectOption[] = options
   let value = config.value ?? ''
   let activeIndex = 0
   let open = false
-  // 首字母跳转的前缀缓冲：600ms 内的连续按键合并成前缀
+  let query = ''
+  // 首字母跳转的前缀缓冲：600ms 内的连续按键合并成前缀（不开搜索框时用）
   let typeBuffer = ''
   let typeTimer = 0
 
@@ -78,7 +87,7 @@ export function createSelect(config: SelectConfig = {}): SelectControl {
       role: 'combobox',
       'aria-haspopup': 'listbox',
       'aria-expanded': 'false',
-      'aria-controls': panelId,
+      'aria-controls': listId,
     },
     [valueEl, arrowEl],
   ) as SelectControl
@@ -86,11 +95,28 @@ export function createSelect(config: SelectConfig = {}): SelectControl {
   const panel = el('div', {
     class: 'cms-select-panel',
     id: panelId,
-    role: 'listbox',
     hidden: true,
   })
-  // 面板内按下鼠标时不要把焦点从触发器上抢走（键盘操作依赖触发器保持聚焦）
-  panel.addEventListener('mousedown', (e) => e.preventDefault())
+  const listEl = el('div', { class: 'cms-select-list', id: listId, role: 'listbox' })
+  const searchInput = config.search
+    ? (el('input', {
+        type: 'search',
+        class: 'cms-select-search',
+        placeholder: config.searchPlaceholder || '搜索…',
+        autocomplete: 'off',
+        spellcheck: false,
+        'aria-label': config.searchPlaceholder || '搜索选项',
+        'aria-controls': listId,
+      }) as HTMLInputElement)
+    : null
+  panel.append(...(searchInput ? [searchInput] : []), listEl)
+  // 带搜索框时面板本身不滚，只让选项列表在面板剩余高度里滚（搜索框固定在顶部）
+  if (searchInput) panel.classList.add('has-search')
+  // 面板内按下鼠标时不要把焦点从搜索框 / 触发器上抢走；搜索框本身要能正常聚焦
+  panel.addEventListener('mousedown', (e) => {
+    if (searchInput && (e.target === searchInput || searchInput.contains(e.target as Node))) return
+    e.preventDefault()
+  })
 
   // .value 习惯用法照旧可用（编辑器工具栏等直接读 sel.value）
   Object.defineProperty(trigger, 'value', {
@@ -114,15 +140,28 @@ export function createSelect(config: SelectConfig = {}): SelectControl {
     activeIndex = Math.max(0, options.findIndex((o) => o.value === value))
   }
 
+  /** 按搜索词过滤：label 与 value 都参与匹配 */
+  function applyFilter() {
+    const needle = query.trim().toLowerCase()
+    visibleOptions = needle
+      ? options.filter(
+          (o) => o.label.toLowerCase().includes(needle) || o.value.toLowerCase().includes(needle),
+        )
+      : options.slice()
+  }
+
   function syncRows() {
-    panel.textContent = ''
-    if (!options.length) {
-      panel.append(el('div', { class: 'cms-select-empty' }, ['暂无可选项']))
+    listEl.textContent = ''
+    if (!visibleOptions.length) {
+      listEl.append(
+        el('div', { class: 'cms-select-empty' }, [query.trim() ? '没有匹配的选项' : '暂无可选项']),
+      )
+      activeIndex = -1
       return
     }
-    options.forEach((opt, i) => {
+    visibleOptions.forEach((opt, i) => {
       const selected = opt.value === value
-      panel.append(
+      listEl.append(
         el(
           'div',
           {
@@ -137,23 +176,28 @@ export function createSelect(config: SelectConfig = {}): SelectControl {
         ),
       )
     })
+    activeIndex = Math.max(0, Math.min(activeIndex, visibleOptions.length - 1))
+    setActive(activeIndex, false)
   }
 
-  // 高亮某一项（不动值）；rows 自己滚，不用 scrollIntoView——那会连页面一起滚
+  // 高亮某一项（不动值）；列表自己滚，不用 scrollIntoView——那会连页面一起滚
   function setActive(index: number, scroll = true) {
-    if (!options.length) return
-    activeIndex = (index + options.length) % options.length
-    const rows = panel.children
+    if (!visibleOptions.length) return
+    activeIndex = (index + visibleOptions.length) % visibleOptions.length
+    const rows = listEl.children
     for (let i = 0; i < rows.length; i++) rows[i].classList.toggle('is-active', i === activeIndex)
     const row = rows[activeIndex] as HTMLElement | undefined
     if (!row) return
-    trigger.setAttribute('aria-activedescendant', row.id)
+    // 面板收起时（初始化 / setOptions）不必写 aria-activedescendant
+    if (open) (searchInput ?? trigger).setAttribute('aria-activedescendant', row.id)
     if (!scroll) return
+    // 搜索模式下由内层列表滚动，普通下拉仍是面板自己滚
+    const scroller = searchInput ? listEl : panel
     const top = row.offsetTop
     const bottom = top + row.offsetHeight
-    if (top < panel.scrollTop) panel.scrollTop = top - 4
-    else if (bottom > panel.scrollTop + panel.clientHeight) {
-      panel.scrollTop = bottom - panel.clientHeight + 4
+    if (top < scroller.scrollTop) scroller.scrollTop = top - 4
+    else if (bottom > scroller.scrollTop + scroller.clientHeight) {
+      scroller.scrollTop = bottom - scroller.clientHeight + 4
     }
   }
 
@@ -188,7 +232,7 @@ export function createSelect(config: SelectConfig = {}): SelectControl {
     close()
   }
 
-  // Esc 兜底：焦点万一不在触发器上（脚本点击、焦点被别的东西拿走）也要能收起
+  // Esc 兜底：焦点万一不在搜索框 / 触发器上（脚本点击、焦点被别的东西拿走）也要能收起
   function onDocKeyDown(e: KeyboardEvent) {
     if (e.key !== 'Escape') return
     e.preventDefault()
@@ -205,10 +249,16 @@ export function createSelect(config: SelectConfig = {}): SelectControl {
     openCloser = close
     trigger.classList.add('is-open')
     trigger.setAttribute('aria-expanded', 'true')
+    // 每次打开都从完整列表开始，避免上次的搜索词把当前值过滤掉
+    query = ''
+    if (searchInput) searchInput.value = ''
+    applyFilter()
     syncRows()
     // 先定位（此时才量得到最终高度），再把当前值滚进可视区
     place()
-    setActive(Math.max(0, options.findIndex((o) => o.value === value)))
+    setActive(Math.max(0, visibleOptions.findIndex((o) => o.value === value)))
+    // 开搜索框时焦点直接进输入框，打开即可输入过滤；否则保持原来的「焦点留在触发器」
+    if (searchInput) searchInput.focus({ preventScroll: true })
     document.addEventListener('pointerdown', onDocPointerDown, true)
     document.addEventListener('keydown', onDocKeyDown, true)
     window.addEventListener('resize', close)
@@ -220,11 +270,15 @@ export function createSelect(config: SelectConfig = {}): SelectControl {
     if (!open) return
     open = false
     if (openCloser === close) openCloser = null
+    // 搜索框在面板里：先记住焦点是否在里面，移除面板后把焦点还给触发器
+    const focusInPanel = panel.contains(document.activeElement)
     trigger.classList.remove('is-open')
     trigger.setAttribute('aria-expanded', 'false')
     trigger.removeAttribute('aria-activedescendant')
+    searchInput?.removeAttribute('aria-activedescendant')
     panel.hidden = true
     panel.remove()
+    if (focusInPanel) trigger.focus({ preventScroll: true })
     clearTimeout(typeTimer)
     typeBuffer = ''
     document.removeEventListener('pointerdown', onDocPointerDown, true)
@@ -240,9 +294,9 @@ export function createSelect(config: SelectConfig = {}): SelectControl {
     typeBuffer = now - typeTimer > 600 ? char : typeBuffer + char
     typeTimer = now
     const needle = typeBuffer.toLowerCase()
-    for (let i = 0; i < options.length; i++) {
-      const index = (activeIndex + i) % options.length
-      if (options[index].label.toLowerCase().startsWith(needle)) {
+    for (let i = 0; i < visibleOptions.length; i++) {
+      const index = (activeIndex + i) % visibleOptions.length
+      if (visibleOptions[index].label.toLowerCase().startsWith(needle)) {
         setActive(index)
         return
       }
@@ -263,27 +317,32 @@ export function createSelect(config: SelectConfig = {}): SelectControl {
       case 'ArrowDown':
       case 'ArrowUp': {
         e.preventDefault()
-        if (!open) openPanel()
+        if (!open) {
+          openPanel()
+          return
+        }
+        // 开了搜索框时焦点已经移进输入框，方向键由它处理
+        if (searchInput) return
         setActive(activeIndex + (e.key === 'ArrowDown' ? 1 : -1))
         return
       }
       case 'Home':
-        if (open) {
+        if (open && !searchInput) {
           e.preventDefault()
           setActive(0)
         }
         return
       case 'End':
-        if (open) {
+        if (open && !searchInput) {
           e.preventDefault()
-          setActive(options.length - 1)
+          setActive(visibleOptions.length - 1)
         }
         return
       case 'Enter':
       case ' ':
         e.preventDefault()
-        if (open) pick(options[activeIndex]?.value ?? value)
-        else openPanel()
+        if (!open) openPanel()
+        else if (visibleOptions.length) pick(visibleOptions[activeIndex]?.value ?? value)
         return
       case 'Escape':
         if (open) {
@@ -301,16 +360,63 @@ export function createSelect(config: SelectConfig = {}): SelectControl {
     }
   })
 
+  // 搜索框：输入即过滤，键盘操作与普通下拉一致（↑↓ / Home / End / Enter / Esc / Tab）
+  searchInput?.addEventListener('input', () => {
+    query = searchInput.value
+    applyFilter()
+    activeIndex = 0
+    syncRows()
+    place()
+  })
+
+  searchInput?.addEventListener('keydown', (e: KeyboardEvent) => {
+    if (e.ctrlKey || e.metaKey || e.altKey) return
+    switch (e.key) {
+      case 'ArrowDown':
+      case 'ArrowUp': {
+        e.preventDefault()
+        setActive(activeIndex + (e.key === 'ArrowDown' ? 1 : -1))
+        return
+      }
+      case 'Home':
+        e.preventDefault()
+        setActive(0)
+        return
+      case 'End':
+        e.preventDefault()
+        setActive(visibleOptions.length - 1)
+        return
+      case 'Enter':
+        e.preventDefault()
+        if (visibleOptions.length) pick(visibleOptions[activeIndex]?.value ?? value)
+        return
+      case 'Escape':
+        // 面板打开时 Esc 只收面板，别让弹窗跟着关掉
+        e.preventDefault()
+        e.stopPropagation()
+        close()
+        trigger.focus({ preventScroll: true })
+        return
+      case 'Tab':
+        // 面板挂在 body 末尾，不接管焦点的话 Tab 会跑出弹窗；先关面板再把焦点还给触发器
+        close()
+        trigger.focus({ preventScroll: true })
+        return
+    }
+  })
+
   trigger.setOptions = (next: SelectOption[], nextValue?: string) => {
     options = next.map((o) => ({ ...o }))
     if (nextValue !== undefined) value = nextValue
     normalizeValue()
     syncLabel()
+    applyFilter()
     syncRows()
     if (open) place()
   }
 
   normalizeValue()
+  applyFilter()
   syncLabel()
   syncRows()
   return trigger

@@ -5,6 +5,7 @@ import Cover from '@components/Cover.astro';
 import Markdown from '@components/misc/Markdown.astro';
 
 import { getSpec } from '@utils/contentUtils'
+import { DEFAULT_AVATAR_URL } from '@utils/avatar'
 
 import i18nit from '@i18n/translation';
 import { getEntry, render } from 'astro:content'
@@ -50,13 +51,14 @@ const revealAttrs = (index: number) => siteConfig.theme.AOS
                         >
                             <div class="flex items-center min-w-0">
                                 <img
-                                    src={friend.avatar}
+                                    src={friend.avatar || DEFAULT_AVATAR_URL}
                                     alt={friend.name}
                                     width="64"
                                     height="64"
                                     loading="lazy"
                                     decoding="async"
                                     data-friend-avatar
+                                    onerror={`this.onerror=null;this.src='${DEFAULT_AVATAR_URL}'`}
                                     class="w-16 h-16 rounded-full object-cover mr-4 flex-shrink-0"
                                 />
                                 <div class="min-w-0">
@@ -85,26 +87,3 @@ const revealAttrs = (index: number) => siteConfig.theme.AOS
         </Markdown>
     </div>
 </MainPageLayout>
-
-<script>
-import { registerPageInit } from '@utils/pageInit';
-import { DEFAULT_AVATAR_URL } from '@utils/avatar';
-
-// 头像加载失败时换成内置的本地默认头像（data URI，不依赖外网）。走 registerPageInit：
-// swup 换页时模块不会重跑
-function initFriendAvatars() {
-    document.querySelectorAll<HTMLImageElement>('img[data-friend-avatar]').forEach((img) => {
-        if (img.dataset.avatarBound === '1') return;
-        img.dataset.avatarBound = '1';
-
-        img.addEventListener('error', () => {
-            img.src = DEFAULT_AVATAR_URL;
-        }, { once: true });
-
-        // 图片在绑定前就已经失败（缓存里的坏图）：complete 为真但自然宽度是 0
-        if (img.complete && img.naturalWidth === 0) img.src = DEFAULT_AVATAR_URL;
-    });
-}
-
-registerPageInit(initFriendAvatars);
-</script>
